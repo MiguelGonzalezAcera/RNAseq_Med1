@@ -9,6 +9,7 @@ reference genome to use (defaults to mm10).
 """
 import argparse
 import logging
+import os
 import python_functions as pf
 
 def mapping(config, tool_name, logger):
