@@ -1,7 +1,10 @@
 import os
 import logging
+import glob
 
 def run_command(command, logger):
+    """Runs a command. Raises error if it misses
+    """
     try:
         os.system(command)
     except ErrorCommandRun as errcomm:
@@ -24,3 +27,12 @@ def create_logger(logpath, name='logger'):
     logger.addHandler(hdl)
 
     return logger
+
+def list_files_dir(dirpath, ext=""):
+    """List files in a directory. Can specify an extension.
+    """
+
+    filelist = glob.glob(f"{dirpath}/{ext}")
+    if len(filelist) == 0:
+        raise ValueError(f'Directory {filepath} is empty.')
+    return filelist
