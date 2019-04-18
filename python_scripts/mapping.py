@@ -35,8 +35,10 @@ def mapping(config, tool_name, logger):
     command_3 = f"STAR --genomeLoad Remove --genomeDir {genomeDir}"
     command_4 = f'mkdir {bamdir}; mv {path + "/*.bam*"} {bamdir}'
 
-    command = "; ".join(command_1, command_2, command_3)
-    pf.run_command(command)
+    command = "; ".join(command_1, command_2, command_3, command_4)
+    logger.info(command)
+
+    pf.run_command(command, logger)
 
 def get_arguments():
     """
@@ -94,9 +96,9 @@ def main():
       }
 
     # Startup the logger format
-    pf.create_logger(config['log_files'][0])
+    logger = pf.create_logger(config['log_files'][0])
 
-    mapping(config, 'mapping')
+    mapping(config, 'mapping', logger)
 
 
 if __name__ == "__main__":
