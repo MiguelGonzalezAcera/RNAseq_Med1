@@ -8,8 +8,7 @@ reference genome to use (defaults to mm10).
 
 """
 import argparse
-import os
-import logger
+import logging
 import python_functions as pf
 
 def mapping(config, tool_name, logger):
@@ -21,8 +20,8 @@ def mapping(config, tool_name, logger):
     """
 
     # Get the paths to the files that are going to be input/output
-    R1_FILES = config['tools_conf']['input']['fastq_r1']
-    R2_FILES = config['tools_conf']['input']['fastq_r2']
+    R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
+    R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
     bamdir = config['tools_conf']['output']['bam_dir']
     path = R1_FILES[0].split("/")[:-1]
 
