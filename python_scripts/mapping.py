@@ -22,19 +22,22 @@ def mapping(config, tool_name, logger):
     # Get the paths to the files that are going to be input/output
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
     R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
-    bamdir = config['tools_conf']['output']['bam_dir']
+    bamdir = config['tools_conf'][tool_name]['output']['bam_dir']
     path = R1_FILES[0].split("/")[:-1]
 
     ## Possible Command style
     # STAR --genomeLoad LoadAndExit --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/; for file in $(cat fastq.test.txt); do echo $file STAR --runThreadN 10 --readFilesCommand gzip -cd --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/ --readFilesIn $file ${file%_1.fastq.gz}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > ${file%_1.fastq.gz}.bam; samtools-1.9 index ${file%_1.fastq.gz}.bam; mv ${file%_1.fastq.gz}.bam* BAM/; done; STAR --genomeLoad Remove --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/
-    command_1 = f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}"
-    command_2 = f'for file in {" ".join(R1_FILES)}; do STAR --runThreadN {config['tools_conf']['tool_conf']['threads']} --readFilesCommand gzip -cd \
+    command = ""
+
+    command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}"
+    command += f'for file in {" ".join(R1_FILES)}; do STAR --runThreadN {config['tools_conf']['tool_conf']['threads']} --readFilesCommand gzip -cd \
     --genomeDir {genomePath} --readFilesIn $file ${{file%_1.fastq.gz}}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd \
     BAM_SortedByCoordinate > ${{file%_1.fastq.gz}}.bam; samtools-1.9 index ${{file%_1.fastq.gz}}.bam'
-    command_3 = f"STAR --genomeLoad Remove --genomeDir {genomeDir}"
-    command_4 = f'mkdir {bamdir}; mv {path + "/*.bam*"} {bamdir}'
+    command += f"STAR --genomeLoad Remove --genomeDir {genomeDir}"
+    if not os.path.exists(bamdir):
+        command += f"mkdir {bamdir}"
+    command += f'mv {path + "/*.bam*"} {bamdir}'
 
-    command = "; ".join(command_1, command_2, command_3, command_4)
     logger.info(command)
 
     pf.run_command(command, logger)
