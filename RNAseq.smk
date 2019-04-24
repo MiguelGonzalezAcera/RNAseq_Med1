@@ -23,17 +23,32 @@ rule Mapping
         }
         python_scripts.mapping.mapping(config_dict, tool_name)
 
-rule Counts
+rule cpb
     input:
         bamdir = rule.Mapping.output.bamdir
     output:
-        counts = f"{outfolder}/counts.tsv"
+        cpbdir = f"{outfolder}/cpbfiles"
     run:
-        tool_name = 'mapping'
+        tool_name = 'get_cpb'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
             'software': {},
             'tool_conf': {}
         }
-        python_scripts.mapping.mapping(config_dict, tool_name)
+        python_scripts.get_cpb.cpb(config_dict, tool_name)
+
+rule Counts
+    input:
+        bamdir = rule.Mapping.output.bamdir
+    output:
+        counts = f"{outfolder}/counts.tsv"
+    run:
+        tool_name = 'get_counts'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.get_counts.counts(config_dict, tool_name)

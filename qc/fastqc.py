@@ -1,6 +1,8 @@
 import argparse
 import os
 import logging
+import zipfile
+import glob
 import python_functions as pf
 
 def fastqc(config, tool_name, logger):
@@ -32,6 +34,63 @@ def fastqc(config, tool_name, logger):
     logger.info(command)
 
     pf.run_command(command, logger)
+
+    fastqc_eval(fastqcdir)
+
+def fastqc_eval(fastqcdir):
+    qc_data = {'files': {}}
+    estados = []
+
+    pattern = os.path.join(fastqcdir, '*.zip')
+    files = glob.glob(pattern)
+
+    for in_file in files:
+
+        zip_ref = zipfile.ZipFile(in_file, 'r')
+        zip_ref.extractall(fastqcdir)
+        zip_ref.close()
+
+
+        eval_file = os.path.join(in_file.strip('.zip'), 'summary.txt')
+
+        estado = 'OK'
+
+        for line in open(eval_file, 'r'):
+            line = line.strip('\n').split('\t')
+
+            # TODO: Change the ones that fail usually in nextgene
+            if line[1] in ['Per base sequence content',
+                           'Per sequence GC content',
+                           'Sequence Length Distribution',
+                           'Overrepresented sequences',
+                           'Sequence Duplication Levels',
+                           'Kmer Content']:
+                pass
+
+            else:
+                if line[0] == 'FAIL':
+                    estado = 'FAIL'
+
+                if line[0] == 'WARN' and estado != 'FAIL':
+                    estado = 'WARN'
+
+
+        qc_data['files'][in_file.strip('.zip')] = estado
+        estados.append(estado)
+
+    qc_data['resume'] = 'PASS'
+
+    if any(estados) == 'WARN':
+        qc_data['resume'] = 'WARN'
+
+    if any(estados) == 'FAIL':
+        qc_data['resume'] = 'FAIL'
+
+
+    out_file = open(self.OUTEVAL, 'w')
+    json.dump(qc_data, out_file)
+    out_file.close()
+
 
 
 def get_arguments():
