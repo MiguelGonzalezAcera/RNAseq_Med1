@@ -14,7 +14,8 @@ def counts(config, tool_name, logger):
     filelist = pf.list_files_dir(bamdir, ext = '.bam')
 
     # Create the featurecounts command
-    command = f"featureCounts -a {annot} -o {output} {" ".join(filelist)}"
+    tmpoutput = output.replace('.tsv'.'.tmp.tsv')
+    command = f"featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; cat {tmpoutput} | tail -n +2 > {output}"
     logger.info(command)
 
     pf.run_command(command, logger)
