@@ -15,7 +15,7 @@ def counts(config, tool_name, logger):
 
     # Create the featurecounts command
     tmpoutput = output.replace('.tsv'.'.tmp.tsv')
-    command = f"featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; cat {tmpoutput} | tail -n +2 > {output}"
+    command = f"featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 > {output}"
     logger.info(command)
 
     pf.run_command(command, logger)
