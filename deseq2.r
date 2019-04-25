@@ -19,7 +19,7 @@ opt_parser = OprtionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load R scripts
-source("D:/Documentos/LATESIS/Scripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism(opt$organism)
@@ -27,14 +27,19 @@ database <- select.organism(opt$organism)
 # Read the table with the metadata
 sampleTableSingle = read.table(opt$bamfiles, fileEncoding = "UTF8")
 
-# Load the object containing the counts
-load(opt$robj)
+# Read the table containing the counts
+Counts_tab = read.table(opt$counts, fileEncoding = "UTF8", header=TRUE)
+row.names(Counts_tab) <- Counts_tab$Geneid
+Counts_tab$Geneid = NULL
+Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 
-# Design model matrix (STILL UNKNOWN HOW TO DO)
-design <- model.matrix(~UNKNOWN)
+# Design model matrix (STILL MANUAL)
+design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
 
 # Create the experiment from a SummarizedExperiment object
-dss <- DESeqDataSet(Test_experiment, design = design)
+dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
+                              colData = sampleTableSingle,
+                              design = design)
 
 # filter the counts
 keep <- rowSums(counts(dss)) >= 50
@@ -50,9 +55,11 @@ resultsNames(dds)
 plotDispEsts(dds)
 
 # Save the normalized counts
+# <TO_DO>: The header is odd in the file, so check the samples or load the whole object when working with the normalized counts.
 norm_counts <- counts(estimateSizeFactors(dds), normalized = T)
-write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv",opt$obj_out, fixed = TRUE),
-            sep="\t", row.names = FALSE)
+write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv",opt$obj_out, fixed = TRUE),sep="\t")
+df_norm <- as.data.frame(norm_counts)
+save(df_norm, file=gsub(".Rda","_norm_counts.Rda",opt$obj_out, fixed = TRUE))
 
 #<TO_DO>: Now, this is doubtful, because now would be time to do the contrasts.
 # To do these accuratelz, we have to consider, number of factors, levels of each factor,
@@ -84,7 +91,7 @@ fwrite(list(entrezgeneids), file = gsub(".Rda","_entrezgeneids.txt",opt$obj_out,
                                         fixed = TRUE))
 
 # Save the complete list of genes.
-universeids <- unique(as.character(mapIds(database, 
+universeids <- unique(as.character(mapIds(database,
                                           as.character(rownames(assay(Test_experiment))),
                                           'ENTREZID', 'ENSEMBL')))
 fwrite(list(universeids), file = gsub(".Rda","_universeids.txt",opt$obj_out,
