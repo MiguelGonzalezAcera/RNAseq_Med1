@@ -6,65 +6,30 @@ library(ComplexHeatmap)
 library(dendextend)
 library(cluster)
 library(gplots)
+library(org.Mm.eg.db)
 
 # NOTE: this chunk of code shall be replaced by a genelist input.
 # Might be a table from clusterProfiler, the raw genelist, or might be other source
-rows <- c(1)
-genelist <- c()
-for (i in rows) {
-  genelist <- c(genelist,as.character(mapIds(org.Mm.eg.db, 
-                                  unlist(strsplit(as.data.frame(x)$geneID[i], "/")),
-                                  'ENSEMBL', 'SYMBOL')))
-  genelist <- unique(genelist)
-}
-length(genelist)
-genelist <- genelist[1:50]
 
-# Read this from the metadata file. 
-# These are the full DE analysis results of all the samples
-treats <- c("test_cluster_INF_MI.Rda","test_cluster_INF_HI.Rda",
-            "test_cluster_REC_MOD.Rda","test_cluster_REC_FUL.Rda")
+load("/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
 
-# 1.- FOLD CHANGE
-# Get a dataframe with the columns of the fold change of all the samples
-clust_df <- NULL
-for (filename in treats){
-  # Read each file
-  load(filename)
-  full_df <- as.data.frame(res)
-  
-  # Sort the names by rowname (ENSEMBLID)
-  full_df <- full_df[order(row.names(full_df)),]
-  
-  # Get the fold change column
-  FC_df <- full_df[genelist[order(genelist)],"log2FoldChange",drop=FALSE]
-  
-  # Name the column as the file
-  colnames(FC_df) <- c(filename)
-  
-  if (is.null(clust_df) == T){
-    # If the final df is empty, fill it with one column
-    clust_df <- FC_df
-  } else {
-    # If not, add the column to the df
-    clust_df <- merge(clust_df, FC_df, by=0,all=T)
-    rownames(clust_df) <- clust_df$Row.names
-    clust_df$Row.names <- NULL
-    head(clust_df)
-  }
-}
+genes = readLines("/DATA/DSS_rec_evolution/genelist_pg.txt")
+genes = rownames(df_norm)
 
-# 2.- EXPRESSION
-# Get the normalized counts
-#<TO_DO>: Load dss object
-clust_df <- as.data.frame(counts(estimateSizeFactors(dds), normalized = T))
-clust_df <- clust_df[genelist[order(genelist)], ,drop=FALSE]
+df_norm$Genenames <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(df_norm)),
+                                  'SYMBOL', 'ENSEMBL'))
+
+genelist = df_norm$Genenames[df_norm$Genenames %in% genes]
+
+# Get rows in the list of genes
+clust_df <- df_norm[df_norm$Genenames %in% genelist, ,drop=FALSE]
 
 # Genenames as Gene symbol
 rows_hm <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(clust_df)),
                                'SYMBOL', 'ENSEMBL'))
 rows_hm[is.na(rows_hm)] <- "Unk"
 rownames(clust_df) <- rows_hm
+clust_df$Genenames = NULL
 
 # Perform the clustering analysis over the table
 # Tree construction (rows and columns)
@@ -83,7 +48,7 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorpanel(100, "blue", "white", "red")
 
-png(file="Test_heatmap.png", width = 8000, height = 8000, res = 600)
+png(file="/DATA/DSS_rec_evolution/Test_heatmap.png", width = 8000, height = 8000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 
