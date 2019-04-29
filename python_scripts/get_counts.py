@@ -1,6 +1,31 @@
 import argparse
 import logging
+import pandas as pd
 import python_functions as pf
+
+def transformToRanges(counts):
+    """Function to transform the segment of featureCounts to ranges for R
+    """
+    # Read the file
+    df = pd.read_csv(counts.replace(".tsv",".tmpranges.tsv"), sep='\t', index_col=None)
+
+    # Transform the pseudo-dataframe (cells with more than one field of data) into a normal dataframe.
+    new_list = []
+    for index, row in df.iterrows():
+        chr_list = row.Chr.split(";")
+        start_list = row.Start.split(";")
+        end_list = row.End.split(";")
+        strand_list = row.Strand.split(";")
+
+        for i in range(0,len(chr_list)):
+            newline = [row.Geneid, chr_list[i], start_list[i], end_list[i], strand_list[i]]
+            new_list.append(newline)
+
+    df2 = pd.DataFrame(new_list)
+    df2.columns = ['Geneid','Chr','Start','End','Strand']
+
+    df2.to_csv(counts.replace(".tsv",".ranges.tsv"), sep='\t', index=False)
+
 
 def counts(config, tool_name, logger):
     """Get the counts of a number of bam files in a directory
@@ -15,10 +40,15 @@ def counts(config, tool_name, logger):
 
     # Create the featurecounts command
     tmpoutput = output.replace('.tsv'.'.tmp.tsv')
-    command = f"featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 > {output}"
+    command = f"featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; "
+    command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 > {output};"
+    command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut -f 1,2,3,4,5 > {output.replace(".tsv",".tmpranges.tsv")}"
     logger.info(command)
 
     pf.run_command(command, logger)
+
+    # Create the ranges file. Useful later for the fpkm
+    transformToRanges(output)
 
 def get_arguments():
     """
