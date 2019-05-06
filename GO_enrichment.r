@@ -24,15 +24,19 @@ opt = parse_args(opt_parser)
 # Load Rfunctions
 source("D:/Documentos/LATESIS/Scripts/Rfunctions.R")
 
+# Load R object
+load("")
+
 # Select organism
 database <- select.organism(opt$organism)
 
-# Read genelist
-entrezgeneids <- scan(opt$genelist, character(), quote="")
+# Obtain genelist
+entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res)), 'ENTREZID', 'ENSEMBL')))
 
-# Read universe genelsit
-universeids <- scan(opt$universe, character(), quote="")
+# Obtain universe ids
+universeids <- unique(as.character(mapIds(database, as.character(rownames(counts(dss))), 'ENTREZID', 'ENSEMBL')))
 
+# Define ontologies
 ontologies <- c("BP","MF","CC")
 
 ##OPTION 1

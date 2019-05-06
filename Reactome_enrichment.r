@@ -18,6 +18,9 @@ option_list = list(
 opt_parser = OprtionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
+# Load R object
+load()
+
 # Load R scripts
 source("D:/Documentos/LATESIS/Scripts/Rfunctions.R")
 

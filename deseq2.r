@@ -5,8 +5,10 @@ library(optparse)
 library(data.table)
 
 option_list = list(
-  make_option("--robj", type="character",
-              help="R object that contains the counts"),
+  make_option("--counts", type="character",
+              help="Table that contains the counts"),
+  make_option("--ranges", type="character",
+              help="Table that contains the ranges"),
   make_option("--bamfiles", type="character",
               help="list of bam files of the assay, with metadata."),
   make_option("--out_obj", type="character",
@@ -32,6 +34,7 @@ Counts_tab = read.table(opt$counts, fileEncoding = "UTF8", header=TRUE)
 row.names(Counts_tab) <- Counts_tab$Geneid
 Counts_tab$Geneid = NULL
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
+Counts_tab <- Counts_tab[order(row.names(Counts_tab)),]
 
 # Design model matrix (STILL MANUAL)
 design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
@@ -41,9 +44,19 @@ dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
                               colData = sampleTableSingle,
                               design = design)
 
+# Get the genomic ranges
+Grang_tab = read.table(opt$ranges, fileEncoding = "UTF8", header=TRUE)
+Grlist <- makeGRangesListFromDataFrame(Grang_tab, split.field = "Geneid")
+Grlist_filt <- Grlist[names(Grlist) %in% rownames(assay(dss))]
+rowRanges(dss) <- Grlist_filt
+
 # filter the counts
 keep <- rowSums(counts(dss)) >= 50
 dss <- dss[keep,]
+
+# Get and save the fpkm
+fpkm_df <- as.data.frame(fpkm(dss))
+save(fpkm_df, file=gsub(".Rda","_fpkm.Rda",opt$obj_out, fixed = TRUE))
 
 # Run the analysis
 dds <- DESeq(dss)
