@@ -7,7 +7,7 @@ def transformToRanges(counts):
     """Function to transform the segment of featureCounts to ranges for R
     """
     # Read the file
-    df = pd.read_csv(counts.replace(".tsv",".tmpranges.tsv"), sep='\t', index_col=None)
+    df = pd.read_csv(counts, sep='\t', index_col=None)
 
     # Transform the pseudo-dataframe (cells with more than one field of data) into a normal dataframe.
     new_list = []
@@ -24,7 +24,7 @@ def transformToRanges(counts):
     df2 = pd.DataFrame(new_list)
     df2.columns = ['Geneid','Chr','Start','End','Strand']
 
-    df2.to_csv(counts.replace(".tsv",".ranges.tsv"), sep='\t', index=False)
+    df2.to_csv(counts.replace(".tmpranges.tsv",".ranges.tsv"), sep='\t', index=False)
 
 
 def counts(config, tool_name, logger):
@@ -34,21 +34,22 @@ def counts(config, tool_name, logger):
     bamdir = config['tools_conf'][tool_name]['input']['bamdir']
     annot = config['tools_conf'][tool_name]['input']['annot']
     output = config['tools_conf'][tool_name]['output']['counts']
+    rangestable = output.replace(".tsv",".tmpranges.tsv")
 
     # Lsit all the bam files in the directory
     filelist = pf.list_files_dir(bamdir, ext = '.bam')
 
     # Create the featurecounts command
-    tmpoutput = output.replace('.tsv'.'.tmp.tsv')
-    command = f"featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; "
+    tmpoutput = output.replace('.tsv','.tmp.tsv')
+    command = f'featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; '
     command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 > {output};"
-    command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut -f 1,2,3,4,5 > {output.replace(".tsv",".tmpranges.tsv")}"
+    command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut -f 1,2,3,4,5 > {rangestable}"
     logger.info(command)
 
     pf.run_command(command, logger)
 
     # Create the ranges file. Useful later for the fpkm
-    transformToRanges(output)
+    transformToRanges(rangestable)
 
 def get_arguments():
     """
@@ -60,7 +61,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--bamdir', nargs='*', required=True, help='Folder with bam files')
+    parser.add_argument('--bamdir', required=True, help='Folder with bam files')
     parser.add_argument('--counts', required=True, help='Table with the counts')
     parser.add_argument('--annot', required=True, help='Annotation file (same than used in mapping)')
 
@@ -87,10 +88,9 @@ def main():
       "DEBUG": args.debug,
       "TESTING": args.test,
       "DRY_RUN": args.dry_run,
-      "outfolder": args.outpath,
       "log_files": ["/tmp/full.log"],
       "tools_conf": {
-        "counts": {
+        "get_counts": {
           "input": {
             "bamdir": args.bamdir,
             "annot": args.annot

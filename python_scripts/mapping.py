@@ -24,24 +24,28 @@ def mapping(config, tool_name, logger):
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
     R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
     bamdir = config['tools_conf'][tool_name]['output']['bam_dir']
-    path = R1_FILES[0].split("/")[:-1]
+    genomePath = config['tools_conf'][tool_name]['tool_conf']['genome']
+    threads = config['tools_conf'][tool_name]['tool_conf']['threads']
+    path = "/".join(R1_FILES[0].split("/")[:-1])
+    print(path)
 
     ## Possible Command style
     # STAR --genomeLoad LoadAndExit --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/; for file in $(cat fastq.test.txt); do echo $file STAR --runThreadN 10 --readFilesCommand gzip -cd --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/ --readFilesIn $file ${file%_1.fastq.gz}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > ${file%_1.fastq.gz}.bam; samtools-1.9 index ${file%_1.fastq.gz}.bam; mv ${file%_1.fastq.gz}.bam* BAM/; done; STAR --genomeLoad Remove --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/
     command = ""
 
-    command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}"
-    command += f'for file in {" ".join(R1_FILES)}; do STAR --runThreadN {config['tools_conf']['tool_conf']['threads']} --readFilesCommand gzip -cd \
+    command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}; "
+    command += f'for file in {path + "/*1.fastq.gz"}; do STAR --runThreadN {threads} --readFilesCommand gzip -cd \
     --genomeDir {genomePath} --readFilesIn $file ${{file%_1.fastq.gz}}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd \
-    BAM_SortedByCoordinate > ${{file%_1.fastq.gz}}.bam; samtools-1.9 index ${{file%_1.fastq.gz}}.bam'
-    command += f"STAR --genomeLoad Remove --genomeDir {genomeDir}"
+    BAM_SortedByCoordinate > ${{file%_1.fastq.gz}}.bam; samtools-1.9 index ${{file%_1.fastq.gz}}.bam; done; '
+    command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
     if not os.path.exists(bamdir):
-        command += f"mkdir {bamdir}"
-    command += f'mv {path + "/*.bam*"} {bamdir}'
+        command += f"mkdir {bamdir}; "
+    command += f'mv {path + "/*.bam*"} {bamdir}; '
 
     logger.info(command)
 
     pf.run_command(command, logger)
+    print(command)
 
 def get_arguments():
     """
@@ -56,6 +60,9 @@ def get_arguments():
     parser.add_argument('--fastq_r1', '-f1', nargs='*', required=True, help='fastq_r1 file/s')
     parser.add_argument('--fastq_r2', '-f2', nargs='*', required=True, help='fastq_r2 file/s')
     parser.add_argument('--bamdir', required=True, help='Folder for bam files')
+
+    # Default parameters
+    parser.add_argument('--genome', default='/DATA/references/star_genomes/mmu38/star_indices_overhang150/', help='Genome folder for STAR mapping')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -80,18 +87,18 @@ def main():
       "DEBUG": args.debug,
       "TESTING": args.test,
       "DRY_RUN": args.dry_run,
-      "outfolder": args.outpath,
       "log_files": ["/tmp/full.log"],
       "tools_conf": {
         "mapping": {
           "input": {
-            "fastq_r1": args.fastq_r1.split(','),
-            "fastq_r2": args.fastq_r2.split(',')
+            "fastq_r1": args.fastq_r1,
+            "fastq_r2": args.fastq_r2
             },
           "output": {
-            "bam": args.outpath
+            "bam_dir": args.bamdir
             },
           "tool_conf": {
+            "genome": args.genome,
             "threads": "2"
             }
           }
