@@ -35,7 +35,7 @@ names(geneList) <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(res))
 
 # Obtain names
 entrezgeneids <- names(geneList)
-genes <- scan("/DATA/DSS_rec_evolution/genelist_pg.txt", character(), quote="")
+genes <- scan("/DATA/DSS_rec_evolution/20190508-Jay_genelist/genelist.txt", character(), quote="")
 entrezgeneids <- as.character(mapIds(org.Mm.eg.db, genes, 'ENTREZID', 'SYMBOL'))
 
 # Do the GSEA
@@ -48,11 +48,11 @@ x <- enrichKEGG(entrezgeneids, organism="mmu", pvalueCutoff=hgCutoff, pAdjustMet
 KEGGtable <- as.data.frame(x)
 
 # Save the data frame
-write.table(KEGGtable, file=opt$out_tab, sep="\t", row.names = FALSE)
+write.table(KEGGtable, file="/DATA/DSS_rec_evolution/20190508-Jay_genelist/KEGGtable_rec_ful.tsv", sep="\t", row.names = FALSE)
 
 # Obtain plots
 # barplot
-png(file=gsub(".tsv","_barplot.png",opt$out_plot, fixed = TRUE))
+png(file="")
 barplot(x, showCategory=16)
 dev.off()
 
@@ -65,10 +65,10 @@ dev.off()
 top_pathways <- rownames(KEGGtable)[1:10]
 
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = "mmu", kegg.dir = "/DATA/DSS_rec_evolution/", out.suffix = "pathview_02inf_hi")
-  wd <- paste(c(getwd(),paste(c(pway,'pathview_02inf_hi.png'), collapse = '.')), collapse = '/')
+  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = "mmu", kegg.dir = "/DATA/DSS_rec_evolution/20190508-Jay_genelist/", out.suffix = "pathview_04rec_ful")
+  wd <- paste(c(getwd(),paste(c(pway,'pathview_04rec_ful.png'), collapse = '.')), collapse = '/')
   
-  file.copy(wd, "/DATA/DSS_rec_evolution/")
+  file.copy(wd, "/DATA/DSS_rec_evolution/20190508-Jay_genelist/")
   file.remove(wd)
 }
 
