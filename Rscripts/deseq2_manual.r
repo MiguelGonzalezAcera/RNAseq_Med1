@@ -1,4 +1,6 @@
 # DESeq2 Analysis
+library(DESeq2)
+
 # Load R scripts
 source("/DATA/RNAseq_test/Scripts/Rfunctions.R")
 
@@ -51,7 +53,7 @@ plotDispEsts(dds)
 # Save the normalized counts
 # <TO_DO>: The header is odd in the file, so check the samples or load the whole object when working with the normalized counts.
 norm_counts <- counts(estimateSizeFactors(dds), normalized = T)
-write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv",opt$obj_out, fixed = TRUE),sep="\t")
+write.table(norm_counts, file="/DATA/DSS_rec_evolution/20190508-Jay_genelist/DSS_norm_counts.tsv",sep="\t")
 df_norm <- as.data.frame(norm_counts)
 save(df_norm, file="/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
 
@@ -65,11 +67,11 @@ save(df_norm, file="/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
 
 # Contrast may vary. Probably need to use loop for all contrasts,
 # even more if there is interaction. <TO_DO>: Also, use given threshold
-res <- results(dds, alpha = 0.001, name = 'Tr1Inf_hi')
+res <- results(dds, alpha = 0.001, name = 'Tr1Rec_ful')
 
 # Save the full result object
 # <TO_DO>: Change 'contrast' for actual contrast name
-save(res,file="")
+save(res,file="/DATA/DSS_rec_evolution/test/Da_test_obj.rda")
 
 # A simple helper function that makes a so-called "MA-plot", i.e. a scatter plot of
 # log2 fold changes (on the y-axis) versus the mean of normalized counts (on the x-axis).

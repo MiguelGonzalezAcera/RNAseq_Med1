@@ -15,14 +15,14 @@ library(org.Mm.eg.db)
 load("/DATA/DSS_rec_evolution/DSS_rec_evol.fpkm.Rda")
 load("/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
 
-genes = readLines("/DATA/DSS_rec_evolution/genelist_markers.txt")
+genes = readLines("/DATA/DSS_rec_evolution/20190508-Jay_genelist/genelist.txt")
 
 # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
-fpkm_df$Genenames <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(fpkm_df)),
+df_norm$Genenames <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(df_norm)),
                                   'SYMBOL', 'ENSEMBL'))
 
 # Get rows in the list of genes
-clust_df <- fpkm_df[fpkm_df$Genenames %in% genes, ,drop=FALSE]
+clust_df <- df_norm[df_norm$Genenames %in% genes, ,drop=FALSE]
 
 # Genenames as Gene symbol
 rows_hm <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(clust_df)),
@@ -51,7 +51,7 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorpanel(100, "blue", "white", "red")
 
-png(file="/DATA/DSS_rec_evolution/Test_heatmap.png", width = 8000, height = 8000, res = 600)
+png(file="/DATA/DSS_rec_evolution/20190508-Jay_genelist/Heatmap.png", width = 8000, height = 8000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 
@@ -59,6 +59,6 @@ Heatmap(t(scale(t(data.matrix(clust_df)))), cluster_rows = as.dendrogram(row_den
         cluster_columns = as.dendrogram(hc), 
         col=color, column_dend_height = unit(5, "cm"),
         row_dend_width = unit(10, "cm"), 
-        row_names_gp = gpar(fontsize = (150/length(genelist)+5)),
+        row_names_gp = gpar(fontsize = (150/length(genes)+5)),
         split = max(mycl), gap = unit(2, "mm"))
 dev.off()

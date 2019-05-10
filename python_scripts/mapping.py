@@ -10,9 +10,9 @@ reference genome to use (defaults to mm10).
 import argparse
 import logging
 import os
-import python_functions as pf
+import python_scripts.python_functions as pf
 
-def mapping(config, tool_name, logger):
+def mapping(config, tool_name):
     """Method to build local parameters for the tool to work
 
     The method sets the local parameters of the class that are going to be
@@ -26,26 +26,22 @@ def mapping(config, tool_name, logger):
     bamdir = config['tools_conf'][tool_name]['output']['bam_dir']
     genomePath = config['tools_conf'][tool_name]['tool_conf']['genome']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
-    path = "/".join(R1_FILES[0].split("/")[:-1])
-    print(path)
 
     ## Possible Command style
     # STAR --genomeLoad LoadAndExit --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/; for file in $(cat fastq.test.txt); do echo $file STAR --runThreadN 10 --readFilesCommand gzip -cd --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/ --readFilesIn $file ${file%_1.fastq.gz}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > ${file%_1.fastq.gz}.bam; samtools-1.9 index ${file%_1.fastq.gz}.bam; mv ${file%_1.fastq.gz}.bam* BAM/; done; STAR --genomeLoad Remove --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/
     command = ""
 
     command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}; "
-    command += f'for file in {path + "/*1.fastq.gz"}; do STAR --runThreadN {threads} --readFilesCommand gzip -cd \
-    --genomeDir {genomePath} --readFilesIn $file ${{file%_1.fastq.gz}}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd \
-    BAM_SortedByCoordinate > ${{file%_1.fastq.gz}}.bam; samtools-1.9 index ${{file%_1.fastq.gz}}.bam; done; '
-    command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
-    command += f'mv {path + "/*.bam*"} {bamdir}; '
+    for filer1 in R1_FILES:
+        filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
+        bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
+        command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+    command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
 
-    logger.info(command)
-
-    pf.run_command(command, logger)
     print(command)
+    pf.run_command(command)
 
 def get_arguments():
     """
@@ -91,8 +87,9 @@ def main():
       "tools_conf": {
         "mapping": {
           "input": {
-            "fastq_r1": args.fastq_r1,
-            "fastq_r2": args.fastq_r2
+            "fastq_r1": args.fastq_r1.split(','),
+            "fastq_r2": args.fastq_r2.split(','),
+            "samplelist": a
             },
           "output": {
             "bam_dir": args.bamdir
@@ -106,9 +103,8 @@ def main():
       }
 
     # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
 
-    mapping(config, 'mapping', logger)
+    mapping(config, 'mapping')
 
 
 if __name__ == "__main__":

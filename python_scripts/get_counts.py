@@ -1,7 +1,7 @@
 import argparse
 import logging
 import pandas as pd
-import python_functions as pf
+import python_scripts.python_functions as pf
 
 def transformToRanges(counts):
     """Function to transform the segment of featureCounts to ranges for R
@@ -27,7 +27,7 @@ def transformToRanges(counts):
     df2.to_csv(counts.replace(".tmpranges.tsv",".ranges.tsv"), sep='\t', index=False)
 
 
-def counts(config, tool_name, logger):
+def counts(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
@@ -44,9 +44,8 @@ def counts(config, tool_name, logger):
     command = f'featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; '
     command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 > {output};"
     command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut -f 1,2,3,4,5 > {rangestable}"
-    logger.info(command)
 
-    pf.run_command(command, logger)
+    pf.run_command(command)
 
     # Create the ranges file. Useful later for the fpkm
     transformToRanges(rangestable)
@@ -105,9 +104,8 @@ def main():
       }
 
     # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
 
-    counts(config, 'get_counts', logger)
+    counts(config, 'get_counts')
 
 
 if __name__ == "__main__":
