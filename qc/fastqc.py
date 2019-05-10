@@ -3,9 +3,10 @@ import os
 import logging
 import zipfile
 import glob
-import python_functions as pf
+import json
+import python_scripts.python_functions as pf
 
-def fastqc(config, tool_name, logger):
+def fastqc(config, tool_name):
     """Method to build local parameters for the tool to work
 
     The method sets the local parameters of the class that are going to be
@@ -19,8 +20,14 @@ def fastqc(config, tool_name, logger):
     fastqcdir = config['tools_conf'][tool_name]['output']['fastqcdir']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
-    # Add the fastq files in a single list
-    FQfiles = R1_FILES + R2_FILES
+    # Add the fastq files in a file
+    FQfilelist = R1_FILES + R2_FILES
+    FQfiles = '\n'.join(FQfilelist)
+    fof = f"{fastqcdir}/fastq_files.fof"
+
+    f = open(fof, 'w')
+    f.write(FQfiles)
+    f.close()
 
     # Construct the command
     full_cmd = ""
@@ -28,12 +35,9 @@ def fastqc(config, tool_name, logger):
     if not os.path.exists(fastqcdir):
         full_cmd += f"mkdir {fastqcdir};"
 
-    full_cmd += f"parallel -j {threads} fastqc -o {fastqcdir} {{}} :::: <(ls {' '.join(FQfiles)})"
-    full_cmd += f"touch {fastqcdir}/fastqc.done.txt"
+    full_cmd += f'parallel -j {threads} "fastqc -o {fastqcdir} {{}}" :::: {fof}; '
 
-    logger.info(command)
-
-    pf.run_command(command, logger)
+    pf.run_command(full_cmd)
 
     fastqc_eval(fastqcdir)
 
@@ -86,11 +90,10 @@ def fastqc_eval(fastqcdir):
     if any(estados) == 'FAIL':
         qc_data['resume'] = 'FAIL'
 
-
-    out_file = open(self.OUTEVAL, 'w')
+    resfile = f"{fastqcdir}/fastqc.results.txt"
+    out_file = open(resfile, 'w')
     json.dump(qc_data, out_file)
     out_file.close()
-
 
 
 def get_arguments():
@@ -148,10 +151,7 @@ def main():
         }
       }
 
-    # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
-
-    fastqc(config, 'fastqc', logger)
+    fastqc(config, 'fastqc')
 
 
 if __name__ == "__main__":
