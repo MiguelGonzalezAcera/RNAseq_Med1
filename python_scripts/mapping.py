@@ -10,9 +10,9 @@ reference genome to use (defaults to mm10).
 import argparse
 import logging
 import os
-import python_functions as pf
+import python_scripts.python_functions as pf
 
-def mapping(config, tool_name, logger):
+def mapping(config, tool_name):
     """Method to build local parameters for the tool to work
 
     The method sets the local parameters of the class that are going to be
@@ -35,15 +35,13 @@ def mapping(config, tool_name, logger):
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
     for filer1 in R1_FILES:
-        flier2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
-        bamfile = bamdir + "/" + filer1.split("/")[-1]
-        command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; done; '
+        filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
+        bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
+        command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
 
-    logger.info(command)
-
-    pf.run_command(command, logger)
     print(command)
+    pf.run_command(command)
 
 def get_arguments():
     """
@@ -90,7 +88,8 @@ def main():
         "mapping": {
           "input": {
             "fastq_r1": args.fastq_r1.split(','),
-            "fastq_r2": args.fastq_r2.split(',')
+            "fastq_r2": args.fastq_r2.split(','),
+            "samplelist": a
             },
           "output": {
             "bam_dir": args.bamdir
@@ -104,9 +103,8 @@ def main():
       }
 
     # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
 
-    mapping(config, 'mapping', logger)
+    mapping(config, 'mapping')
 
 
 if __name__ == "__main__":

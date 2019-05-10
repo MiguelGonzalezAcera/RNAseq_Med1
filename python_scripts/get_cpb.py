@@ -9,12 +9,16 @@ def counts(config, tool_name, logger):
     bamdir = config['tools_conf'][tool_name]['input']['bamdir']
     annot = config['tools_conf'][tool_name]['input']['annot']
     output = config['tools_conf'][tool_name]['output']['counts']
+    genome = config['tools_conf'][tool_name]['input']['genome']
 
     # Lsit all the bam files in the directory
     filelist = pf.list_files_dir(bamdir, ext = '.bam')
 
+    # Get path
+    path = "/".join(filelist[0].split("/")[0:-1])
+
     # Save the filenames under a single file, for use in parallel fashion
-    cpb_file = open(f'{ref_path}/bam.fof', 'w')
+    cpb_file = open(f'{path}/bam.fof', 'w')
     for cpb in filelist:
         cpb_file.write(f"{cpb}\n")
 
@@ -71,7 +75,7 @@ def main():
       "outfolder": args.outpath,
       "log_files": ["/tmp/full.log"],
       "tools_conf": {
-        "counts": {
+        "coverage_per_base": {
           "input": {
             "bamdir": args.bamdir,
             "annot": args.annot

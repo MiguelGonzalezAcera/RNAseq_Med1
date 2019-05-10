@@ -1,15 +1,16 @@
 import os
+import subprocess
 import logging
 import glob
 
-def run_command(command, logger):
+def run_command(command):
     """Runs a command. Raises error if it misses
     """
-    try:
-        os.system(command)
-    except ErrorCommandRun as errcomm:
-        print(errcomm)
-        logger.error(f"Command:\n\t{command}\ncould not run.")
+    # try:
+    #process = subprocess.Popen(command, shell=True, executable='/bin/bash')
+    os.system(command)
+    # except ErrorCommandRun as errcomm:
+    #     print(errcomm)
 
 def create_logger(logpath, name='logger'):
     """Create a logger
