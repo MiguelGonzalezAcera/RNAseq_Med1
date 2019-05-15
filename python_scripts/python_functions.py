@@ -33,7 +33,7 @@ def list_files_dir(dirpath, ext=""):
     """List files in a directory. Can specify an extension.
     """
 
-    filelist = glob.glob(f"{dirpath}/*{ext}")
+    filelist = glob.glob(f"{dirpath}/{ext}")
     if len(filelist) == 0:
         raise ValueError(f'Directory {dirpath} is empty.')
     return filelist

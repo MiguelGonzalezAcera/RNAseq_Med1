@@ -12,7 +12,7 @@ def counts(config, tool_name, logger):
     genome = config['tools_conf'][tool_name]['input']['genome']
 
     # Lsit all the bam files in the directory
-    filelist = pf.list_files_dir(bamdir, ext = '.bam')
+    filelist = pf.list_files_dir(bamdir, ext = '*.bam')
 
     # Get path
     path = "/".join(filelist[0].split("/")[0:-1])
