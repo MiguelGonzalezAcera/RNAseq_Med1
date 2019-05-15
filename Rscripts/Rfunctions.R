@@ -2,7 +2,7 @@
 # Create 2d plotting function
 pca2d <- function(tab,d1,d2,perc,out){
   # Takes a table and its columns and does a plot
-  png(file=gsub(".png",sprintf("_2d_d%s_d%s.png",d1,d2),out, fixed = TRUE))
+  png(file=paste(out,sprintf("pca_2d_d%s_d%s.png",d1,d2), sep = "/"))
   plot(tab[,d1], tab[,d2], type="n", 
        xlab=sprintf("Dimension %s (%s %%)",d1,perc[d1]),
        ylab=sprintf("Dimension %s (%s %%)",d2,perc[d2]), main="")
