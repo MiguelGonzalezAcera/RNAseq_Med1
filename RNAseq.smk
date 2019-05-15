@@ -16,6 +16,7 @@ outfolder = config_dict['outfolder']
 # Fastq files
 fastq_r1 = config_dict['r1_files'].split(',')
 fastq_r2 = config_dict['r2_files'].split(',')
+design = config_dict['design']
 
 # Rules
 rule Mapping:
@@ -72,12 +73,28 @@ rule Fastqc:
         }
         qc.fastqc.fastqc(config_dict, tool_name)
 
+rule PCA:
+    input:
+        counts = rules.Counts.output.counts,
+        design = design
+    output:
+        out_dir = f"{outfolder}/pca"
+    run:
+        tool_name = 'pca'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.pca.pca(config_dict, tool_name)
 
 rule all:
     input:
         fastqceval = rules.Fastqc.output.fastqceval,
         bamdir = rules.Mapping.output.bam_dir,
-        counts = rules.Counts.output.counts
+        counts = rules.Counts.output.counts,
+        pca = rules.PCA.output.out_dir
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {
