@@ -35,7 +35,8 @@ def pca(config, tool_name):
     filelist = pf.list_files_dir(out_dir, ext = "*3d*")
 
     # Run the creation of a gif if filelist is not empty
-    gif(sorted(filelist), out_dir)
+    if len(filelist) != 0:
+        gif(sorted(filelist), out_dir)
 
 def get_arguments():
     """

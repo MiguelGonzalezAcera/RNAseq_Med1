@@ -38,6 +38,23 @@ rule Mapping:
         }
         python_scripts.mapping.mapping(config_dict, tool_name)
 
+rule GenerateRegions:
+    input:
+        bedfile = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
+    output:
+        list = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.list"
+    run:
+        tool_name = 'generate_regions'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {
+                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.dict"
+            }
+        }
+        python_scripts.generate_regions.regions(config_dict, tool_name)
+
 rule Counts:
     input:
         bamdir = rules.Mapping.output.bam_dir,
@@ -53,6 +70,25 @@ rule Counts:
             'tool_conf': {}
         }
         python_scripts.get_counts.counts(config_dict, tool_name)
+
+rule CoveragePerBase:
+    input:
+        bamdir = rules.Mapping.output.bam_dir,
+        bed = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
+    output:
+        cpbdir = f"{outfolder}/cpbfiles",
+        cpbtouched = f"{outfolder}/cpbfiles/cpbtouched.txt"
+    run:
+        tool_name = 'coverage_per_base'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {
+                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.txt"
+            }
+        }
+        python_scripts.get_cpb.coverage_per_base(config_dict, tool_name)
 
 rule Fastqc:
     input:
@@ -73,6 +109,26 @@ rule Fastqc:
         }
         qc.fastqc.fastqc(config_dict, tool_name)
 
+rule Bamqc:
+    input:
+        bamdir = rules.Mapping.output.bam_dir,
+        cpbtouched = rules.CoveragePerBase.output.cpbtouched,
+        list = rules.GenerateRegions.output.list,
+        bedfile = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
+    output:
+        outdir = f"{outfolder}/bamqc",
+    run:
+        tool_name = 'bamqc'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {
+                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.fa"
+            }
+        }
+        qc.bamqc.bamqc(config_dict, tool_name)
+
 rule PCA:
     input:
         counts = rules.Counts.output.counts,
@@ -92,6 +148,7 @@ rule PCA:
 rule all:
     input:
         fastqceval = rules.Fastqc.output.fastqceval,
+        outdir = rules.Bamqc.output.outdir,
         bamdir = rules.Mapping.output.bam_dir,
         counts = rules.Counts.output.counts,
         pca = rules.PCA.output.out_dir
@@ -116,22 +173,11 @@ rule all:
         {
             "name": "Fastqc",
             "value": rules.Fastqc.output.fastqceval
+        },
+        {
+            "name": "Bamqc",
+            "value": rules.Bamqc.output.outdir
         }]
         }
 
         print(config_dict['results'])
-
-# rule cpb:
-#     input:
-#         bamdir = rule.Mapping.output.bamdir
-#     output:
-#         cpbdir = f"{outfolder}/cpbfiles"
-#     run:
-#         tool_name = 'coverage_per_base'
-#         config_dict['tools_conf'][tool_name] = {
-#             'input': {i[0]: i[1] for i in input.allitems()},
-#             'output': {i[0]: i[1] for i in output.allitems()},
-#             'software': {},
-#             'tool_conf': {}
-#         }
-#         python_scripts.get_cpb.cpb(config_dict, tool_name)
