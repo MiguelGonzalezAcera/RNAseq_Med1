@@ -23,7 +23,8 @@ def mapping(config, tool_name):
     # Get the paths to the files that are going to be input/output
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
     R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
-    bamdir = config['tools_conf'][tool_name]['output']['bam_dir']
+    bamdir = "/".join(config['tools_conf'][tool_name]['output']['mappingtouched'].split('/')[0:-1])
+    mappingtouched = config['tools_conf'][tool_name]['output']['mappingtouched']
     genomePath = config['tools_conf'][tool_name]['tool_conf']['genome']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
@@ -39,6 +40,7 @@ def mapping(config, tool_name):
         bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
         command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
+    command += f"touch {mappingtouched}"
 
     print(command)
     pf.run_command(command)

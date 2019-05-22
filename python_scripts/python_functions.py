@@ -6,11 +6,11 @@ import glob
 def run_command(command):
     """Runs a command. Raises error if it misses
     """
-    # try:
+    try:
     #process = subprocess.Popen(command, shell=True, executable='/bin/bash')
-    os.system(command)
-    # except ErrorCommandRun as errcomm:
-    #     print(errcomm)
+        os.system(command)
+    except ErrorCommandRun as errcomm:
+        print(errcomm)
 
 def create_logger(logpath, name='logger'):
     """Create a logger
@@ -33,7 +33,7 @@ def list_files_dir(dirpath, ext=""):
     """List files in a directory. Can specify an extension.
     """
 
-    filelist = glob.glob(f"{dirpath}/*{ext}")
+    filelist = glob.glob(f"{dirpath}/{ext}")
     if len(filelist) == 0:
         raise ValueError(f'Directory {dirpath} is empty.')
     return filelist

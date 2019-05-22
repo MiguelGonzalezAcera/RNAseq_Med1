@@ -23,21 +23,20 @@ def transformToRanges(counts):
 
     df2 = pd.DataFrame(new_list)
     df2.columns = ['Geneid','Chr','Start','End','Strand']
-
-    df2.to_csv(counts.replace(".tmpranges.tsv",".ranges.tsv"), sep='\t', index=False)
-
+    out_counts = counts.replace(".tmpranges.tsv",".ranges.tsv")
+    df2.to_csv(out_counts, sep='\t', index=False)
 
 def counts(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
-    bamdir = config['tools_conf'][tool_name]['input']['bamdir']
+    bamdir = "/".join(config['tools_conf'][tool_name]['input']['bamdir'].split('/')[0:-1])
     annot = config['tools_conf'][tool_name]['input']['annot']
     output = config['tools_conf'][tool_name]['output']['counts']
     rangestable = output.replace(".tsv",".tmpranges.tsv")
 
     # Lsit all the bam files in the directory
-    filelist = pf.list_files_dir(bamdir, ext = '.bam')
+    filelist = pf.list_files_dir(bamdir, ext = '*.bam')
 
     # Create the featurecounts command
     tmpoutput = output.replace('.tsv','.tmp.tsv')

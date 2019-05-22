@@ -6,20 +6,20 @@ library(optparse)
 option_list = list(
   make_option("--counts", type="character",
               help="Table that contains the counts"),
-  make_option("--bamfiles", type="character",
+  make_option("--design", type="character",
               help="list of bam files of the assay, with metadata."),
-  make_option("--out_plot", type="character",
-              help="file that contains the plot of the PCA.")
+  make_option("--out_dir", type="character",
+              help="Folder to contain the plots of the PCA.")
 )
 
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load functions
-source("/DATA/RNAseq_test/Scripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Read the table with the metadata
-sampleTableSingle = read.table(opt$bamfiles, fileEncoding = "UTF8")
+sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
 
 # Read the table containing the counts
 Counts_tab = read.table(opt$counts, fileEncoding = "UTF8", header=TRUE)
@@ -68,7 +68,7 @@ if (eig_pc[3] < dimthr) {
   mdsdf$Treatment <- rownames(mds)
 
   # Do the 2d graph
-  pca2d(mdsdf,1,2,eig_pc,opt$out_plot)
+  pca2d(mdsdf,1,2,eig_pc,opt$out_dir)
 
 } else if (eig_pc[3] >= dimthr) {
   # Do 2d plots for each dimension
@@ -79,9 +79,9 @@ if (eig_pc[3] < dimthr) {
   mdsdf$Treatment <- rownames(mds)
 
   # Do the 2d graphs
-  pca2d(mdsdf,1,2,eig_pc,opt$out_plot)
-  pca2d(mdsdf,2,3,eig_pc,opt$out_plot)
-  pca2d(mdsdf,1,3,eig_pc,opt$out_plot)
+  pca2d(mdsdf,1,2,eig_pc,opt$out_dir)
+  pca2d(mdsdf,2,3,eig_pc,opt$out_dir)
+  pca2d(mdsdf,1,3,eig_pc,opt$out_dir)
 
   # Do the 3d graph
   # Shapes of the points by treatment
@@ -95,7 +95,7 @@ if (eig_pc[3] < dimthr) {
   # Produce many images in order to do a gif for web visualization
   for (ang in c(seq(1, 180))){
     # Create the plot
-    png(file=gsub(".png",sprintf("_3d_%s.png",ang),opt$out_plot, fixed = TRUE))
+    png(file=paste(opt$out_dir, sprintf("pca_3d_%03d.png",ang), sep = "/"))
     s3d <- scatterplot3d(mdsdf[,1], mdsdf[,2], mdsdf[,3], pch=shape, color=colore,
                          cex.symbols=1.5, angle=ang, label.tick.marks = FALSE,
                          xlab = sprintf("Dimension 1 (%s %%)",eig_pc[1]),
@@ -109,7 +109,7 @@ if (eig_pc[3] < dimthr) {
 }
 
 # Save environment
-save.image(file=gsub(".png",".RData",opt$out_plot, fixed = TRUE))
+save.image(file=paste(opt$out_dir, "pca.RData", sep = '/'))
 
 # Save versions
-get_versions(gsub(".png","_versions.tsv",opt$out_plot, fixed = TRUE))
+get_versions(paste(opt$out_dir, "pca_versions.tsv", sep = "/"))
