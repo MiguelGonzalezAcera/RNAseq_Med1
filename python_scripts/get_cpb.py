@@ -6,9 +6,10 @@ def coverage_per_base(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
-    bamdir = config['tools_conf'][tool_name]['input']['bamdir']
+    bamdir = "/".join(config['tools_conf'][tool_name]['input']['bamdir'].split('/')[0:-1])
     bed = config['tools_conf'][tool_name]['input']['bed']
-    cpbdir = config['tools_conf'][tool_name]['output']['cpbdir']
+    cpbdir = "/".join(config['tools_conf'][tool_name]['output']['cpbtouched'].split('/')[0:-1])
+    cpbtouched = config['tools_conf'][tool_name]['output']['cpbtouched']
     genome = config['tools_conf'][tool_name]['tool_conf']['genome']
 
     # Lsit all the bam files in the directory
@@ -36,7 +37,7 @@ def coverage_per_base(config, tool_name):
         command += f"mkdir {cpbdir}; "
     command += f'mv {path}/*.cpb {cpbdir}; '
 
-    command += f'touch {cpbdir}/cpbtouched.txt'
+    command += f'touch {cpbtouched}'
 
     pf.run_command(command)
 

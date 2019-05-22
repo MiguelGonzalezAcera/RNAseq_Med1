@@ -17,7 +17,7 @@ def fastqc(config, tool_name):
     # Get the paths to the files that are going to be input/output
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
     R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
-    fastqcdir = config['tools_conf'][tool_name]['output']['fastqcdir']
+    fastqcdir = "/".join(config['tools_conf'][tool_name]['output']['fastqceval'].split('/')[0:-1])
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
     # Add the fastq files in a file

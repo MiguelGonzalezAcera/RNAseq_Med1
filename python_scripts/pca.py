@@ -21,13 +21,15 @@ def pca(config, tool_name):
 
     counts = config['tools_conf'][tool_name]['input']['counts']
     design = config['tools_conf'][tool_name]['input']['design']
-    out_dir = config['tools_conf'][tool_name]['output']['out_dir']
+    out_dir = "/".join(config['tools_conf'][tool_name]['output']['pcatouched'].split('/')[0:-1])
+    pcatouched = config['tools_conf'][tool_name]['output']['pcatouched']
 
     # Create the command to run the pca R script
     command = ""
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
     command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
+    command += f'touch {pcatouched}'
 
     pf.run_command(command)
 

@@ -24,7 +24,7 @@ rule Mapping:
         fastq_r1 = config_dict['r1_files'].split(','),
         fastq_r2 = config_dict['r2_files'].split(',')
     output:
-        bam_dir = f"{outfolder}/bamfiles"
+        mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
     run:
         tool_name = 'mapping'
         config_dict['tools_conf'][tool_name] = {
@@ -57,7 +57,7 @@ rule GenerateRegions:
 
 rule Counts:
     input:
-        bamdir = rules.Mapping.output.bam_dir,
+        bamdir = rules.Mapping.output.mappingtouched,
         annot = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.gtf"
     output:
         counts = f"{outfolder}/counts.tsv"
@@ -73,10 +73,9 @@ rule Counts:
 
 rule CoveragePerBase:
     input:
-        bamdir = rules.Mapping.output.bam_dir,
+        bamdir = rules.Mapping.output.mappingtouched,
         bed = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
     output:
-        cpbdir = f"{outfolder}/cpbfiles",
         cpbtouched = f"{outfolder}/cpbfiles/cpbtouched.txt"
     run:
         tool_name = 'coverage_per_base'
@@ -95,7 +94,6 @@ rule Fastqc:
         fastq_r1 = config_dict['r1_files'].split(','),
         fastq_r2 = config_dict['r2_files'].split(',')
     output:
-        fastqcdir = f"{outfolder}/fastqc",
         fastqceval = f"{outfolder}/fastqc/fastqc.results.txt"
     run:
         tool_name = 'fastqc'
@@ -111,12 +109,12 @@ rule Fastqc:
 
 rule Bamqc:
     input:
-        bamdir = rules.Mapping.output.bam_dir,
+        bamdir = rules.Mapping.output.mappingtouched,
         cpbtouched = rules.CoveragePerBase.output.cpbtouched,
         list = rules.GenerateRegions.output.list,
         bedfile = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
     output:
-        outdir = f"{outfolder}/bamqc",
+        bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
     run:
         tool_name = 'bamqc'
         config_dict['tools_conf'][tool_name] = {
@@ -134,7 +132,7 @@ rule PCA:
         counts = rules.Counts.output.counts,
         design = design
     output:
-        out_dir = f"{outfolder}/pca"
+        pcatouched = f"{outfolder}/pca/pcatouched.txt"
     run:
         tool_name = 'pca'
         config_dict['tools_conf'][tool_name] = {
@@ -148,10 +146,10 @@ rule PCA:
 rule all:
     input:
         fastqceval = rules.Fastqc.output.fastqceval,
-        outdir = rules.Bamqc.output.outdir,
-        bamdir = rules.Mapping.output.bam_dir,
+        bamdir = rules.Mapping.output.mappingtouched,
         counts = rules.Counts.output.counts,
-        pca = rules.PCA.output.out_dir
+        bamqc = rules.Bamqc.output.bamqctouched,
+        pca = rules.PCA.output.pcatouched
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {
@@ -164,7 +162,7 @@ rule all:
         config_dict['results'] = {"results": [
         {
             "name": "BAMDIR",
-            "value": rules.Mapping.output.bam_dir
+            "value": rules.Mapping.output.mappingtouched
         },
         {
             "name": "Counts",
@@ -176,7 +174,7 @@ rule all:
         },
         {
             "name": "Bamqc",
-            "value": rules.Bamqc.output.outdir
+            "value": rules.Bamqc.output.bamqctouched
         }]
         }
 

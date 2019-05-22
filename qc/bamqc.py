@@ -24,13 +24,14 @@ def bamqc(config, tool_name):
     """
 
     # Get the paths to the files that are going to be input/output
-    BAMDIR = config['tools_conf'][tool_name]['input']['bamdir']
+    BAMDIR = "/".join(config['tools_conf'][tool_name]['input']['bamdir'].split('/')[0:-1])
     CPBDIR = "/".join(config['tools_conf'][tool_name]['input']['cpbtouched'].split('/')[0:-1])
     LIST = config['tools_conf'][tool_name]['input']['list']
 
     GENOME = config['tools_conf'][tool_name]['tool_conf']['genome']
 
-    OUTDIR = config['tools_conf'][tool_name]['output']['outdir']
+    OUTDIR = "/".join(config['tools_conf'][tool_name]['output']['bamqctouched'].split('/')[0:-1])
+    bamqctouched = config['tools_conf'][tool_name]['output']['bamqctouched']
 
     BED = config['tools_conf'][tool_name]['input']['bedfile']
 
@@ -60,6 +61,7 @@ def bamqc(config, tool_name):
             f' I={BAM} O={QCMTROUT} TI={LIST} AI={LIST}; '
 
         command += f"qualimap bamqc --java-mem-size=20G -bam {BAM} -gff {BED} -outdir {OUTDIR}; "
+        command += f'touch {bamqctouched}; '
 
         value_dict = {}
 
