@@ -116,6 +116,21 @@ rule Bamqc:
     output:
         bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
     run:
+        tool_name = 'bamqc_eval'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        qc.bamqc.bamqc(config_dict, tool_name)
+
+rule BamqcEval:
+    input:
+        bamqctouched = rules.Bamqc.output.bamqctouched,
+    output:
+        evaloutfile = f"{outfolder}/bamqc/bamqceval.json"
+    run:
         tool_name = 'bamqc'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input.allitems()},
@@ -125,7 +140,7 @@ rule Bamqc:
                 "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.fa"
             }
         }
-        qc.bamqc.bamqc(config_dict, tool_name)
+        qc.bamqc_eval.bamqcEval(config_dict, tool_name)
 
 rule PCA:
     input:
@@ -149,7 +164,8 @@ rule all:
         bamdir = rules.Mapping.output.mappingtouched,
         counts = rules.Counts.output.counts,
         bamqc = rules.Bamqc.output.bamqctouched,
-        pca = rules.PCA.output.pcatouched
+        pca = rules.PCA.output.pcatouched,
+        bamqceval = rules.BamqcEval.output.evaloutfile
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {
@@ -175,6 +191,10 @@ rule all:
         {
             "name": "Bamqc",
             "value": rules.Bamqc.output.bamqctouched
+        },
+        {
+            "name": "BamqcEval",
+            "value": rules.BamqcEval.output.evaloutfile
         }]
         }
 
