@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/DATA/RNAseq_test/Test_project/TEST001_config.json"
+config_dict_path = "/DATA/IECs_rhoa_Rocio/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -16,27 +16,48 @@ outfolder = config_dict['outfolder']
 # Fastq files
 fastq_r1 = config_dict['r1_files'].split(',')
 fastq_r2 = config_dict['r2_files'].split(',')
+fastq = fastq_r1 + fastq_r2
+fastq.remove("")
 design = config_dict['design']
 
 # Rules
-rule Mapping:
-    input:
-        fastq_r1 = config_dict['r1_files'].split(','),
-        fastq_r2 = config_dict['r2_files'].split(',')
-    output:
-        mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
-    run:
-        tool_name = 'mapping'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
-            'software': {},
-            'tool_conf': {
-                "genome": "/DATA/references/star_genomes/mmu38/star_indices_overhang150/",
-                "threads": "2"
+if config_dict['options']['reads'] == 'single':
+    rule Mapping:
+        input:
+            fastq_r1 = config_dict['r1_files'].split(',')
+        output:
+            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
+        run:
+            tool_name = 'mapping'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input.allitems()},
+                'output': {i[0]: i[1] for i in output.allitems()},
+                'software': {},
+                'tool_conf': {
+                    "genome": "/DATA/references/star_genomes/mmu38/star_indices_overhang150/",
+                    "threads": "2"
+                }
             }
-        }
-        python_scripts.mapping.mapping(config_dict, tool_name)
+            python_scripts.mapping.mapping(config_dict, tool_name)
+else:
+    rule Mapping:
+        input:
+            fastq_r1 = config_dict['r1_files'].split(','),
+            fastq_r2 = config_dict['r2_files'].split(',')
+        output:
+            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
+        run:
+            tool_name = 'mapping'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input.allitems()},
+                'output': {i[0]: i[1] for i in output.allitems()},
+                'software': {},
+                'tool_conf': {
+                    "genome": "/DATA/references/star_genomes/mmu38/star_indices_overhang150/",
+                    "threads": "2"
+                }
+            }
+            python_scripts.mapping.mapping(config_dict, tool_name)
 
 rule GenerateRegions:
     input:
@@ -91,8 +112,7 @@ rule CoveragePerBase:
 
 rule Fastqc:
     input:
-        fastq_r1 = config_dict['r1_files'].split(','),
-        fastq_r2 = config_dict['r2_files'].split(',')
+        fastq = fastq
     output:
         fastqceval = f"{outfolder}/fastqc/fastqc.results.txt"
     run:
@@ -121,7 +141,9 @@ rule Bamqc:
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
             'software': {},
-            'tool_conf': {}
+            'tool_conf': {
+                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.fa"
+            }
         }
         qc.bamqc.bamqc(config_dict, tool_name)
 

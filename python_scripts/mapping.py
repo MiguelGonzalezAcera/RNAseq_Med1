@@ -22,7 +22,10 @@ def mapping(config, tool_name):
 
     # Get the paths to the files that are going to be input/output
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
-    R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
+    if 'fastq_r2' in config['tools_conf'][tool_name]['input']:
+        R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
+    else:
+        R2_FILES = ''
     bamdir = "/".join(config['tools_conf'][tool_name]['output']['mappingtouched'].split('/')[0:-1])
     mappingtouched = config['tools_conf'][tool_name]['output']['mappingtouched']
     genomePath = config['tools_conf'][tool_name]['tool_conf']['genome']
@@ -36,9 +39,13 @@ def mapping(config, tool_name):
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
     for filer1 in R1_FILES:
-        filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
-        bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
-        command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+        if R2_FILES:
+            bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
+            filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+        else:
+            bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
     command += f"touch {mappingtouched}"
 

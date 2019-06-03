@@ -34,7 +34,10 @@ def pca(config, tool_name):
     pf.run_command(command)
 
     # List files to make gif
-    filelist = pf.list_files_dir(out_dir, ext = "*3d*")
+    try:
+        filelist = pf.list_files_dir(out_dir, ext = "*3d*")
+    except:
+        filelist = []
 
     # Run the creation of a gif if filelist is not empty
     if len(filelist) != 0:

@@ -15,13 +15,11 @@ def fastqc(config, tool_name):
     """
 
     # Get the paths to the files that are going to be input/output
-    R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
-    R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
+    FQfilelist = config['tools_conf'][tool_name]['input']['fastq']
     fastqcdir = "/".join(config['tools_conf'][tool_name]['output']['fastqceval'].split('/')[0:-1])
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
     # Add the fastq files in a file
-    FQfilelist = R1_FILES + R2_FILES
     FQfiles = '\n'.join(FQfilelist)
     fof = f"{fastqcdir}/fastq_files.fof"
 
@@ -35,7 +33,7 @@ def fastqc(config, tool_name):
     if not os.path.exists(fastqcdir):
         full_cmd += f"mkdir {fastqcdir};"
 
-    full_cmd += f'parallel -j {threads} "fastqc -o {fastqcdir} {{}}" :::: {fof}; '
+    full_cmd += f'parallel -j {threads} --tmpdir /DATA/tmp "fastqc -o {fastqcdir} {{}}" :::: {fof}; '
 
     pf.run_command(full_cmd)
 
