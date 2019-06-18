@@ -9,29 +9,41 @@ library(org.Mm.eg.db)
 option_list = list(
   make_option("--out_tab", type="character",
               help="Table with the result of the analysis."),
-  make_option("--genelist", type="character", default = c(),
+  make_option("--obj", type="character",
               help="A genelist of entrez genes with the gene group
-              to use for the enrichment. Default = None"),
-  make_option("--universe", type="character", default = c(),
-              help="The complete genelist of entrez genes in the assay. Default = None"),
+              to use for the enrichment"),
+  make_option("--universe", type="character",
+              help="The r object containing the complete genelist of entrez genes in the assay. It is saved in the differential expression analysis"),
   make_option("--organism", type="character", default= "human",
-              help="Organism analyzed. Available = human, mouse. Default = Human")
+              help="Organism analyzed. Available = human, mouse. Default = Human"),
+  make_option("--genelist", type="character", default='',
+              help='List of genes to analyze. Optional.')
 )
 
-opt_parser = OprtionParser(option_list=option_list)
+opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load Rfunctions
-source("D:/Documentos/LATESIS/Scripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Load R object
-load("")
+load(opt$obj)
+
+# Load the universe
+load(opt$universe)
 
 # Select organism
 database <- select.organism(opt$organism)
 
 # Obtain genelist
-entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res)), 'ENTREZID', 'ENSEMBL')))
+if (opt$genelist == ""){
+  entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res)), 'ENTREZID', 'ENSEMBL')))
+} else {
+  genes = readLines(opt$genelist)
+  
+  # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
+  entrezgeneids <- as.character(mapIds(database, as.character(genes), 'ENTREZID', 'SYMBOL'))
+}
 
 # Obtain universe ids
 universeids <- unique(as.character(mapIds(database, as.character(rownames(counts(dss))), 'ENTREZID', 'ENSEMBL')))
@@ -67,7 +79,7 @@ for (ont in ontologies) {
   
   # Save the enrichment table
   write.table(GOannot.table, file=sprintf("%s_%s.tsv", 
-                                          gsub(".tsv","",opt$out_tab, fixed=TRUE),ont),
+                                          gsub(".tsv","", opt$out_tab, fixed=TRUE),ont),
               sep="\t", row.names = FALSE)
 }
   
@@ -75,6 +87,7 @@ for (ont in ontologies) {
 # Also loop for each ontology
 for (ont in ontologies) {
   # Do the GSEA
+  ont = "CC"
   hgCutoff <- 0.05
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = T,
                 pAdjustMethod = "BH", universe = universeids)
@@ -84,26 +97,26 @@ for (ont in ontologies) {
   
   # Save the data frame
   write.table(GOtable, file=sprintf("%s_%s.tsv", 
-                                    gsub(".tsv","",opt$out_tab, fixed=TRUE),ont),
+                                    gsub(".tsv","", opt$out_tab, fixed=TRUE),ont),
               sep="\t", row.names = FALSE)
   
   # Obtain plots
   # barplot
   png(file=sprintf("%s_%s_barplot.png", 
-                   gsub(".tsv","",opt$out_tab, fixed=TRUE),ont))
+                   gsub(".tsv","",opt$out_tab, fixed=TRUE),ont), width = 8000, height = 6000, res = 600)
   barplot(x, showCategory=16)
   dev.off()
   
   # Enrichment map
   png(file=sprintf("%s_%s_emap.png", 
-                   gsub(".tsv","",opt$out_tab, fixed=TRUE),ont))
+                   gsub(".tsv","", opt$out_tab, fixed=TRUE),ont), width = 8000, height = 6000, res = 600)
   emapplot(x)
   dev.off()
   
   # Gene-Concept Network
   # plot linkages of genes and enriched concepts (e.g. GO categories, KEGG pathways)
   png(file=sprintf("%s_%s_cnet.png", 
-                   gsub(".tsv","",opt$out_tab, fixed=TRUE),ont))
+                   gsub(".tsv","", opt$out_tab, fixed=TRUE),ont), width = 8000, height = 6000, res = 600)
   cnetplot(x, categorySize="pvalue", foldChange = entrezgeneids)
   dev.off()
 }

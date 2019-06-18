@@ -1,31 +1,49 @@
 # Clustering meddling
 
-BiocManager::install(c("ComplexHeatmap","dendextend"))
-
 library(ComplexHeatmap)
 library(dendextend)
 library(cluster)
 library(gplots)
+library(circlize)
 library(org.Mm.eg.db)
+library(optparse)
 
 # NOTE: this chunk of code shall be replaced by a genelist input.
 # Might be a table from clusterProfiler, the raw genelist, or might be other source
+option_list = list(
+        make_option("--heatmap", type="character",
+                    help="Heatmap of the coverage of the genes over the samples"),
+        make_option("--counts", type="character",
+                    help="An r object with the normalized counts. Produced in the DE script."),
+        make_option("--genelist", type="character",
+                    help='List of genes to analyze. Entrez coding'),
+        make_option("--organism", type="character", default= "mouse",
+                    help="Organism analyzed. Available = human, mouse. Default = mouse")
+)
 
-# Load the r object containing the data. Can be fpkm or normalized counts.
-load("/DATA/DSS_rec_evolution/DSS_rec_evol.fpkm.Rda")
-load("/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
 
-genes = readLines("/DATA/DSS_rec_evolution/20190508-Jay_genelist/genelist.txt")
+# Load R scripts
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
-# Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
-df_norm$Genenames <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(df_norm)),
-                                  'SYMBOL', 'ENSEMBL'))
+# Select organism
+database <- select.organism(opt$organism)
+
+# Load the r object containing the data. 
+load(opt$counts)
+
+genes = readLines(opt$genelist)
+
+# Transform the ensembl names into gene symbol.
+df_norm$Genenames <- as.character(mapIds(database, as.character(rownames(df_norm)),
+                                  'ENTREZID', 'ENSEMBL'))
 
 # Get rows in the list of genes
 clust_df <- df_norm[df_norm$Genenames %in% genes, ,drop=FALSE]
 
 # Genenames as Gene symbol
-rows_hm <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(clust_df)),
+rows_hm <- as.character(mapIds(database, as.character(rownames(clust_df)),
                                'SYMBOL', 'ENSEMBL'))
 rows_hm[is.na(rows_hm)] <- "Unk"
 rownames(clust_df) <- rows_hm
@@ -39,26 +57,27 @@ df_norm$Genenames = NULL
 hr <- hclust(as.dist(1-cor(t(data.matrix(clust_df)),
                            method="pearson")), method="complete")
 hc <- hclust(as.dist(1-cor(data.matrix(df_norm),
-                           method="pearson")), method="average") 
+                           method="pearson")), method="complete") 
 
 # Tree cutting
-mycl <- cutree(hr, h=max(hr$height)/1.5)
+mycl <- cutree(hr, h=max(hr$height)/1.3)
 
 # Clustering boxes
 mycolhc <- rainbow(length(unique(mycl)), start=0.1, end=0.9)
 mycolhc <- mycolhc[as.vector(mycl)] 
 
 # Establish colors
-color <- colorpanel(100, "blue", "white", "red")
+color <- color <- colorRamp2(c(0, 2), c("white", "red"))
 
-png(file="/DATA/DSS_rec_evolution/20190508-Jay_genelist/Heatmap.png", width = 8000, height = 8000, res = 600)
+png(file=opt$heatmap, width = 8000, height = 14000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 
 Heatmap(t(scale(t(data.matrix(clust_df)))), cluster_rows = as.dendrogram(row_den),
-        cluster_columns = as.dendrogram(hc), 
+        cluster_columns = FALSE,
         col=color, column_dend_height = unit(5, "cm"),
         row_dend_width = unit(10, "cm"), 
         row_names_gp = gpar(fontsize = (150/length(genes)+5)),
         split = max(mycl), gap = unit(2, "mm"))
 dev.off()
+

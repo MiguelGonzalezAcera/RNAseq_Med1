@@ -4,8 +4,8 @@ library(calibrate)
 
 # Create options
 option_list = list(
-  make_option("--tab", type="character",
-              help="Table with the result of the analysis"),
+  make_option("--res", type="character",
+              help="R object with the result of the analysis"),
   make_option("--out_plot", type="character",
               help="file that contains the volcano.")
 )
@@ -14,12 +14,17 @@ opt_parser = OprtionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load Rfunctions
-source("D:/Documentos/LATESIS/Scripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Read data table
-resdf = read.table(opt$tab, fileEncoding = "UTF8")
+load("/DATA/IECs_rhoa_Rocio/Tr1KO.rda")
+resdf <- data.frame(res)[complete.cases(data.frame(res)),]
 
-png(file=opt$out_plot)
+# add genenames to the table
+resdf$Genes <- as.character(mapIds(org.Mm.eg.db, as.character(rownames(resdf)),
+                                   'SYMBOL', 'ENSEMBL'))
+
+png(file="/DATA/IECs_rhoa_Rocio/Tr1KO_volcano.png", width = 8000, height = 6000, res = 600)
 # Create scatterplot for the volcano
 with(resdf, plot(log2FoldChange, -log10(pvalue), pch=20))
 

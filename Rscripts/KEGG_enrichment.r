@@ -13,7 +13,7 @@ option_list = list(
   make_option("--id", type="character",
               help="Sample or group name for the output. STR"),
   make_option("--genelist", type="character", default = c(),
-              help="A genelist of entrez genes with the gene group
+              help="A genelist of genes with the gene group
               to use for the enrichment. TXT extension. Default = None"),
   make_option("--organism", type="character", default= "mouse",
               help="Organism analyzed. STR. Available = human, mouse. Default = Mouse")
@@ -26,10 +26,10 @@ opt = parse_args(opt_parser)
 load(opt$in_obj)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Select organism
-database <- select.organism(opt$organism)
+database <- select.organism("mouse")
 
 # Generate named list of FC
 geneList <- res$log2FoldChange
@@ -54,12 +54,12 @@ write.table(KEGGtable, file=opt$out_tab, sep="\t", row.names = FALSE)
 
 # Obtain plots
 # barplot
-png(file=gsub(".tsv","_barplot.png",opt$out_tab, fixed = TRUE))
+png(file=gsub(".tsv","_barplot.png",opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
 barplot(x, showCategory=16)
 dev.off()
 
 # Enrichment map
-png(file=gsub(".tsv","_emap.png",opt$out_tab, fixed = TRUE))
+png(file=gsub(".tsv","_emap.png",opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
 emapplot(x)
 dev.off()
 
