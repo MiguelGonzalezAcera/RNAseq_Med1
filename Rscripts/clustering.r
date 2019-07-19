@@ -1,12 +1,11 @@
 # Clustering meddling
 
-library(ComplexHeatmap)
-library(dendextend)
-library(cluster)
-library(gplots)
-library(circlize)
-library(org.Mm.eg.db)
-library(optparse)
+suppressPackageStartupMessages(library(ComplexHeatmap))
+suppressPackageStartupMessages(library(dendextend))
+suppressPackageStartupMessages(library(cluster))
+suppressPackageStartupMessages(library(gplots))
+suppressPackageStartupMessages(library(circlize))
+suppressPackageStartupMessages(library(optparse))
 
 # NOTE: this chunk of code shall be replaced by a genelist input.
 # Might be a table from clusterProfiler, the raw genelist, or might be other source
@@ -16,7 +15,7 @@ option_list = list(
         make_option("--counts", type="character",
                     help="An r object with the normalized counts. Produced in the DE script."),
         make_option("--genelist", type="character",
-                    help='List of genes to analyze. Entrez coding'),
+                    help='List of genes to analyze. Ensembl coding'),
         make_option("--organism", type="character", default= "mouse",
                     help="Organism analyzed. Available = human, mouse. Default = mouse")
 )
@@ -32,12 +31,12 @@ database <- select.organism(opt$organism)
 
 # Load the r object containing the data. 
 load(opt$counts)
+#df_norm <- subset(df_norm, select=c("Mock_1", "Mock_2", "Mock_3", "IL13_1", "IL13_2", "IL13_3"))
 
 genes = readLines(opt$genelist)
 
 # Transform the ensembl names into gene symbol.
-df_norm$Genenames <- as.character(mapIds(database, as.character(rownames(df_norm)),
-                                  'ENTREZID', 'ENSEMBL'))
+df_norm$Genenames <- rownames(df_norm)
 
 # Get rows in the list of genes
 clust_df <- df_norm[df_norm$Genenames %in% genes, ,drop=FALSE]
@@ -69,14 +68,14 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- color <- colorRamp2(c(0, 2), c("white", "red"))
 
-png(file=opt$heatmap, width = 8000, height = 14000, res = 600)
+png(file=opt$heatmap, width = 4000, height = 3000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 
 Heatmap(t(scale(t(data.matrix(clust_df)))), cluster_rows = as.dendrogram(row_den),
         cluster_columns = FALSE,
         col=color, column_dend_height = unit(5, "cm"),
-        row_dend_width = unit(10, "cm"), 
+        row_dend_width = unit(2, "cm"), 
         row_names_gp = gpar(fontsize = (150/length(genes)+5)),
         split = max(mycl), gap = unit(2, "mm"))
 dev.off()

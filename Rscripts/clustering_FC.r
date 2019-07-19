@@ -1,10 +1,9 @@
-library(ComplexHeatmap)
-library(dendextend)
-library(cluster)
-library(gplots)
-library(circlize)
-library(org.Mm.eg.db)
-library(optparse)
+suppressPackageStartupMessages(library(ComplexHeatmap))
+suppressPackageStartupMessages(library(dendextend))
+suppressPackageStartupMessages(library(cluster))
+suppressPackageStartupMessages(library(gplots))
+suppressPackageStartupMessages(library(circlize))
+suppressPackageStartupMessages(library(optparse))
 
 option_list = list(
   make_option("--DE", type="character",

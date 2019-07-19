@@ -3,7 +3,6 @@
 library(clusterProfiler)
 library(DESeq2)
 library(optparse)
-library(org.Mm.eg.db)
 library(ReactomePA)
 
 option_list = list(
@@ -18,11 +17,8 @@ option_list = list(
               help="Organism analyzed. Available = human, mouse. Default = Human")
 )
 
-opt_parser = OprtionParser(option_list=option_list)
+opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
-
-# Load R object
-load(opt$DE)
 
 # Load R scripts
 source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
@@ -31,13 +27,30 @@ source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 database <- select.organism(opt$organism)
 
 # Read genelist
-entrezgeneids <- scan(opt$genelist, character(), quote="")
+genes <- scan(opt$genelist, character(), quote="")
+entrezgeneids <- as.character(mapIds(database, genes, 'ENTREZID', 'ENSEMBL'))
+
+# Load R object
+load(opt$DE)
+
+# Generate named list of FC
+geneList <- res$log2FoldChange
+names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
+                                       'ENTREZID', 'ENSEMBL'))
+# Remove duplicates
+geneList <- geneList[!duplicated(names(geneList))]
 
 # Do the GSEA
 #<TO_DO>: Change parameters cutoff and organism.
 hgCutoff <- 0.05
 x <- enrichPathway(gene = entrezgeneids, pvalueCutoff = hgCutoff, readable = T,
               organism = "mouse")
+
+# Save result object
+save(x, file = gsub(".tsv",".rda", opt$out_tab, fixed=TRUE))
+
+# Save genelist
+save(geneList, file = sprintf("%s_result_genelist.rda", gsub(".tsv","", opt$out_tab, fixed=TRUE)))
 
 # Transform the result into a data frame
 Reactometable <- as.data.frame(x)

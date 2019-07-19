@@ -4,6 +4,7 @@ library(clusterProfiler)
 library(pathview)
 library(DESeq2)
 library(optparse)
+library(enrichplot)
 
 option_list = list(
   make_option("--out_tab", type="character",
@@ -29,7 +30,12 @@ load(opt$in_obj)
 source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Select organism
-database <- select.organism("mouse")
+database <- select.organism(opt$organism)
+if (opt$organism == "human") {
+  org_db = "hsa"
+} else if (opt$organism == "mouse") {
+  org_db = "mmu"
+}
 
 # Generate named list of FC
 geneList <- res$log2FoldChange
@@ -38,12 +44,12 @@ names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
 
 # Obtain names
 genes <- scan(opt$genelist, character(), quote="")
-entrezgeneids <- as.character(mapIds(database, genes, 'ENTREZID', 'SYMBOL'))
+entrezgeneids <- as.character(mapIds(database, genes, 'ENTREZID', 'ENSEMBL'))
 
 # Do the GSEA
 #<TO_DO>: Change parameters cutoff and organism.
 hgCutoff <- 0.05
-x <- enrichKEGG(entrezgeneids, organism="mmu", pvalueCutoff=hgCutoff, pAdjustMethod="BH",
+x <- enrichKEGG(entrezgeneids, organism=org_db, pvalueCutoff=hgCutoff, pAdjustMethod="BH",
                 qvalueCutoff=0.1)
 
 # Transform the result into a data frame
@@ -68,10 +74,14 @@ pathlist <- unlist(strsplit(opt$out_tab,"/"))
 path = paste(pathlist[1:length(pathlist)-1], collapse = "/")
 
 # Show the main pathways
-top_pathways <- rownames(KEGGtable)[1:10]
-
+if (length(rownames(KEGGtable)) >= 10){
+  top_pathways <- rownames(KEGGtable)[1:10]
+} else {
+  top_pathways <- rownames(KEGGtable)[1:length(rownames(KEGGtable))]
+  }
+    
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = "mmu", kegg.dir = "/DATA/tmp/", out.suffix = opt$id)
+  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id)
   wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
   print(wd)
 
