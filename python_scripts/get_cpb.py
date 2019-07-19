@@ -10,7 +10,7 @@ def coverage_per_base(config, tool_name):
     bed = config['tools_conf'][tool_name]['input']['bed']
     cpbdir = "/".join(config['tools_conf'][tool_name]['output']['cpbtouched'].split('/')[0:-1])
     cpbtouched = config['tools_conf'][tool_name]['output']['cpbtouched']
-    genome = config['tools_conf'][tool_name]['tool_conf']['genome']
+    genome = config['tools_conf']['genometxt']
 
     # Lsit all the bam files in the directory
     filelist = pf.list_files_dir(bamdir, ext = '*.bam')

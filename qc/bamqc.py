@@ -28,7 +28,7 @@ def bamqc(config, tool_name):
     CPBDIR = "/".join(config['tools_conf'][tool_name]['input']['cpbtouched'].split('/')[0:-1])
     LIST = config['tools_conf'][tool_name]['input']['list']
 
-    GENOME = config['tools_conf'][tool_name]['tool_conf']['genome']
+    GENOME = config['tools_conf']['genomefasta']
 
     OUTDIR = "/".join(config['tools_conf'][tool_name]['output']['bamqctouched'].split('/')[0:-1])
     bamqctouched = config['tools_conf'][tool_name]['output']['bamqctouched']
@@ -56,11 +56,11 @@ def bamqc(config, tool_name):
         if not os.path.exists(OUTDIR):
             command += f"mkdir {OUTDIR};"
         # bedtools qc software to generate information file
-        command += f'java -jar /SOFTWARE/bin/picard.jar CollectAlignmentSummaryMetrics VALIDATION_STRINGENCY=SILENT' +\
+        command += f'java -jar /SOFTWARE/bin/picard-2.19.0.jar CollectAlignmentSummaryMetrics VALIDATION_STRINGENCY=SILENT' +\
             f' R={GENOME} I={BAM} O={QCALNOUT}; '
 
         # BWA mapping software to generate sam file
-        command += f'java -jar /SOFTWARE/bin/picard.jar CollectTargetedPcrMetrics VALIDATION_STRINGENCY=SILENT' +\
+        command += f'java -jar /SOFTWARE/bin/picard-2.19.0.jar CollectTargetedPcrMetrics VALIDATION_STRINGENCY=SILENT' +\
             f' I={BAM} O={QCMTROUT} TI={LIST} AI={LIST}; '
 
         command += f"qualimap bamqc --java-mem-size=20G -bam {BAM} -gff {BED} -outdir {OUTDIR}; "

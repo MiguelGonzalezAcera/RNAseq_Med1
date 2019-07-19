@@ -9,13 +9,14 @@ def regions(config, tool_name):
     """
 
     bedfile = config['tools_conf'][tool_name]['input']['bedfile']
-    genome = config['tools_conf'][tool_name]['tool_conf']['genome']
+    genome = config['tools_conf']['genomedict']
     list = config['tools_conf'][tool_name]['output']['list']
 
     # Create the picard command
     command = ""
     command += f"java -jar /SOFTWARE/bin/picard-2.19.0.jar BedToIntervalList I={bedfile}" + \
            f" O={list} SD={genome}"
+    print(command)
 
     pf.run_command(command)
 
