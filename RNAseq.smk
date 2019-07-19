@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/DATA/IECs_rhoa_Rocio/config.json"
+config_dict_path = "/DATA/Smyd_Yuqiang/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -17,8 +17,12 @@ outfolder = config_dict['outfolder']
 fastq_r1 = config_dict['r1_files'].split(',')
 fastq_r2 = config_dict['r2_files'].split(',')
 fastq = fastq_r1 + fastq_r2
-fastq.remove("")
+#fastq.remove("")
 design = config_dict['design']
+
+bedfile_path = config_dict['tools_conf']['bedfile']
+list_path = bedfile_path.replace('.bed','.list')
+annot_path = config_dict['tools_conf']['annot']
 
 # Rules
 if config_dict['options']['reads'] == 'single':
@@ -34,7 +38,6 @@ if config_dict['options']['reads'] == 'single':
                 'output': {i[0]: i[1] for i in output.allitems()},
                 'software': {},
                 'tool_conf': {
-                    "genome": "/DATA/references/star_genomes/mmu38/star_indices_overhang150/",
                     "threads": "2"
                 }
             }
@@ -53,7 +56,6 @@ else:
                 'output': {i[0]: i[1] for i in output.allitems()},
                 'software': {},
                 'tool_conf': {
-                    "genome": "/DATA/references/star_genomes/mmu38/star_indices_overhang150/",
                     "threads": "2"
                 }
             }
@@ -61,25 +63,23 @@ else:
 
 rule GenerateRegions:
     input:
-        bedfile = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
+        bedfile = bedfile_path
     output:
-        list = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.list"
+        list = list_path
     run:
         tool_name = 'generate_regions'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
             'software': {},
-            'tool_conf': {
-                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.dict"
-            }
+            'tool_conf': {}
         }
         python_scripts.generate_regions.regions(config_dict, tool_name)
 
 rule Counts:
     input:
         bamdir = rules.Mapping.output.mappingtouched,
-        annot = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.gtf"
+        annot = annot_path
     output:
         counts = f"{outfolder}/counts.tsv"
     run:
@@ -95,7 +95,7 @@ rule Counts:
 rule CoveragePerBase:
     input:
         bamdir = rules.Mapping.output.mappingtouched,
-        bed = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
+        bed = bedfile_path
     output:
         cpbtouched = f"{outfolder}/cpbfiles/cpbtouched.txt"
     run:
@@ -104,9 +104,7 @@ rule CoveragePerBase:
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
             'software': {},
-            'tool_conf': {
-                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.txt"
-            }
+            'tool_conf': {}
         }
         python_scripts.get_cpb.coverage_per_base(config_dict, tool_name)
 
@@ -132,7 +130,7 @@ rule Bamqc:
         bamdir = rules.Mapping.output.mappingtouched,
         cpbtouched = rules.CoveragePerBase.output.cpbtouched,
         list = rules.GenerateRegions.output.list,
-        bedfile = "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed"
+        bedfile = bedfile_path
     output:
         bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
     run:
@@ -141,9 +139,7 @@ rule Bamqc:
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
             'software': {},
-            'tool_conf': {
-                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.fa"
-            }
+            'tool_conf': {}
         }
         qc.bamqc.bamqc(config_dict, tool_name)
 
@@ -158,9 +154,7 @@ rule BamqcEval:
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
             'software': {},
-            'tool_conf': {
-                "genome": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.fa"
-            }
+            'tool_conf': {}
         }
         qc.bamqc_eval.bamqcEval(config_dict, tool_name)
 
