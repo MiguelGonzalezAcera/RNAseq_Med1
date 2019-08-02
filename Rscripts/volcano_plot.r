@@ -31,7 +31,7 @@ resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
 
 png(file=opt$out_plot, width = 3000, height = 3000, res = 600)
 # Create scatterplot for the volcano
-with(resdf, plot(log2FoldChange, -log10(pvalue), pch=20, xlim = c(-5,20), ylim = c(-1, 350)))
+with(resdf, plot(log2FoldChange, -log10(pvalue), pch=20))
 
 # Color the points using thresholds
 #<TO_DO>: replace the thresholds by parameters
@@ -47,7 +47,7 @@ resdf$Genes_filt[is.na(resdf$Genes_filt)] <- ""
 
 # Annotate significant points with genenames
 with(subset(resdf, padj<.001 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02,
-                                                              labs=Genes_filt, cex = 1))
+                                                              labs=Genes, cex = .5))
 
 dev.off()
 

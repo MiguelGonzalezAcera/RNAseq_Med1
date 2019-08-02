@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/DATA/Smyd_Yuqiang/config.json"
+config_dict_path = "/VAULT/Human_data/Th2_cells/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -17,7 +17,7 @@ outfolder = config_dict['outfolder']
 fastq_r1 = config_dict['r1_files'].split(',')
 fastq_r2 = config_dict['r2_files'].split(',')
 fastq = fastq_r1 + fastq_r2
-#fastq.remove("")
+fastq.remove("")
 design = config_dict['design']
 
 bedfile_path = config_dict['tools_conf']['bedfile']

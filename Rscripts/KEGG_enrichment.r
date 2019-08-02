@@ -81,7 +81,7 @@ if (length(rownames(KEGGtable)) >= 10){
   }
     
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id)
+  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit=list(gene=8, cpd=1))
   wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
   print(wd)
 

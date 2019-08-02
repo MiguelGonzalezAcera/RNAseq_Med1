@@ -29,7 +29,7 @@ source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 load(opt$obj)
 
 # Filter the object by fold change
-res <- res[which(res$log2FoldChange < -1 | res$log2FoldChange > 1),]
+res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),]
 
 # Load the universe
 load(opt$universe)

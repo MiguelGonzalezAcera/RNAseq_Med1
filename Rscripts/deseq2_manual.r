@@ -8,17 +8,17 @@ source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 database <- select.organism("mouse")
 
 # Read the table with the metadata
-sampleTableSingle = read.table("/DATA/Monsumi_type2resp/design.txt", fileEncoding = "UTF8")
+sampleTableSingle = read.table("/VAULT/Human_data/Macrophage_stim/design.txt", fileEncoding = "UTF8")
 
 # Read the table containing the counts
-Counts_tab = read.table("/DATA/Monsumi_type2resp/counts.tsv", fileEncoding = "UTF8", header=TRUE)
+Counts_tab = read.table("/VAULT/Human_data/Macrophage_stim/counts.tsv", fileEncoding = "UTF8", header=TRUE)
 row.names(Counts_tab) <- Counts_tab$Geneid
 Counts_tab$Geneid = NULL
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 Counts_tab <- Counts_tab[order(row.names(Counts_tab)),]
 
 # Design model matrix (STILL MANUAL)
-Tr1 = relevel(sampleTableSingle[,1],"Mock")
+Tr1 = relevel(sampleTableSingle[,1],"BMDM-Control")
 Tr2 = relevel(sampleTableSingle[,2], "mock")
 design <- model.matrix( ~ Tr1)
 
@@ -27,6 +27,9 @@ dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
                               colData = sampleTableSingle,
                               design = design)
 
+# Keep the universe
+save(dss,file="/VAULT/Human_data/Macrophage_stim/universe.rda")
+
 # Get the genomic ranges
 Grang_tab = read.table("/DATA/DSS_rec_evolution/DSS_rec_evol.counts.ranges.tsv", fileEncoding = "UTF8", header=TRUE)
 Grlist <- makeGRangesListFromDataFrame(Grang_tab, split.field = "Geneid")
@@ -34,7 +37,7 @@ Grlist_filt <- Grlist[names(Grlist) %in% rownames(assay(dss))]
 rowRanges(dss) <- Grlist_filt
 
 # filter the counts
-keep <- rowSums(counts(dss)) >= 10
+keep <- rowSums(counts(dss)) >= 25
 dss <- dss[keep,]
 
 # Get and save the fpkm
@@ -50,15 +53,12 @@ resultsNames(dds)
 # Plot the dispersion of the set
 plotDispEsts(dds)
 
-# Keep the universe
-save(dds,file="/DATA/Monsumi_type2resp/universe.rda")
-
 # Save the normalized counts
 # <TO_DO>: The header is odd in the file, so check the samples or load the whole object when working with the normalized counts.
 norm_counts <- counts(estimateSizeFactors(dds), normalized = T)
-write.table(norm_counts, file="/DATA/Monsumi_type2resp/norm_counts.tsv",sep="\t")
+write.table(norm_counts, file="/VAULT/Human_data/Macrophage_stim/norm_counts.tsv",sep="\t")
 df_norm <- as.data.frame(norm_counts)
-save(df_norm, file="/DATA/Monsumi_type2resp/norm_counts.Rda")
+save(df_norm, file="/VAULT/Human_data/Macrophage_stim/norm_counts.Rda")
 
 #<TO_DO>: Now, this is doubtful, because now would be time to do the contrasts.
 # To do these accuratelz, we have to consider, number of factors, levels of each factor,
@@ -70,11 +70,11 @@ save(df_norm, file="/DATA/Monsumi_type2resp/norm_counts.Rda")
 
 # Contrast may vary. Probably need to use loop for all contrasts,
 # even more if there is interaction. <TO_DO>: Also, use given threshold
-res <- results(dds, alpha = 0.001, name = 'Tr1IL33')
+res <- results(dds, alpha = 0.001, name = 'Tr1BMDM.IL4.12h')
 
 # Save the full result object
 # <TO_DO>: Change 'contrast' for actual contrast name
-save(res,file="/DATA/Monsumi_type2resp/Tr1IL33.rda")
+save(res,file="/VAULT/Human_data/Macrophage_stim/BMDM.IL4.12h.rda")
 
 # A simple helper function that makes a so-called "MA-plot", i.e. a scatter plot of
 # log2 fold changes (on the y-axis) versus the mean of normalized counts (on the x-axis).
@@ -93,7 +93,7 @@ resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
                                    'SYMBOL', 'ENSEMBL'))
 
 # Save table with all the new names. Replace contrast
-write.table(resdf, file="/DATA/Monsumi_type2resp/Tr1IL33.tsv",
+write.table(resdf, file="/VAULT/Human_data/Macrophage_stim/BMDM.IL4.12h.tsv",
             sep="\t", row.names = FALSE)
 
 # Save environment
