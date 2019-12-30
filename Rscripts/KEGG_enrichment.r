@@ -13,7 +13,7 @@ option_list = list(
               help="Robject with the DE analysis. Rda extension"),
   make_option("--id", type="character",
               help="Sample or group name for the output. STR"),
-  make_option("--genelist", type="character", default = c(),
+  make_option("--genelist", type="character", default = "",
               help="A genelist of genes with the gene group
               to use for the enrichment. TXT extension. Default = None"),
   make_option("--organism", type="character", default= "mouse",
@@ -42,13 +42,19 @@ geneList <- res$log2FoldChange
 names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
                                        'ENTREZID', 'ENSEMBL'))
 
-# Obtain names
-genes <- scan(opt$genelist, character(), quote="")
-entrezgeneids <- as.character(mapIds(database, genes, 'ENTREZID', 'ENSEMBL'))
+# Obtain genelist
+if (opt$genelist == ""){
+  entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),])), 'ENTREZID', 'ENSEMBL')))
+} else {
+  genes <- scan(opt$genelist, character(), quote="")
+  
+  # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
+  entrezgeneids <- as.character(mapIds(database, as.character(genes), 'ENTREZID', 'ENSEMBL'))
+}
 
 # Do the GSEA
 #<TO_DO>: Change parameters cutoff and organism.
-hgCutoff <- 0.05
+hgCutoff <- 0.1
 x <- enrichKEGG(entrezgeneids, organism=org_db, pvalueCutoff=hgCutoff, pAdjustMethod="BH",
                 qvalueCutoff=0.1)
 
@@ -81,7 +87,7 @@ if (length(rownames(KEGGtable)) >= 10){
   }
     
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit=list(gene=8, cpd=1))
+  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit=list(gene=5, cpd=0.25))
   wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
   print(wd)
 

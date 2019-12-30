@@ -93,7 +93,7 @@ for (ont in ontologies) {
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = T,
                 pAdjustMethod = "BH", universe = universeids)
   
-  save(x, file=sprintf("%s_%s.rda", 
+  save(x, file=sprintf("%s_%s.Rda", 
                        gsub(".tsv","", opt$out_tab, fixed=TRUE),ont))
   
   # Transform the result into a data frame
@@ -105,7 +105,7 @@ for (ont in ontologies) {
               sep="\t", row.names = FALSE)
 }
 
-save(entrezgeneids, file = sprintf("%s_entrezgeneids.rda", gsub(".tsv","", opt$out_tab, fixed=TRUE)))
+save(entrezgeneids, file = sprintf("%s_entrezgeneids.Rda", gsub(".tsv","", opt$out_tab, fixed=TRUE)))
 
 # Save environment
 save.image(file=gsub(".tsv",".RData",opt$out_tab, fixed = TRUE))

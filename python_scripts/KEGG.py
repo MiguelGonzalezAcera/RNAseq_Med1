@@ -2,48 +2,41 @@ import argparse
 import logging
 import os
 import glob
-import imageio
 import python_scripts.python_functions as pf
 
-def gif(filelist, out_dir):
-    """Create a gif file from a list of images
-    """
 
-    result = f"{out_dir}/pca_3d.gif"
-    with imageio.get_writer(result, mode='I', fps=25) as writer:
-        for filename in filelist:
-            image = imageio.imread(filename)
-            writer.append_data(image)
-
-def pca(config, tool_name):
+def KEGG_enrichment(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
-    counts = config['tools_conf'][tool_name]['input']['counts']
-    design = config['tools_conf'][tool_name]['input']['design']
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['pcatouched'].split('/')[0:-1])
-    pcatouched = config['tools_conf'][tool_name]['output']['pcatouched']
+    out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
+
+    out_dir = "/".join(config['tools_conf'][tool_name]['output']['keggtouched'].split('/')[0:-1])
+    keggtouched = config['tools_conf'][tool_name]['output']['keggtouched']
+    samples = config['comparisons']
+    organism = config['options']['organism']
 
     # Create the command to run the pca R script
     command = ""
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
-    command += f'touch {pcatouched}'
+
+    for control in samples:
+        sample_ids = samples[control].split(",")
+        for sample in sample_ids:
+            id_dir = out_dir + "/" + f"{sample}_{control}"
+            id_tab = out_dir + "/" + f"{sample}_{control}" + "/" + f"{sample}_{control}_KEGG.tsv"
+            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.Rda"
+            id_obj = f"{sample}_{control}"
+
+            command += f"mkdir {id_dir}; "
+            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '
+    command += f'touch {keggtouched}'
 
     print(command)
 
     pf.run_command(command)
 
-    # List files to make gif
-    try:
-        filelist = pf.list_files_dir(out_dir, ext = "*3d*")
-    except:
-        filelist = []
-
-    # Run the creation of a gif if filelist is not empty
-    if len(filelist) != 0:
-        gif(sorted(filelist), out_dir)
 
 def get_arguments():
     """

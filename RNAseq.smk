@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/VAULT/Human_data/Th2_cells/config.json"
+config_dict_path = "/VAULT/20191107_Reyes_request_GSE139332/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -17,7 +17,8 @@ outfolder = config_dict['outfolder']
 fastq_r1 = config_dict['r1_files'].split(',')
 fastq_r2 = config_dict['r2_files'].split(',')
 fastq = fastq_r1 + fastq_r2
-fastq.remove("")
+if config_dict['options']['reads'] == 'single':
+    fastq.remove("")
 design = config_dict['design']
 
 bedfile_path = config_dict['tools_conf']['bedfile']
@@ -174,6 +175,52 @@ rule PCA:
         }
         python_scripts.pca.pca(config_dict, tool_name)
 
+rule deseq2:
+    input:
+        counts = rules.Counts.output.counts,
+        design = design
+    output:
+        DEtouched = f"{outfolder}/detables/DEtouched.txt"
+    run:
+        tool_name = 'differential_expression'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.differential_expression.deseq2(config_dict, tool_name)
+
+rule KEGG:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched,
+    output:
+        keggtouched = f"{outfolder}/KEEG_enrichment/keggtouched.txt"
+    run:
+        tool_name = 'KEEG_enrichment'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.KEGG.KEGG_enrichment(config_dict, tool_name)
+
+rule GO:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched,
+    output:
+        gotouched = f"{outfolder}/GO_enrichment/gotouched.txt"
+    run:
+        tool_name = 'GO_enrichment'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.GO.GO_enrichment(config_dict, tool_name)
+
 rule all:
     input:
         fastqceval = rules.Fastqc.output.fastqceval,
@@ -181,7 +228,9 @@ rule all:
         counts = rules.Counts.output.counts,
         bamqc = rules.Bamqc.output.bamqctouched,
         pca = rules.PCA.output.pcatouched,
-        bamqceval = rules.BamqcEval.output.evaloutfile
+        bamqceval = rules.BamqcEval.output.evaloutfile,
+        keggtouched = rules.KEGG.output.keggtouched,
+        gotouched = rules.GO.output.gotouched
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {

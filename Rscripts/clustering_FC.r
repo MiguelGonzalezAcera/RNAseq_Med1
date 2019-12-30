@@ -86,7 +86,8 @@ colnames(pval_df) <- colnames
 # Genenames as Gene symbol
 rows_hm <- as.character(mapIds(database, as.character(rownames(clust_df)),
                                'SYMBOL', 'ENSEMBL'))
-rows_hm[is.na(rows_hm)] <- "Unk"
+new <- 1000:2000
+rows_hm[is.na(rows_hm)] <- paste("Unk",new[1:sum(is.na(rows_hm))], sep="")
 rownames(clust_df) <- rows_hm
 
 # Perform the clustering analysis over the table
@@ -106,7 +107,7 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 3000, height = 7000, res = 600)
+png(file=opt$heatmap, width = 3000, height = 3000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 
@@ -114,10 +115,11 @@ Heatmap(data.matrix(clust_df), cluster_rows = as.dendrogram(row_den),
         cluster_columns = FALSE, 
         col=color, column_dend_height = unit(5, "cm"),
         row_dend_width = unit(3, "cm"), 
-        row_names_gp = gpar(fontsize = (150/length(genelist)+5)),
+        row_names_gp = gpar(fontsize = (90/length(genelist)+5)),
         split = max(mycl), gap = unit(2, "mm"),
         cell_fun = function(j, i, x, y, width, height, fill) {
-          grid.text(sprintf("%.5f", data.matrix(pval_df)[i, j]), x, y, gp = gpar(fontsize = (150/length(genelist)+5)))
-        })
+          grid.text(sprintf("%.2f", data.matrix(pval_df)[i, j]), x, y, gp = gpar(fontsize = (80/length(genelist)+3)))
+        }
+        )
 dev.off()
 
