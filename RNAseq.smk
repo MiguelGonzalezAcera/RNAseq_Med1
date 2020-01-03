@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/VAULT/20191107_Reyes_request_GSE139332/config.json"
+config_dict_path = "/DATA/Thesis_proj/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -20,6 +20,7 @@ fastq = fastq_r1 + fastq_r2
 if config_dict['options']['reads'] == 'single':
     fastq.remove("")
 design = config_dict['design']
+project = config_dict['project']
 
 bedfile_path = config_dict['tools_conf']['bedfile']
 list_path = bedfile_path.replace('.bed','.list')
@@ -180,7 +181,8 @@ rule deseq2:
         counts = rules.Counts.output.counts,
         design = design
     output:
-        DEtouched = f"{outfolder}/detables/DEtouched.txt"
+        DEtouched = f"{outfolder}/detables/DEtouched.txt",
+        design_tab = f"{outfolder}/detables/{project}_design.txt"
     run:
         tool_name = 'differential_expression'
         config_dict['tools_conf'][tool_name] = {
@@ -190,6 +192,21 @@ rule deseq2:
             'tool_conf': {}
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
+
+rule load_project:
+    input:
+        design_tab = rules.deseq2.output.design_tab
+    output:
+        prloadtouched = f"{outfolder}/detables/loadedtouched.txt"
+    run:
+        tool_name = 'load_project_table'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.load_design.load_design(config_dict, tool_name)
 
 rule KEGG:
     input:
@@ -230,7 +247,8 @@ rule all:
         pca = rules.PCA.output.pcatouched,
         bamqceval = rules.BamqcEval.output.evaloutfile,
         keggtouched = rules.KEGG.output.keggtouched,
-        gotouched = rules.GO.output.gotouched
+        gotouched = rules.GO.output.gotouched,
+        prloadtouched = rules.load_project.output.prloadtouched
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {
