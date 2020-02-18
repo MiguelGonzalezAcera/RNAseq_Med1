@@ -42,9 +42,6 @@ with(subset(resdf, abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue)
 with(subset(resdf, padj<.001 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue),
                                                               pch=20, col="green"))
 
-resdf$Genes_filt <- rapply(as.list(resdf$Genes),function(x) ifelse(startsWith(x,"Gsdmc"),x,""), how = "replace")
-resdf$Genes_filt[is.na(resdf$Genes_filt)] <- ""
-
 # Annotate significant points with genenames
 with(subset(resdf, padj<.001 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02,
                                                               labs=Genes, cex = .5))

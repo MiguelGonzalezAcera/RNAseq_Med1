@@ -80,8 +80,8 @@ pathlist <- unlist(strsplit(opt$out_tab,"/"))
 path = paste(pathlist[1:length(pathlist)-1], collapse = "/")
 
 # Show the main pathways
-if (length(rownames(KEGGtable)) >= 10){
-  top_pathways <- rownames(KEGGtable)[1:10]
+if (length(rownames(KEGGtable)) >= 50){
+  top_pathways <- rownames(KEGGtable)[1:50]
 } else {
   top_pathways <- rownames(KEGGtable)[1:length(rownames(KEGGtable))]
   }

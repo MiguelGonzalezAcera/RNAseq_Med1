@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/DATA/Thesis_proj/config.json"
+config_dict_path = "/VAULT/20200204_Timo_KO_mice/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -223,6 +223,21 @@ rule KEGG:
         }
         python_scripts.KEGG.KEGG_enrichment(config_dict, tool_name)
 
+rule volcano_plot:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched,
+    output:
+        volcanotouched = f"{outfolder}/plots/volcanotouched.txt"
+    run:
+        tool_name = 'volcano_plot   '
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)
+
 rule GO:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
@@ -248,6 +263,7 @@ rule all:
         bamqceval = rules.BamqcEval.output.evaloutfile,
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
+        volcanotouched = rules.volcano_plot.output.volcanotouched,
         prloadtouched = rules.load_project.output.prloadtouched
     run:
         tool_name = 'all'
