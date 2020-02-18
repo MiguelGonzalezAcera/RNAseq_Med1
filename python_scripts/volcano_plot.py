@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import glob
+import pandas as pd
 import python_scripts.python_functions as pf
 
 
@@ -21,6 +22,8 @@ def volcano_plot(config, tool_name):
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
+    path_list = []
+
     for control in samples:
         sample_ids = samples[control].split(",")
         for sample in sample_ids:
@@ -29,7 +32,16 @@ def volcano_plot(config, tool_name):
             id_obj = f"{sample}_{control}"
 
             command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/volcano_plot.r --out_plot {id_tab} --res {id_sample} --organism {organism}; '
+
+            path_list.append([id_sample, id_tab])
+
     command += f'touch {volcanotouched}'
+
+    # Add volcano plots paths to the design table
+    path_df = pd.DataFrame(path_list, columns = ['Robj_path', 'Volcano_path'])
+    design_df = pd.read_csv(config['tools_conf'][tool_name]['input']['design_tab'], sep='\t', index_col=None)
+    design_df = pd.merge(design_df, path_df, on=['Robj_path'])
+    design_df.to_csv(config['tools_conf'][tool_name]['output']['design_tab'], sep='\t', index=False)
 
     print(command)
 

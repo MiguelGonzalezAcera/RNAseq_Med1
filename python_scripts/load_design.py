@@ -25,11 +25,11 @@ def load_design(config, tool_name):
 
     mycursor = mydb.cursor()
 
-    create_command = f"""create table Projects.{project}(Comparison VARCHAR(255) NOT NULL, Control VARCHAR(255) NOT NULL, Sample VARCHAR(255) NOT NULL, Table_path VARCHAR(255) NOT NULL, Robj_path VARCHAR(255) NOT NULL, primary key(Comparison));"""
+    create_command = f"""create table Projects.{project}(Comparison VARCHAR(255) NOT NULL, Control VARCHAR(255) NOT NULL, Sample VARCHAR(255) NOT NULL, Table_path VARCHAR(255) NOT NULL, Robj_path VARCHAR(255) NOT NULL, Volcano_path VARCHAR(255) NOT NULL, primary key(Comparison));"""
     print(create_command)
     mycursor.execute(create_command)
 
-    insert_command = f"""load data local infile '{design_tab}' into table Projects.{project} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (Comparison,Control,Sample,Table_path,Robj_path);"""
+    insert_command = f"""load data local infile '{design_tab}' into table Projects.{project} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (Comparison,Control,Sample,Table_path,Robj_path,Volcano_path);"""
     print(insert_command)
     mycursor.execute(insert_command)
 

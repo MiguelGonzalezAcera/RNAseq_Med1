@@ -182,7 +182,7 @@ rule deseq2:
         design = design
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
-        design_tab = f"{outfolder}/detables/{project}_design.txt"
+        design_tab = f"{outfolder}/detables/{project}_design.tmp"
     run:
         tool_name = 'differential_expression'
         config_dict['tools_conf'][tool_name] = {
@@ -193,9 +193,26 @@ rule deseq2:
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
 
+rule volcano_plot:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched,
+        design_tab = rules.deseq2.output.design_tab
+    output:
+        volcanotouched = f"{outfolder}/plots/volcanotouched.txt",
+        design_tab = f"{outfolder}/detables/{project}_design.txt"
+    run:
+        tool_name = 'volcano_plot   '
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)
+
 rule load_project:
     input:
-        design_tab = rules.deseq2.output.design_tab
+        design_tab = rules.volcano_plot.output.design_tab
     output:
         prloadtouched = f"{outfolder}/detables/loadedtouched.txt"
     run:
@@ -222,21 +239,6 @@ rule KEGG:
             'tool_conf': {}
         }
         python_scripts.KEGG.KEGG_enrichment(config_dict, tool_name)
-
-rule volcano_plot:
-    input:
-        DEtouched = rules.deseq2.output.DEtouched,
-    output:
-        volcanotouched = f"{outfolder}/plots/volcanotouched.txt"
-    run:
-        tool_name = 'volcano_plot   '
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)
 
 rule GO:
     input:
