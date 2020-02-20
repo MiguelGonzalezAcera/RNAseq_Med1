@@ -258,9 +258,6 @@ rule GO:
 rule all:
     input:
         fastqceval = rules.Fastqc.output.fastqceval,
-        bamdir = rules.Mapping.output.mappingtouched,
-        counts = rules.Counts.output.counts,
-        bamqc = rules.Bamqc.output.bamqctouched,
         pca = rules.PCA.output.pcatouched,
         bamqceval = rules.BamqcEval.output.evaloutfile,
         keggtouched = rules.KEGG.output.keggtouched,
