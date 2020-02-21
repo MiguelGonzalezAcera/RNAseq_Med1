@@ -182,7 +182,8 @@ rule deseq2:
         design = design
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
-        design_tab = f"{outfolder}/detables/{project}_design.tmp"
+        design_tab = f"{outfolder}/detables/{project}_design.tmp",
+        norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda"
     run:
         tool_name = 'differential_expression'
         config_dict['tools_conf'][tool_name] = {
@@ -193,6 +194,22 @@ rule deseq2:
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
 
+rule clustering_heatmap:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched,
+        norm_counts = rules.deseq2.output.norm_counts
+    output:
+        heatmap = f"{outfolder}/plots/{project}_clustering_heatmap.png"
+    run:
+        tool_name = 'volcano_plot'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.clustering_heatmap.clustering_heatmap(config_dict, tool_name)
+
 rule volcano_plot:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
@@ -201,7 +218,7 @@ rule volcano_plot:
         volcanotouched = f"{outfolder}/plots/volcanotouched.txt",
         design_tab = f"{outfolder}/detables/{project}_design.txt"
     run:
-        tool_name = 'volcano_plot   '
+        tool_name = 'volcano_plot'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
@@ -263,6 +280,7 @@ rule all:
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
+        heatmap = rules.clustering_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched
     run:
         tool_name = 'all'
