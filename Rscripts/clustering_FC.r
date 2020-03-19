@@ -4,12 +4,16 @@ suppressPackageStartupMessages(library(cluster))
 suppressPackageStartupMessages(library(gplots))
 suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(RMariaDB))
+
 
 option_list = list(
-  make_option("--DE", type="character",
-              help="R objects containing the table of the DE analysis, comma separated, no spaces. At least 2 objects"),
-  make_option("--names", type="character",
-              help="Names of the treatments, in the same order than the DE option, comma separated"),
+  make_option("--project", type="character", default = "",
+              help="Name of the project used for the heatmap. Must be processed and included in the mysql database"),
+  make_option("--Rdata", type="character", default = "",
+              help="Files with the data. Useful when comparing projects. Only used in case the project name is empty."),
+  make_option("--colnames", type="character", default = "",
+              help="Names of the columns, in the same order as Rdata. Useful when comparing projects. Only used in case the project name is empty."),
   make_option("--genelist", type="character",
               help="List of genes to be included in the plot, in txt format. Ensembl IDs only"),
   make_option("--heatmap", type="character",
@@ -29,8 +33,33 @@ database <- select.organism(opt$organism)
 
 # Read this from the metadata file. 
 # These are the full DE analysis results of all the samples
-treats <- strsplit(opt$DE, ",", fixed = TRUE)[[1]]
-colnames <- strsplit(opt$names, ",", fixed = TRUE)[[1]]
+
+## UNUSED
+# treats <- strsplit(opt$DE, ",", fixed = TRUE)[[1]]
+# colnames <- strsplit(opt$names, ",", fixed = TRUE)[[1]]
+if (opt$project != "") {
+  # For the obtaining of the sample data, we shall query the database, as it contains the location of every file processed.
+  # Connect to the database
+  storiesDb <- dbConnect(RMariaDB::MariaDB(), user='root', password="Plater1a", dbname='Projects', host='localhost')
+  # dbListTables(storiesDb)
+  
+  # Create the query
+  query <- sprintf("select * from %s order by Control ASC, Sample ASC;", opt$project)
+  
+  # Execute and retriece the query
+  rsInsert <- dbSendQuery(storiesDb, query)
+  dbRows<-dbFetch(rsInsert)
+  
+  # Select the needed data
+  treats = dbRows["Robj_path"][[1]]
+  colnames = dbRows["Comparison"][[1]]
+
+  # Disconnect from the database  
+  dbDisconnect(storiesDb)
+} else {
+  treats = strsplit(opt$Rdata, ",")[[1]]
+  colnames = strsplit(opt$colnames, ",")[[1]]
+}
 
 genelist = readLines(opt$genelist)
 
@@ -93,7 +122,7 @@ rownames(clust_df) <- rows_hm
 # Perform the clustering analysis over the table
 # Tree construction (rows and columns)
 hr <- hclust(as.dist(1-cor(t(data.matrix(clust_df)),
-                           method="pearson")), method="complete")
+                           method="pearson")), method="average")
 hc <- hclust(as.dist(1-cor(data.matrix(clust_df),
                            method="pearson")), method="average") 
 
@@ -105,9 +134,9 @@ mycolhc <- rainbow(length(unique(mycl)), start=0.1, end=0.9)
 mycolhc <- mycolhc[as.vector(mycl)] 
 
 # Establish colors
-color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+color <- colorRamp2(c(-4, 0, 4), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 3000, height = 3000, res = 600)
+png(file=opt$heatmap, width = 3000, height = 4000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 

@@ -6,7 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/VAULT/20200204_Timo_KO_mice/config.json"
+config_dict_path = "/DATA/Thesis_proj/config.json"
 with open(config_dict_path, 'r') as f:
     config_dict = json.load(f)
 
@@ -62,6 +62,17 @@ else:
                 }
             }
             python_scripts.mapping.mapping(config_dict, tool_name)
+
+rule Splicing:
+    input:
+        mappingtouched = rules.Mapping.output.mappingtouched,
+        annot = annot_path
+    output:
+        splicetouched = f"{outfolder}/splicing/splicetouched.txt"
+    conda:
+        "/SOFTWARE/tools/rMATS.4.0.2/rMATS.yml"
+    shell:
+        f"python /DATA/RNAseq_test/Scripts/python_scripts/rmats.py --annot {annot_path} --mappingtouched {rules.Mapping.output.mappingtouched} --splicetouched {outfolder}/splicing/splicetouched.txt --config {config_dict_path}"
 
 rule GenerateRegions:
     input:
@@ -227,20 +238,21 @@ rule volcano_plot:
         }
         python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)
 
-rule load_project:
-    input:
-        design_tab = rules.volcano_plot.output.design_tab
-    output:
-        prloadtouched = f"{outfolder}/detables/loadedtouched.txt"
-    run:
-        tool_name = 'load_project_table'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.load_design.load_design(config_dict, tool_name)
+if config_dict['options']['sql_load'] == "True":
+    rule load_project:
+        input:
+            design_tab = rules.volcano_plot.output.design_tab
+        output:
+            prloadtouched = f"{outfolder}/detables/loadedtouched.txt"
+        run:
+            tool_name = 'load_project_table'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input.allitems()},
+                'output': {i[0]: i[1] for i in output.allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            python_scripts.load_design.load_design(config_dict, tool_name)
 
 rule KEGG:
     input:
@@ -275,13 +287,14 @@ rule GO:
 rule all:
     input:
         fastqceval = rules.Fastqc.output.fastqceval,
+        splicetouched = rules.Splicing.output.splicetouched,
         pca = rules.PCA.output.pcatouched,
         bamqceval = rules.BamqcEval.output.evaloutfile,
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
-        heatmap = rules.clustering_heatmap.output.heatmap,
-        prloadtouched = rules.load_project.output.prloadtouched
+        heatmap = rules.clustering_heatmap.output.heatmap
+        # prloadtouched = rules.load_project.output.prloadtouched
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {

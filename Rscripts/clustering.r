@@ -40,43 +40,29 @@ df_norm$Genenames <- rownames(df_norm)
 
 # Get rows in the list of genes
 clust_df <- df_norm[df_norm$Genenames %in% genes, ,drop=FALSE]
-
-# Genenames as Gene symbol
-rows_hm <- as.character(mapIds(database, as.character(rownames(clust_df)),
-                               'SYMBOL', 'ENSEMBL'))
-rows_hm[is.na(rows_hm)] <- "Unk"
-rownames(clust_df) <- rows_hm
 clust_df$Genenames = NULL
-
-# Repeat process with the complete data for the column tree. Take into account the origin
-df_norm$Genenames = NULL
 
 # Perform the clustering analysis over the table
 # Tree construction (rows and columns)
 hr <- hclust(as.dist(1-cor(t(data.matrix(clust_df)),
                            method="pearson")), method="complete")
-hc <- hclust(as.dist(1-cor(data.matrix(df_norm),
+hc <- hclust(as.dist(1-cor(log(data.matrix(clust_df) + 1 ),
                            method="pearson")), method="complete") 
 
-# Tree cutting
-mycl <- cutree(hr, h=max(hr$height)/1.3)
-
-# Clustering boxes
-mycolhc <- rainbow(length(unique(mycl)), start=0.1, end=0.9)
-mycolhc <- mycolhc[as.vector(mycl)] 
-
 # Establish colors
-color <- color <- colorRamp2(c(0, 2), c("white", "red"))
+color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 7000, height = 12000, res = 600)
+png(file=opt$heatmap, width = 7000, height = 7000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
-row_den = color_branches(hr, h = max(hr$height)/1.5) 
-Heatmap(t(scale(t(data.matrix(clust_df)))), cluster_rows = as.dendrogram(row_den),
-        cluster_columns = FALSE,
+Heatmap(t(scale(t(log(data.matrix(clust_df) + 1)))), cluster_rows = as.dendrogram(hr),
+        cluster_columns = as.dendrogram(hc),
         col=color, column_dend_height = unit(5, "cm"),
-        row_dend_width = unit(2, "cm"), 
-        row_names_gp = gpar(fontsize = (150/length(genes)+5)),
-        split = max(mycl), gap = unit(2, "mm"))
+        row_dend_width = unit(2, "cm"), show_row_names = FALSE)
 dev.off()
 
+# Save environment
+save.image(file=gsub(".png",".RData",opt$heatmap, fixed = TRUE))
+
+# Save versions
+get_versions(gsub(".png","_versions.tsv",opt$heatmap, fixed = TRUE))
