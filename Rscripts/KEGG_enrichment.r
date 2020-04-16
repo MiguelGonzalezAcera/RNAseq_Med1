@@ -47,7 +47,7 @@ if (opt$genelist == ""){
   entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),])), 'ENTREZID', 'ENSEMBL')))
 } else {
   genes <- scan(opt$genelist, character(), quote="")
-  
+
   # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
   entrezgeneids <- as.character(mapIds(database, as.character(genes), 'ENTREZID', 'ENSEMBL'))
 }
@@ -85,9 +85,9 @@ if (length(rownames(KEGGtable)) >= 50){
 } else {
   top_pathways <- rownames(KEGGtable)[1:length(rownames(KEGGtable))]
   }
-    
+
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit=list(gene=5, cpd=0.25))
+  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit=list(gene=2, cpd=0.25))
   wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
   print(wd)
 
