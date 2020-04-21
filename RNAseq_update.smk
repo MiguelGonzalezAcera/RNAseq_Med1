@@ -6,8 +6,7 @@ import python_scripts
 import qc
 
 # Get initial data
-config_dict_path = "/VAULT/20200204_Timo_KO_mice/config_reanalysis.json"
-with open(config_dict_path, 'r') as f:
+with open(config['param'], 'r') as f:
     config_dict = json.load(f)
 
 # Get the out folder

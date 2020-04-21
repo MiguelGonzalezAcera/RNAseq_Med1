@@ -23,30 +23,13 @@ def clustering_heatmap(config, tool_name):
 
     genes_list = []
 
-    if 'genelist' in config['tools_conf'][tool_name]['input']:
-        gene_file = config['tools_conf'][tool_name]['input']['genelist']
+    if 'project' in config['tools_conf'][tool_name]['input']:
+        project = config['tools_conf'][tool_name]['input']['project']
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --project --genelist {gene_file} --organism {organism}; '
     else:
-        out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
-        samples = config['comparisons']
-
-        for control in samples:
-            sample_ids = samples[control].split(",")
-            for sample in sample_ids:
-                id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.tsv"
-
-                tdf = pd.read_csv(id_sample, sep='\t', index_col=None)
-                genes = tdf[tdf['padj'] < 0.05]["EnsGenes"].tolist()
-
-                genes_list += genes
-
-        genes_list = list(set(genes_list))
-
-        gene_file = open(f"{out_dir_DE}/significant_genes.txt","w")
-        for gene in genes_list:
-            gene_file.write(f"{gene}\n")
-        gene_file.close()
-
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {gene_file} --organism {organism}; '
+        RData = config['tools_conf'][tool_name]['input']['RData']
+        colnames = config['tools_conf'][tool_name]['input']['colnames']
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --RData {RData} --colnames {colnames} --genelist {gene_file} --organism {organism}; '
 
     print(command)
 
@@ -87,9 +70,9 @@ def main():
     with open(args.config, 'r') as f:
         config_dict = json.load(f)
 
-    config = {'tools_conf': {'clustering_heatmap': config_dict}}
+    config = {'tools_conf': {'clustering_FC_heatmap': config_dict}}
 
-    pca(config, 'clustering_heatmap')
+    pca(config, 'clustering_FC_heatmap')
 
 
 if __name__ == "__main__":

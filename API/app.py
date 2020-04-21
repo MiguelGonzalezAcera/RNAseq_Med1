@@ -13,7 +13,11 @@ app = Flask(__name__)
 
 def get_script_names():
     data = {
-        'RNAseq': {'path': '/DATA/RNAseq_test/Scripts/RNAseq.smk'}
+        'RNAseq': {'path': '/DATA/RNAseq_test/Scripts/RNAseq.smk'},
+        'RNAseq_update': {'path': '/DATA/RNAseq_test/Scripts/RNAseq_update.smk'},
+        'clustering_heatmap': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_heatmap.py'},
+        'clustering_FC_exst': {'path': ''},
+        'clustering_FC_mt': {'path': ''}
     }
 
     return data
@@ -101,6 +105,7 @@ def launch_process(config_json_path, postdata, pipeline):
 
     cmd = f"snakemake -s {config_names[pipeline]['path']} all -j 10 " +\
         f"--config param={config_json_path} --use-conda"
+    print(cmd)
 
     os.system(cmd)
 
@@ -125,6 +130,15 @@ def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
 
     return True, dag
 
+def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
+    # Get path to the needed scripts
+    config_names = get_script_names()
+
+    cmd = f'{config_names["pipeline"]} --config {postdata}'
+    print(cmd)
+
+    os.system(cmd)
+
 
 @app.errorhandler(404)
 def not_found(error):
@@ -143,6 +157,53 @@ def launch_nextgene():
 
     # Initialize job
     status_job, dag = launch_job(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/RNAseq_update/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_nextgene():
+    postdata = request.get_json()
+    pipeline = 'RNAseq_update'
+
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    status_job, dag = launch_job(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/clustering/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_nextgene():
+    postdata = request.get_json()
+    pipeline = 'clustering'
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/clustering_FC_exst/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_nextgene():
+    postdata = request.get_json()
+    pipeline = 'clustering_FC_exst'
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/clustering_FC_mt/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_nextgene():
+    postdata = request.get_json()
+    pipeline = 'clustering_FC_mt'
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, pipeline)
 
     return generate_response(postdata, dag)
 

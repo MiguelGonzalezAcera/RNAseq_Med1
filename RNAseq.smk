@@ -153,7 +153,7 @@ rule clustering_heatmap:
     output:
         heatmap = f"{outfolder}/plots/{project}_clustering_heatmap.png"
     run:
-        tool_name = 'volcano_plot'
+        tool_name = 'clustering_heatmap'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
