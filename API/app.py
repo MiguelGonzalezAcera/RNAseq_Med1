@@ -16,8 +16,10 @@ def get_script_names():
         'RNAseq': {'path': '/DATA/RNAseq_test/Scripts/RNAseq.smk'},
         'RNAseq_update': {'path': '/DATA/RNAseq_test/Scripts/RNAseq_update.smk'},
         'clustering_heatmap': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_heatmap.py'},
-        'clustering_FC_exst': {'path': ''},
-        'clustering_FC_mt': {'path': ''}
+        'clustering_FC_exst': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
+        'clustering_FC_mt': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
+        'KEGG_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/KEGG.py'},
+        'GO_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GO.py'}
     }
 
     return data
@@ -56,7 +58,7 @@ def generate_configuration(postdata, pipeline):
     config_json = {**postdata, **refs_names[postdata['options']['organism']]}
 
     # Serialize class attributes into a configuration fileW
-    config_json_path = config_json['outfolder'] + '/config.json'
+    config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
     with open(config_json_path, 'w') as outfile:
         json.dump(config_json, outfile)
 
@@ -103,7 +105,7 @@ def launch_process(config_json_path, postdata, pipeline):
     # if snk_status is False:
     #     print('#[ERR] - Cancelling job...')
 
-    cmd = f"snakemake -s {config_names[pipeline]['path']} all -j 10 " +\
+    cmd = f'snakemake -s {config_names[pipeline]["path"]} all -j 10 ' +\
         f"--config param={config_json_path} --use-conda"
     print(cmd)
 
@@ -131,13 +133,17 @@ def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
     return True, dag
 
 def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
+    dag = {}
+
     # Get path to the needed scripts
     config_names = get_script_names()
 
-    cmd = f'{config_names["pipeline"]} --config {postdata}'
+    cmd = f'python {config_names[pipeline]["path"]} --config {config_json_path}'
     print(cmd)
 
     os.system(cmd)
+
+    return True, dag
 
 
 @app.errorhandler(404)
@@ -148,7 +154,7 @@ def not_found(error):
 
 @app.route('/RNAseq/', methods=['POST'])
 @cross_origin(origin="*")
-def launch_nextgene():
+def launch_RNAseq():
     postdata = request.get_json()
     pipeline = 'RNAseq'
 
@@ -162,7 +168,7 @@ def launch_nextgene():
 
 @app.route('/RNAseq_update/', methods=['POST'])
 @cross_origin(origin="*")
-def launch_nextgene():
+def launch_RNAseq_update():
     postdata = request.get_json()
     pipeline = 'RNAseq_update'
 
@@ -176,34 +182,71 @@ def launch_nextgene():
 
 @app.route('/clustering/', methods=['POST'])
 @cross_origin(origin="*")
-def launch_nextgene():
+def launch_clustering():
     postdata = request.get_json()
     pipeline = 'clustering'
 
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
     # Initialize job
-    status_job, dag = launch_script(postdata, pipeline)
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
 
     return generate_response(postdata, dag)
 
 @app.route('/clustering_FC_exst/', methods=['POST'])
 @cross_origin(origin="*")
-def launch_nextgene():
+def launch_clustering_FC_exst():
     postdata = request.get_json()
     pipeline = 'clustering_FC_exst'
 
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
     # Initialize job
-    status_job, dag = launch_script(postdata, pipeline)
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
 
     return generate_response(postdata, dag)
 
 @app.route('/clustering_FC_mt/', methods=['POST'])
 @cross_origin(origin="*")
-def launch_nextgene():
+def launch_clustering_FC_mt():
     postdata = request.get_json()
     pipeline = 'clustering_FC_mt'
 
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
     # Initialize job
-    status_job, dag = launch_script(postdata, pipeline)
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/KEGG_enirchment/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_KEGG_enrichment():
+    postdata = request.get_json()
+    pipeline = 'KEGG_enirchment'
+
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/GO_enrichment/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_GO_enrichment():
+    postdata = request.get_json()
+    pipeline = 'GO_enrichment'
+
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
 
     return generate_response(postdata, dag)
 

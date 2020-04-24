@@ -2,40 +2,55 @@ import argparse
 import logging
 import os
 import glob
-import python_scripts.python_functions as pf
+import json
 
 
 def KEGG_enrichment(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
-    out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
-
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['keggtouched'].split('/')[0:-1])
-    keggtouched = config['tools_conf'][tool_name]['output']['keggtouched']
-    samples = config['comparisons']
     organism = config['options']['organism']
 
     # Create the command to run the pca R script
     command = ""
-    if not os.path.exists(out_dir):
-        command += f"mkdir {out_dir};"
 
-    for control in samples:
-        sample_ids = samples[control].split(",")
-        for sample in sample_ids:
-            id_dir = out_dir + "/" + f"{sample}_{control}"
-            id_tab = out_dir + "/" + f"{sample}_{control}" + "/" + f"{sample}_{control}_KEGG.tsv"
-            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.Rda"
-            id_obj = f"{sample}_{control}"
+    if 'keggtouched' in config['tools_conf'][tool_name]['output']:
+        out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
 
-            command += f"mkdir {id_dir}; "
-            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '
-    command += f'touch {keggtouched}'
+        out_dir = "/".join(config['tools_conf'][tool_name]['output']['keggtouched'].split('/')[0:-1])
+        keggtouched = config['tools_conf'][tool_name]['output']['keggtouched']
+        samples = config['comparisons']
+
+        if not os.path.exists(out_dir):
+            command += f"mkdir {out_dir};"
+
+        for control in samples:
+            sample_ids = samples[control].split(",")
+            for sample in sample_ids:
+                id_dir = out_dir + "/" + f"{sample}_{control}"
+                id_tab = out_dir + "/" + f"{sample}_{control}" + "/" + f"{sample}_{control}_KEGG.tsv"
+                id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.Rda"
+                id_obj = f"{sample}_{control}"
+
+                command += f"mkdir {id_dir}; "
+                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '
+        command += f'touch {keggtouched}'
+    else:
+        out_tab = config['tools_conf'][tool_name]['output']['out_tab']
+        out_dir = config['tools_conf'][tool_name]['output']['out_tab'].split('/')[0:-1]
+
+        in_obj = config['tools_conf'][tool_name]['input']['in_obj']
+        id = config['tools_conf'][tool_name]['input']['id']
+        genelist = config['tools_conf'][tool_name]['input']['genelist']
+
+        if not os.path.exists(out_dir):
+            command += f"mkdir {out_dir};"
+
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}'
 
     print(command)
 
-    pf.run_command(command)
+    os.system(command)
 
 
 def get_arguments():
@@ -48,9 +63,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--counts', required=True, help='Table with the counts of the assay, straight from featurecounts (so far)')
-    parser.add_argument('--design', required=True, help='Table with the design of the experiment')
-    parser.add_argument('--out_dir', required=True, help='Directory for all of the plots)')
+    parser.add_argument('--config', required=True, help='Configuration file in json format')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -71,30 +84,13 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    config = {
-      "DEBUG": args.debug,
-      "TESTING": args.test,
-      "DRY_RUN": args.dry_run,
-      "log_files": ["/tmp/full.log"],
-      "tools_conf": {
-        "pca": {
-          "input": {
-            "counts": args.counts,
-            "design": args.design
-            },
-          "output": {
-            "out_dir": args.out_dir
-            },
-          "tool_conf": {
-            }
-          }
-        }
-      }
+    with open(args.config, 'r') as f:
+        config_dict = json.load(f)
 
-    # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
+    config = {'tools_conf': {'KEEG_enrichment': config_dict}}
+    config['options'] = config['tools_conf']['KEEG_enrichment']['options']
 
-    pca(config, 'pca')
+    KEEG_enrichment(config, 'KEEG_enrichment')
 
 
 if __name__ == "__main__":

@@ -2,8 +2,8 @@ import argparse
 import logging
 import os
 import glob
+import json
 import pandas as pd
-import python_scripts.python_functions as pf
 
 
 def clustering_heatmap(config, tool_name):
@@ -21,13 +21,13 @@ def clustering_heatmap(config, tool_name):
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
-    genes_list = []
-
     if 'genelist' in config['tools_conf'][tool_name]['input']:
-        gene_file = config['tools_conf'][tool_name]['input']['genelist']
+        genelist_path = config['tools_conf'][tool_name]['input']['genelist']
     else:
         out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
         samples = config['comparisons']
+
+        genes_list = []
 
         for control in samples:
             sample_ids = samples[control].split(",")
@@ -41,16 +41,17 @@ def clustering_heatmap(config, tool_name):
 
         genes_list = list(set(genes_list))
 
-        gene_file = open(f"{out_dir_DE}/significant_genes.txt","w")
+        genelist_path = f"{out_dir_DE}/significant_genes.txt"
+        gene_file = open(genelist_path,"w")
         for gene in genes_list:
             gene_file.write(f"{gene}\n")
         gene_file.close()
 
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {gene_file} --organism {organism}; '
+    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism}; '
 
     print(command)
 
-    pf.run_command(command)
+    os.system(command)
 
 
 def get_arguments():
@@ -88,8 +89,9 @@ def main():
         config_dict = json.load(f)
 
     config = {'tools_conf': {'clustering_heatmap': config_dict}}
+    config['options'] = config['tools_conf']['clustering_heatmap']['options']
 
-    pca(config, 'clustering_heatmap')
+    clustering_heatmap(config, 'clustering_heatmap')
 
 
 if __name__ == "__main__":

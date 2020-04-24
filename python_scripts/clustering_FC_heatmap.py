@@ -2,17 +2,16 @@ import argparse
 import logging
 import os
 import glob
+import json
 import pandas as pd
-import python_scripts.python_functions as pf
 
 
-def clustering_heatmap(config, tool_name):
+def clustering_FC_heatmap(config, tool_name):
     """Get the
     """
 
     out_dir = "/".join(config['tools_conf'][tool_name]['output']['heatmap'].split('/')[0:-1])
 
-    norm_counts = config['tools_conf'][tool_name]['input']['norm_counts']
     heatmap = config['tools_conf'][tool_name]['output']['heatmap']
     organism = config['options']['organism']
 
@@ -21,19 +20,19 @@ def clustering_heatmap(config, tool_name):
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
-    genes_list = []
+    gene_file = config['tools_conf'][tool_name]['input']['genelist']
 
     if 'project' in config['tools_conf'][tool_name]['input']:
         project = config['tools_conf'][tool_name]['input']['project']
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --project --genelist {gene_file} --organism {organism}; '
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --project {project} --genelist {gene_file} --organism {organism}; '
     else:
         RData = config['tools_conf'][tool_name]['input']['RData']
         colnames = config['tools_conf'][tool_name]['input']['colnames']
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --RData {RData} --colnames {colnames} --genelist {gene_file} --organism {organism}; '
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --Rdata {RData} --colnames {colnames} --genelist {gene_file} --organism {organism}; '
 
     print(command)
 
-    pf.run_command(command)
+    os.system(command)
 
 
 def get_arguments():
@@ -71,8 +70,9 @@ def main():
         config_dict = json.load(f)
 
     config = {'tools_conf': {'clustering_FC_heatmap': config_dict}}
+    config['options'] = config['tools_conf']['clustering_FC_heatmap']['options']
 
-    pca(config, 'clustering_FC_heatmap')
+    clustering_FC_heatmap(config, 'clustering_FC_heatmap')
 
 
 if __name__ == "__main__":
