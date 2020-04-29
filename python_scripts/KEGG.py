@@ -37,9 +37,13 @@ def KEGG_enrichment(config, tool_name):
         command += f'touch {keggtouched}'
     else:
         out_tab = config['tools_conf'][tool_name]['output']['out_tab']
-        out_dir = config['tools_conf'][tool_name]['output']['out_tab'].split('/')[0:-1]
+        id_tab_DExpr = out_tab.replace(".tsv","_DExpr.tsv")
+        id_tab_Ncounts = out_tab.replace(".tsv","_norm_counts.tsv")
+        out_dir = "/".join(config['tools_conf'][tool_name]['output']['out_tab'].split('/')[0:-1])
 
         in_obj = config['tools_conf'][tool_name]['input']['in_obj']
+        in_obj_tab = in_obj.replace('.Rda','.tsv')
+        in_obj_path = "/".join(config['tools_conf'][tool_name]['input']['in_obj'].split('/')[0:-1])
         id = config['tools_conf'][tool_name]['input']['id']
         genelist = config['tools_conf'][tool_name]['input']['genelist']
 
@@ -47,6 +51,8 @@ def KEGG_enrichment(config, tool_name):
             command += f"mkdir {out_dir};"
 
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}'
+        command += f"head -n +1 {in_obj_tab} > {id_tab_DExpr}; grep -f {genelist} {in_obj_tab} >> {id_tab_DExpr}; "
+        command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"EnsemblID\\t\" $0}}\' > {id_tab_Ncounts}; grep -f {genelist} {in_obj_path}/*_norm_counts.tsv >> {id_tab_Ncounts}; "
 
     print(command)
 

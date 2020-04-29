@@ -42,13 +42,17 @@ def GO_enrichment(config, tool_name):
         command += f'touch {GOtouched}'
     else:
         out_tab = config['tools_conf'][tool_name]['output']['out_tab']
-        out_dir = config['tools_conf'][tool_name]['output']['out_tab'].split('/')[0:-1]
+        out_dir = "/".join(config['tools_conf'][tool_name]['output']['out_tab'].split('/')[0:-1])
         id_tab_BP = out_tab.replace(".tsv","_BP.Rda")
         id_tab_MF = out_tab.replace(".tsv","_MF.Rda")
         id_tab_CC = out_tab.replace(".tsv","_CC.Rda")
         id_geneids = out_tab.replace(".tsv","_entrezgeneids.Rda")
+        id_tab_DExpr = out_tab.replace(".tsv","_DExpr.tsv")
+        id_tab_Ncounts = out_tab.replace(".tsv","_norm_counts.tsv")
 
         in_obj = config['tools_conf'][tool_name]['input']['in_obj']
+        in_obj_tab = in_obj.replace('.Rda','.tsv')
+        in_obj_path = "/".join(config['tools_conf'][tool_name]['input']['in_obj'].split('/')[0:-1])
         universe = config['tools_conf'][tool_name]['input']['universe']
         genelist = config['tools_conf'][tool_name]['input']['genelist']
 
@@ -59,6 +63,8 @@ def GO_enrichment(config, tool_name):
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
+        command += f"head -n +1 {in_obj_tab} > {id_tab_DExpr}; grep -f {genelist} {in_obj_tab} >> {id_tab_DExpr}; "
+        command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"Ensembl\\t\" $0}}\' > {id_tab_Ncounts}; grep -f {genelist} {in_obj_path}/*_norm_counts.tsv >> {id_tab_Ncounts}; "
 
 
     print(command)

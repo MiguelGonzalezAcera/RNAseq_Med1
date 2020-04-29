@@ -19,7 +19,8 @@ def get_script_names():
         'clustering_FC_exst': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
         'clustering_FC_mt': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
         'KEGG_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/KEGG.py'},
-        'GO_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GO.py'}
+        'GO_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GO.py'},
+        'GSEA': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GSEA.py'}
     }
 
     return data
@@ -56,6 +57,9 @@ def generate_configuration(postdata, pipeline):
     refs_names = get_references_names()
 
     config_json = {**postdata, **refs_names[postdata['options']['organism']]}
+
+    if not os.path.exists(config_json['outfolder']):
+        os.system(f"mkdir {config_json['outfolder']};")
 
     # Serialize class attributes into a configuration fileW
     config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
@@ -241,6 +245,20 @@ def launch_KEGG_enrichment():
 def launch_GO_enrichment():
     postdata = request.get_json()
     pipeline = 'GO_enrichment'
+
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/GSEA/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_GSEA():
+    postdata = request.get_json()
+    pipeline = 'GSEA'
 
     # Create and save configuration
     status_config, config_json_path = generate_configuration(postdata, pipeline)

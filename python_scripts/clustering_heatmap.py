@@ -13,7 +13,9 @@ def clustering_heatmap(config, tool_name):
     out_dir = "/".join(config['tools_conf'][tool_name]['output']['heatmap'].split('/')[0:-1])
 
     norm_counts = config['tools_conf'][tool_name]['input']['norm_counts']
+    norm_counts_tab = norm_counts.replace(".Rda",".tsv")
     heatmap = config['tools_conf'][tool_name]['output']['heatmap']
+    norm_counts_res = heatmap.replace('_heatmap.png','_NormCounts.tsv')
     organism = config['options']['organism']
 
     # Create the command to run the pca R script
@@ -48,6 +50,9 @@ def clustering_heatmap(config, tool_name):
         gene_file.close()
 
     command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism}; '
+
+    command += f'head -n +1 {norm_counts_tab} | awk \'{{print \"EnsemblID\\t\" $0}}\' > {norm_counts_res}; grep -f {genelist_path} {norm_counts_tab} >> {norm_counts_res}; '
+
 
     print(command)
 
