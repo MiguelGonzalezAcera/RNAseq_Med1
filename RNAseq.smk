@@ -4,6 +4,7 @@ import argparse
 import datetime
 import python_scripts
 import qc
+import pandas as pd
 
 # Get initial data
 # config = {}
@@ -14,19 +15,32 @@ with open(config['param'], 'r') as f:
 
 # Get the out folder
 outfolder = config_dict['outfolder']
-
-# Fastq files
-fastq_r1 = config_dict['r1_files'].split(',')
-fastq_r2 = config_dict['r2_files'].split(',')
-fastq = fastq_r1 + fastq_r2
-if config_dict['options']['reads'] == 'single':
-    fastq.remove("")
 design = config_dict['design']
 project = config_dict['project']
+
+# Fastq files
+design = pd.read_csv(design, sep='\t', index_col=0).reset_index()
+design.columns = ['sample','tr']
+
+fastq_path = config_dict['fastq_path']
+
+if config_dict['options']['reads'] == 'single':
+    fastq_r1 = []
+
+    for name in design['sample'].tolist():
+        fastq_r1.append(glob.glob(f'{path}/{name}.fastq.gz')[0])
+else:
+    fastq_r1 = []
+    fastq_r2 = []
+
+    for name in design['sample'].tolist():
+        fastq_r1.append(glob.glob(f'{path}/{name}_1.fastq.gz')[0])
+        fastq_r2.append(glob.glob(f'{path}/{name}_2.fastq.gz')[0])
 
 bedfile_path = config_dict['tools_conf']['bedfile']
 list_path = bedfile_path.replace('.bed','.list')
 annot_path = config_dict['tools_conf']['annot']
+
 
 # Rules
 if config_dict['options']['reads'] == 'single':
@@ -257,3 +271,6 @@ rule all:
         }
 
         print(config_dict['results'])
+
+        with open(config['param'], 'w') as f:
+            json.dump(config_dict, f)
