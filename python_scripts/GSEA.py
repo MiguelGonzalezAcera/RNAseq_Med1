@@ -3,6 +3,7 @@ import logging
 import os
 import glob
 import json
+import subprocess
 import pandas as pd
 
 
@@ -45,6 +46,7 @@ def fix_genelists(genelists_path):
 def GSEA(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
+    logging.info(f'Starting {tool_name} process')
 
     in_obj = config['tools_conf'][tool_name]['input']['in_obj']
     in_obj_tab = in_obj.replace('.Rda','.tsv')
@@ -58,7 +60,7 @@ def GSEA(config, tool_name):
     out_dir = "/".join(gseaplot.split('/')[0:-1])
 
     genegroup_path = config['tools_conf'][tool_name]['input']['genegroup']
-    genegroup_path_spac = genegroup_path.replace(",", " ")
+    genegroup_path_spac = genegroup_path.split(",")
     genegroup = fix_genelists(genegroup_path)
 
     # Create the command to run the pca R script
@@ -69,13 +71,23 @@ def GSEA(config, tool_name):
 
     command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot} --organism {organism}; '
 
-    command += f"head -n +1 {in_obj_tab} | awk \'{{print \"Genelist\\t\" $0}}\' > {id_tab_DExpr}; for glist in {genegroup_path_spac}; do grep -f $glist {in_obj_tab} | awk \'{{print glist,\"\\t\",$0}}\' glist=\"${{glist}}\" >> {id_tab_DExpr}; done; "
-    command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"Genelist\\tEnsemblID\\t\" $0}}\' > {id_tab_Ncounts}; for glist in {genegroup_path_spac}; do grep -f $glist {in_obj_path}/*_norm_counts.tsv | awk \'{{print glist,\"\\t\",$0}}\' glist=\"${{glist}}\" >> {id_tab_Ncounts}; done; "
+    command += f"head -n +1 {in_obj_tab} | awk \'{{print \"Genelist\\t\" $0}}\' > {id_tab_DExpr}; "
+    for glist in genegroup_path_spac:
+        command += f"grep -f {glist} {in_obj_tab} | awk -v glist={glist} \'{{print glist,\"\\t\",$0}}\' >> {id_tab_DExpr}; "
+    command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"Genelist\\tEnsemblID\\t\" $0}}\' > {id_tab_Ncounts}; "
+    for glist in genegroup_path_spac:
+        command += f"grep -f {glist} {in_obj_path}/*_norm_counts.tsv | awk -v glist={glist} \'{{print glist,\"\\t\",$0}}\' >> {id_tab_Ncounts}; "
 
-    print(command)
-
-    os.system(command)
-
+    logging.info(f'Running command: {command}')
+    for cmd in command.split('; '):
+        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stout = output.stdout.decode('utf-8')
+        error = output.stderr.decode('utf-8')
+        if output.returncode == 1:
+            logging.error(f'{cmd}\n\n{error}')
+        elif output.returncode == 0:
+            logging.info(stout)
+            logging.info(error)
 
 def get_arguments():
     """
@@ -111,11 +123,16 @@ def main():
     with open(args.config, 'r') as f:
         config_dict = json.load(f)
 
+    logfile = config_dict["output"]["out_plot"].replace('.png','') + '_GSEA.log'
+    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+    logging.info(f'Starting GSEA')
+
     config = {'tools_conf': {'GSEA': config_dict}}
     config['options'] = config['tools_conf']['GSEA']['options']
 
     GSEA(config, 'GSEA')
 
+    logging.info(f'Finished GSEA')
 
 if __name__ == "__main__":
     main()

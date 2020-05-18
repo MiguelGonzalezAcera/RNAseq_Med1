@@ -4,7 +4,9 @@ import argparse
 import datetime
 import python_scripts
 import qc
+import glob
 import pandas as pd
+import logging
 
 # Get initial data
 # config = {}
@@ -18,24 +20,32 @@ outfolder = config_dict['outfolder']
 design = config_dict['design']
 project = config_dict['project']
 
+# Set logger
+logging.basicConfig(filename=f'{outfolder}/RNAseq.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+logging.info(f'Starting RNAseq {project}')
+
 # Fastq files
-design = pd.read_csv(design, sep='\t', index_col=0).reset_index()
-design.columns = ['sample','tr']
+design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
+design_file.columns = ['sample','tr']
 
 fastq_path = config_dict['fastq_path']
 
 if config_dict['options']['reads'] == 'single':
     fastq_r1 = []
 
-    for name in design['sample'].tolist():
-        fastq_r1.append(glob.glob(f'{path}/{name}.fastq.gz')[0])
+    for name in design_file['sample'].tolist():
+        fastq_r1.append(glob.glob(f'{fastq_path}/{name}.fastq.gz')[0])
 else:
     fastq_r1 = []
     fastq_r2 = []
 
-    for name in design['sample'].tolist():
-        fastq_r1.append(glob.glob(f'{path}/{name}_1.fastq.gz')[0])
-        fastq_r2.append(glob.glob(f'{path}/{name}_2.fastq.gz')[0])
+    for name in design_file['sample'].tolist():
+        fastq_r1.append(glob.glob(f'{fastq_path}/{name}_1.fastq.gz')[0])
+        fastq_r2.append(glob.glob(f'{fastq_path}/{name}_2.fastq.gz')[0])
+
+if not fastq_r1:
+    logger.error(f'FASTQ files not found in {fastq_path}')
+    raise ValueError(f'FASTQ files not found in {fastq_path}')
 
 bedfile_path = config_dict['tools_conf']['bedfile']
 list_path = bedfile_path.replace('.bed','.list')
@@ -46,7 +56,7 @@ annot_path = config_dict['tools_conf']['annot']
 if config_dict['options']['reads'] == 'single':
     rule Mapping:
         input:
-            fastq_r1 = config_dict['r1_files'].split(',')
+            fastq_r1 = fastq_r1
         output:
             mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
         run:
@@ -63,8 +73,8 @@ if config_dict['options']['reads'] == 'single':
 else:
     rule Mapping:
         input:
-            fastq_r1 = config_dict['r1_files'].split(','),
-            fastq_r2 = config_dict['r2_files'].split(',')
+            fastq_r1 = fastq_r1,
+            fastq_r2 = fastq_r2
         output:
             mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
         run:
@@ -274,3 +284,5 @@ rule all:
 
         with open(config['param'], 'w') as f:
             json.dump(config_dict, f)
+
+        logging.info(f'Finished RNAseq {project}')

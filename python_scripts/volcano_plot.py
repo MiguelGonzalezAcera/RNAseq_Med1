@@ -10,6 +10,8 @@ def volcano_plot(config, tool_name):
     """Get the
     """
 
+    logging.info(f'Starting {tool_name} process')
+
     out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
 
     out_dir = "/".join(config['tools_conf'][tool_name]['output']['volcanotouched'].split('/')[0:-1])
@@ -42,8 +44,6 @@ def volcano_plot(config, tool_name):
     design_df = pd.read_csv(config['tools_conf'][tool_name]['input']['design_tab'], sep='\t', index_col=None)
     design_df = pd.merge(design_df, path_df, on=['Robj_path'])
     design_df.to_csv(config['tools_conf'][tool_name]['output']['design_tab'], sep='\t', index=False)
-
-    print(command)
 
     pf.run_command(command)
 

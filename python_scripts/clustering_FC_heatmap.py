@@ -3,6 +3,7 @@ import logging
 import os
 import glob
 import json
+import subprocess
 import pandas as pd
 import mysql.connector
 
@@ -10,6 +11,7 @@ import mysql.connector
 def clustering_FC_heatmap(config, tool_name):
     """Get the
     """
+    logging.info(f'Starting {tool_name} process')
 
     out_dir = "/".join(config['tools_conf'][tool_name]['output']['heatmap'].split('/')[0:-1])
 
@@ -59,10 +61,17 @@ def clustering_FC_heatmap(config, tool_name):
     command += f'head -n +1 {RData_fst} | awk \'{{print \"Model\\t\" $0}}\' > {outtab_DE}; grep -f {gene_file} {RData_wsp} | sed "s/.tsv:/\t/g" | sed "s/{RData_path_fix}//g" >> {outtab_DE}; '
     command += f'head -n +1 {RData_path}/*_norm_counts.tsv | awk \'{{print \"EnsemblID\\t\" $0}}\' > {outtab_NC}; grep -f {gene_file} {RData_path}/*_norm_counts.tsv >> {outtab_NC}; '
 
-
-    print(command)
-
-    os.system(command)
+    logging.info(f'Running command: {command}')
+    for cmd in command.split('; '):
+        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stout = output.stdout.decode('utf-8')
+        error = output.stderr.decode('utf-8')
+        if output.returncode == 1:
+            logging.error(f'{cmd}\n\n{error}')
+            raise OSError(f'Error in command: {cmd}\n\n{error}')
+        elif output.returncode == 0:
+            logging.info(stout)
+            logging.info(error)
 
 
 def get_arguments():
@@ -99,11 +108,16 @@ def main():
     with open(args.config, 'r') as f:
         config_dict = json.load(f)
 
+    logfile = config_dict["output"]["heatmap"].replace('.png','') + '_clustering_FC.log'
+    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+    logging.info(f'Starting clustering_FC')
+
     config = {'tools_conf': {'clustering_FC_heatmap': config_dict}}
     config['options'] = config['tools_conf']['clustering_FC_heatmap']['options']
 
     clustering_FC_heatmap(config, 'clustering_FC_heatmap')
 
+    logging.info(f'Finished clustering_FC')
 
 if __name__ == "__main__":
     main()

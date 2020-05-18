@@ -4,6 +4,7 @@ import argparse
 import datetime
 import python_scripts
 import qc
+import logging
 
 # Get initial data
 with open(config['param'], 'r') as f:
@@ -16,6 +17,10 @@ design = config_dict['design']
 project = config_dict['project']
 
 reanalisis_numm = config_dict['reanalisis_numm']
+
+# Set logger
+logging.basicConfig(filename=f'{outfolder}/RNAseq_update_{reanalisis_numm}.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+logging.info(f'Starting RNAseq update {project}')
 
 # Rules
 rule deseq2:
@@ -118,3 +123,8 @@ rule all:
         }
 
         print(config_dict['results'])
+
+        with open(config['param'], 'w') as f:
+            json.dump(config_dict, f)
+
+        logging.info(f'Finished RNAseq update {project}')

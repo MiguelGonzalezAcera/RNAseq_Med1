@@ -96,7 +96,6 @@ def launch_process(config_json_path, postdata, pipeline):
     # Return name of the pipeline scripts
     config_names = get_script_names()
 
-    print('#[INFO] - Launching process')
 
     # Create the class snakemake and launch the process
     # snk_status = snakemake(config_names[pipeline]['path'],
@@ -111,9 +110,8 @@ def launch_process(config_json_path, postdata, pipeline):
 
     cmd = f'snakemake -s {config_names[pipeline]["path"]} all -j 10 ' +\
         f"--config param={config_json_path} --use-conda"
-    print(cmd)
 
-    os.system(cmd)
+    subprocess.Popen(cmd, shell=True, executable='/bin/bash')
 
 
 def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
@@ -143,9 +141,8 @@ def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
     config_names = get_script_names()
 
     cmd = f'python {config_names[pipeline]["path"]} --config {config_json_path}'
-    print(cmd)
 
-    os.system(cmd)
+    subprocess.Popen(cmd, shell=True, executable='/bin/bash')
 
     return True, dag
 

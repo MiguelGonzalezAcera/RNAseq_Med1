@@ -6,6 +6,8 @@ def coverage_per_base(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
+    logging.info(f'Starting {tool_name} process')
+
     bamdir = "/".join(config['tools_conf'][tool_name]['input']['bamdir'].split('/')[0:-1])
     bed = config['tools_conf'][tool_name]['input']['bed']
     cpbdir = "/".join(config['tools_conf'][tool_name]['output']['cpbtouched'].split('/')[0:-1])

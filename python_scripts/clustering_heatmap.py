@@ -3,12 +3,14 @@ import logging
 import os
 import glob
 import json
+import subprocess
 import pandas as pd
 
 
 def clustering_heatmap(config, tool_name):
     """Get the
     """
+    logging.info(f'Starting {tool_name} process')
 
     out_dir = "/".join(config['tools_conf'][tool_name]['output']['heatmap'].split('/')[0:-1])
 
@@ -53,10 +55,17 @@ def clustering_heatmap(config, tool_name):
 
     command += f'head -n +1 {norm_counts_tab} | awk \'{{print \"EnsemblID\\t\" $0}}\' > {norm_counts_res}; grep -f {genelist_path} {norm_counts_tab} >> {norm_counts_res}; '
 
-
-    print(command)
-
-    os.system(command)
+    logging.info(f'Running command: {command}')
+    for cmd in command.split('; '):
+        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stout = output.stdout.decode('utf-8')
+        error = output.stderr.decode('utf-8')
+        if output.returncode == 1:
+            logging.error(f'{cmd}\n\n{error}')
+            raise OSError(f'Error in command: {cmd}\n\n{error}')
+        elif output.returncode == 0:
+            logging.info(stout)
+            logging.info(error)
 
 
 def get_arguments():
@@ -93,11 +102,16 @@ def main():
     with open(args.config, 'r') as f:
         config_dict = json.load(f)
 
+    logfile = config_dict["output"]["heatmap"].replace('.png','') + '_clustering.log'
+    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+    logging.info(f'Starting clustering')
+
     config = {'tools_conf': {'clustering_heatmap': config_dict}}
     config['options'] = config['tools_conf']['clustering_heatmap']['options']
 
     clustering_heatmap(config, 'clustering_heatmap')
 
+    logging.info(f'Finished clustering')
 
 if __name__ == "__main__":
     main()

@@ -2,12 +2,15 @@ import argparse
 import logging
 import os
 import glob
+import subprocess
 import json
 
 
 def KEGG_enrichment(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
+
+    logging.info(f'Starting {tool_name} process')
 
     organism = config['options']['organism']
 
@@ -54,9 +57,16 @@ def KEGG_enrichment(config, tool_name):
         command += f"head -n +1 {in_obj_tab} > {id_tab_DExpr}; grep -f {genelist} {in_obj_tab} >> {id_tab_DExpr}; "
         command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"EnsemblID\\t\" $0}}\' > {id_tab_Ncounts}; grep -f {genelist} {in_obj_path}/*_norm_counts.tsv >> {id_tab_Ncounts}; "
 
-    print(command)
-
-    os.system(command)
+    logging.info(f'Running command: {command}')
+    for cmd in command.split('; '):
+        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stout = output.stdout.decode('utf-8')
+        error = output.stderr.decode('utf-8')
+        if output.returncode == 1:
+            logging.error(f'{cmd}\n\n{error}')
+        elif output.returncode == 0:
+            logging.info(stout)
+            logging.info(error)
 
 
 def get_arguments():
@@ -93,11 +103,16 @@ def main():
     with open(args.config, 'r') as f:
         config_dict = json.load(f)
 
+    logfile = config_dict["output"]["out_tab"].replace('.tsv','') + '_KEEG_enrichment.log'
+    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+    logging.info(f'Starting KEEG_enrichment')
+
     config = {'tools_conf': {'KEEG_enrichment': config_dict}}
     config['options'] = config['tools_conf']['KEEG_enrichment']['options']
 
     KEEG_enrichment(config, 'KEEG_enrichment')
 
+    logging.info(f'Finished KEEG_enrichment')
 
 if __name__ == "__main__":
     main()

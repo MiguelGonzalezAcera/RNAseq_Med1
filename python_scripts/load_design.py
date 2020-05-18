@@ -10,6 +10,8 @@ def load_design(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
+    logging.info(f'Starting {tool_name} process')
+
     design_tab = config['tools_conf'][tool_name]['input']['design_tab']
     project = config['project']
     organism = config['options']['organism']
@@ -25,13 +27,23 @@ def load_design(config, tool_name):
 
     mycursor = mydb.cursor()
 
-    create_command = f"""create table Projects.{project}(Comparison VARCHAR(255) NOT NULL, Control VARCHAR(255) NOT NULL, Sample VARCHAR(255) NOT NULL, Table_path VARCHAR(255) NOT NULL, Robj_path VARCHAR(255) NOT NULL, Volcano_path VARCHAR(255) NOT NULL, primary key(Comparison));"""
-    print(create_command)
+    # Check if table already exists
+    create_command = f"""show tables like '{project}';"""
+
     mycursor.execute(create_command)
 
-    insert_command = f"""load data local infile '{design_tab}' into table Projects.{project} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (Comparison,Control,Sample,Table_path,Robj_path,Volcano_path);"""
-    print(insert_command)
-    mycursor.execute(insert_command)
+    result = mycursor.fetchone()
+
+    if result:
+        logging.info(f'Table {project} already exists')
+    else:
+        create_command = f"""create table Projects.{project}(Comparison VARCHAR(255) NOT NULL, Control VARCHAR(255) NOT NULL, Sample VARCHAR(255) NOT NULL, Table_path VARCHAR(255) NOT NULL, Robj_path VARCHAR(255) NOT NULL, Volcano_path VARCHAR(255) NOT NULL, primary key(Comparison));"""
+        logging.info(create_command)
+        mycursor.execute(create_command)
+
+        insert_command = f"""load data local infile '{design_tab}' into table Projects.{project} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (Comparison,Control,Sample,Table_path,Robj_path,Volcano_path);"""
+        logging.info(insert_command)
+        mycursor.execute(insert_command)
 
     mydb.commit()
 

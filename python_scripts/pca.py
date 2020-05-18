@@ -18,6 +18,7 @@ def gif(filelist, out_dir):
 def pca(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
+    logging.info(f'Starting {tool_name} process')
 
     counts = config['tools_conf'][tool_name]['input']['counts']
     design = config['tools_conf'][tool_name]['input']['design']
@@ -30,8 +31,6 @@ def pca(config, tool_name):
         command += f"mkdir {out_dir};"
     command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
     command += f'touch {pcatouched}'
-
-    print(command)
 
     pf.run_command(command)
 

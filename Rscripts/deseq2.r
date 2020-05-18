@@ -68,6 +68,10 @@ print(resultsNames(dds))
 # Save the normalized counts
 # <TO_DO>: The header is odd in the file, so check the samples or load the whole object when working with the normalized counts.
 norm_counts <- counts(estimateSizeFactors(dds), normalized = T)
+norm_counts_colnames <- colnames(norm_counts)
+norm_counts <- cbind(norm_counts, as.character(mapIds(database, as.character(rownames(norm_counts)), 'SYMBOL', 'ENSEMBL')))
+colnames(norm_counts) <- c(norm_counts_colnames, "Genename")
+
 write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv",opt$out_obj, fixed = TRUE),sep="\t")
 df_norm <- as.data.frame(norm_counts)
 save(df_norm, file=gsub(".Rda","_norm_counts.Rda",opt$out_obj, fixed = TRUE))

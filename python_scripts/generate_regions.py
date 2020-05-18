@@ -8,6 +8,8 @@ def regions(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
+    logging.info(f'Starting {tool_name} process')
+
     bedfile = config['tools_conf'][tool_name]['input']['bedfile']
     genome = config['tools_conf']['genomedict']
     list = config['tools_conf'][tool_name]['output']['list']
@@ -16,7 +18,6 @@ def regions(config, tool_name):
     command = ""
     command += f"java -jar /SOFTWARE/bin/picard-2.19.0.jar BedToIntervalList I={bedfile}" + \
            f" O={list} SD={genome}"
-    print(command)
 
     pf.run_command(command)
 

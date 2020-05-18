@@ -29,7 +29,7 @@ def update_design(config, tool_name):
 
     for index, row in df.iterrows():
         insert_command = f"""insert into Projects.{project}(Comparison,Control,Sample,Table_path,Robj_path,Volcano_path) value('{row[0]}','{row[1]}','{row[2]}','{row[3]}','{row[4]}','{row[5]}');"""
-        print(insert_command)
+        logging.info(insert_command)
         mycursor.execute(insert_command)
 
     mydb.commit()

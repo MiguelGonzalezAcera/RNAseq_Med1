@@ -19,6 +19,7 @@ def mapping(config, tool_name):
     needed for the process
 
     """
+    logging.info(f'Starting {tool_name} process')
 
     # Get the paths to the files that are going to be input/output
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
@@ -56,7 +57,6 @@ def mapping(config, tool_name):
     command += f"{star_version} --genomeLoad Remove --genomeDir {genomePath}; "
     command += f"touch {mappingtouched}"
 
-    print(command)
     pf.run_command(command)
 
 def get_arguments():
