@@ -4,7 +4,46 @@ import os
 import glob
 import subprocess
 import json
+import mysql.connector
 
+
+def query_database(genelist, tab_name, outfile):
+    """
+    """
+
+    mydb = mysql.connector.connect(
+      host="localhost",
+      user="root",
+      passwd="Plater1a",
+      database="RNAseq"
+    )
+
+    mycursor = mydb.cursor()
+
+    with open(genelist) as f:
+        genes = f.read().splitlines()
+    genes = "\',\'".join(genes)
+
+    header_command = f'DESCRIBE {tab_name};'
+
+    mycursor.execute(header_command)
+
+    header=[]
+    for row in mycursor:
+        header.append(row[0])
+
+    command = f"""select * from {tab_name} where EnsGenes in ('{genes}');"""
+
+    mycursor.execute(command)
+
+    df_set = []
+    for row in mycursor:
+        df_set.append(row)
+
+    df = pd.DataFrame(df_set)
+    df.columns = header
+
+    df.to_csv(outfile, sep='\t', index=False)
 
 def KEGG_enrichment(config, tool_name):
     """Get the counts of a number of bam files in a directory
@@ -40,8 +79,7 @@ def KEGG_enrichment(config, tool_name):
         command += f'touch {keggtouched}'
     else:
         out_tab = config['tools_conf'][tool_name]['output']['out_tab']
-        id_tab_DExpr = out_tab.replace(".tsv","_DExpr.tsv")
-        id_tab_Ncounts = out_tab.replace(".tsv","_norm_counts.tsv")
+        id_tab_DExpr = out_tab.replace(".tsv","_DE.tsv")
         out_dir = "/".join(config['tools_conf'][tool_name]['output']['out_tab'].split('/')[0:-1])
 
         in_obj = config['tools_conf'][tool_name]['input']['in_obj']
@@ -53,9 +91,10 @@ def KEGG_enrichment(config, tool_name):
         if not os.path.exists(out_dir):
             command += f"mkdir {out_dir};"
 
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}'
-        command += f"head -n +1 {in_obj_tab} > {id_tab_DExpr}; grep -f {genelist} {in_obj_tab} >> {id_tab_DExpr}; "
-        command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"EnsemblID\\t\" $0}}\' > {id_tab_Ncounts}; grep -f {genelist} {in_obj_path}/*_norm_counts.tsv >> {id_tab_Ncounts}; "
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}; '
+
+        in_obj_name = in_obj.split('/')[-1].replace('.Rda','')
+        query_database(genelist,in_obj_name,id_tab_DExpr)
 
     logging.info(f'Running command: {command}')
     for cmd in command.split('; '):
@@ -110,7 +149,7 @@ def main():
     config = {'tools_conf': {'KEEG_enrichment': config_dict}}
     config['options'] = config['tools_conf']['KEEG_enrichment']['options']
 
-    KEEG_enrichment(config, 'KEEG_enrichment')
+    KEGG_enrichment(config, 'KEEG_enrichment')
 
     logging.info(f'Finished KEEG_enrichment')
 

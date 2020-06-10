@@ -50,7 +50,7 @@ def deseq2(config, tool_name):
     for control in samples:
         sample_ids = samples[control].split(",")
         for sample in sample_ids:
-            table_name = out_dir + "/" + config['project'] + "_" + f"{sample}_{control}.tsv"
+            table_name = out_dir + "/" + config['project'] + "_" + f"{sample}_{control}_expanded.tsv"
 
             if  config['options']['sql_load'] == "True":
                 # Check if table exists
@@ -63,15 +63,30 @@ def deseq2(config, tool_name):
                 if result:
                     logging.info(f'Table {project}_{sample}_{control} already exists')
                 else:
-                    create_command = f"""create table RNAseq.{project}_{sample}_{control}(id INT(11) NOT NULL AUTO_INCREMENT, baseMean FLOAT(10,5) NOT NULL, log2FoldChange FLOAT(10,5) NOT NULL, lcfSE FLOAT(10,5) NOT NULL, stat FLOAT(10,5) NOT NULL, pvalue FLOAT(10,5) NOT NULL, padj FLOAT(10,5) NOT NULL, EnsGenes VARCHAR(255) NOT NULL, Genename VARCHAR(255), primary key(id), foreign key(EnsGenes) references Refs.mouse_genes(EnsGenes));"""
+                    with open(table_name) as f:
+                        header = f.readline()
+                    header = header.replace("\"", "").rstrip().split('\t')
+                    j_header = ",".join(header)
+
+                    create_command = f"create table RNAseq.{project}_{sample}_{control}(id INT(11) NOT NULL AUTO_INCREMENT, "
+                    for field in header:
+                        if field == 'EnsGenes':
+                            create_command += 'EnsGenes VARCHAR(255) NOT NULL, '
+                        elif field == 'Genes':
+                            create_command += 'Genes VARCHAR(255), '
+                        else:
+                            create_command += f'{field} FLOAT(10,5), '
+
+                    create_command += f'primary key(id), foreign key(EnsGenes) references Refs.{organism}_genes(EnsGenes));'
+
                     logging.info(create_command)
                     mycursor.execute(create_command)
-                    insert_command = f"""load data local infile '{table_name}' into table RNAseq.{project}_{sample}_{control} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (baseMean,log2FoldChange,lcfSE,stat,pvalue,padj,EnsGenes,Genename);"""
+                    insert_command = f"""load data local infile '{table_name}' into table RNAseq.{project}_{sample}_{control} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows ({j_header});"""
                     logging.info(insert_command)
                     mycursor.execute(insert_command)
 
             # Add the line to the list:
-            line = [f"{project}_{sample}_{control}",f"{control}",f"{sample}",table_name,table_name.replace(".tsv",".Rda")]
+            line = [f"{project}_{sample}_{control}",f"{control}",f"{sample}",table_name,table_name.replace("_expanded.tsv",".Rda")]
             design_list.append(line)
 
     # Transform the project into table and save it

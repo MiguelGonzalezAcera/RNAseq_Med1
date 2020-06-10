@@ -63,6 +63,7 @@ def generate_configuration(postdata, pipeline):
 
     # Serialize class attributes into a configuration fileW
     config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
+    config_json['pipeline'] = pipeline
     with open(config_json_path, 'w') as outfile:
         json.dump(config_json, outfile)
 
@@ -223,11 +224,11 @@ def launch_clustering_FC_mt():
 
     return generate_response(postdata, dag)
 
-@app.route('/KEGG_enirchment/', methods=['POST'])
+@app.route('/KEGG_enrichment/', methods=['POST'])
 @cross_origin(origin="*")
 def launch_KEGG_enrichment():
     postdata = request.get_json()
-    pipeline = 'KEGG_enirchment'
+    pipeline = 'KEGG_enrichment'
 
     # Create and save configuration
     status_config, config_json_path = generate_configuration(postdata, pipeline)

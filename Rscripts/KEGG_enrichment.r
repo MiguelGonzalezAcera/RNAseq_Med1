@@ -1,10 +1,10 @@
 # Resctome enrichment
 
-library(clusterProfiler)
-library(pathview)
-library(DESeq2)
-library(optparse)
-library(enrichplot)
+suppressPackageStartupMessages(library(clusterProfiler))
+suppressPackageStartupMessages(library(pathview))
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(enrichplot))
 
 option_list = list(
   make_option("--out_tab", type="character",

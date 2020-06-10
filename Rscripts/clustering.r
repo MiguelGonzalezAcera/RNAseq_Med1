@@ -36,11 +36,11 @@ load(opt$counts)
 genes = readLines(opt$genelist)
 
 # Transform the ensembl names into gene symbol.
-df_norm$Genenames <- rownames(df_norm)
+df_norm$Genename <- rownames(df_norm)
 
 # Get rows in the list of genes
-clust_df <- df_norm[df_norm$Genenames %in% genes, ,drop=FALSE]
-clust_df$Genenames = NULL
+clust_df <- df_norm[df_norm$Genename %in% genes, ,drop=FALSE]
+clust_df$Genename = NULL
 
 # Perform the clustering analysis over the table
 # Tree construction (rows and columns)

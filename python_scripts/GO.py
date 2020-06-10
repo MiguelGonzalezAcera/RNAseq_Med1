@@ -4,6 +4,45 @@ import os
 import subprocess
 import glob
 import json
+import mysql.connector
+
+def query_database(genelist, tab_name, outfile):
+    """
+    """
+
+    mydb = mysql.connector.connect(
+      host="localhost",
+      user="root",
+      passwd="Plater1a",
+      database="RNAseq"
+    )
+
+    mycursor = mydb.cursor()
+
+    with open(genelist) as f:
+        genes = f.read().splitlines()
+    genes = "\',\'".join(genes)
+
+    header_command = f'DESCRIBE {tab_name};'
+
+    mycursor.execute(header_command)
+
+    header=[]
+    for row in mycursor:
+        header.append(row[0])
+
+    command = f"""select * from {tab_name} where EnsGenes in ('{genes}');"""
+
+    mycursor.execute(command)
+
+    df_set = []
+    for row in mycursor:
+        df_set.append(row)
+
+    df = pd.DataFrame(df_set)
+    df.columns = header
+
+    df.to_csv(outfile, sep='\t', index=False)
 
 def GO_enrichment(config, tool_name):
     """Get the counts of a number of bam files in a directory
@@ -51,7 +90,6 @@ def GO_enrichment(config, tool_name):
         id_tab_CC = out_tab.replace(".tsv","_CC.Rda")
         id_geneids = out_tab.replace(".tsv","_entrezgeneids.Rda")
         id_tab_DExpr = out_tab.replace(".tsv","_DExpr.tsv")
-        id_tab_Ncounts = out_tab.replace(".tsv","_norm_counts.tsv")
 
         in_obj = config['tools_conf'][tool_name]['input']['in_obj']
         in_obj_tab = in_obj.replace('.Rda','.tsv')
@@ -66,8 +104,9 @@ def GO_enrichment(config, tool_name):
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
-        command += f"head -n +1 {in_obj_tab} > {id_tab_DExpr}; grep -f {genelist} {in_obj_tab} >> {id_tab_DExpr}; "
-        command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"Ensembl\\t\" $0}}\' > {id_tab_Ncounts}; grep -f {genelist} {in_obj_path}/*_norm_counts.tsv >> {id_tab_Ncounts}; "
+
+        in_obj_name = in_obj.split('/')[-1].replace('.Rda','')
+        query_database(genelist,in_obj_name,id_tab_DExpr)
 
     logging.info(f'Running command: {command}')
     for cmd in command.split('; '):

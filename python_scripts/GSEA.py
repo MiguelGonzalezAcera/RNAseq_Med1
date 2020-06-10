@@ -5,7 +5,45 @@ import glob
 import json
 import subprocess
 import pandas as pd
+import mysql.connector
 
+def query_database(genelist, tab_name, outfile):
+    """
+    """
+
+    mydb = mysql.connector.connect(
+      host="localhost",
+      user="root",
+      passwd="Plater1a",
+      database="RNAseq"
+    )
+
+    mycursor = mydb.cursor()
+
+    with open(genelist) as f:
+        genes = f.read().splitlines()
+    genes = "\',\'".join(genes)
+
+    header_command = f'DESCRIBE {tab_name};'
+
+    mycursor.execute(header_command)
+
+    header=[]
+    for row in mycursor:
+        header.append(row[0])
+
+    command = f"""select * from {tab_name} where EnsGenes in ('{genes}');"""
+
+    mycursor.execute(command)
+
+    df_set = []
+    for row in mycursor:
+        df_set.append(row)
+
+    df = pd.DataFrame(df_set)
+    df.columns = header
+
+    df.to_csv(outfile, sep='\t', index=False)
 
 def fix_genelists(genelists_path):
     """"""
@@ -71,12 +109,11 @@ def GSEA(config, tool_name):
 
     command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot} --organism {organism}; '
 
-    command += f"head -n +1 {in_obj_tab} | awk \'{{print \"Genelist\\t\" $0}}\' > {id_tab_DExpr}; "
     for glist in genegroup_path_spac:
-        command += f"grep -f {glist} {in_obj_tab} | awk -v glist={glist} \'{{print glist,\"\\t\",$0}}\' >> {id_tab_DExpr}; "
-    command += f"head -n +1 {in_obj_path}/*_norm_counts.tsv | awk \'{{print \"Genelist\\tEnsemblID\\t\" $0}}\' > {id_tab_Ncounts}; "
-    for glist in genegroup_path_spac:
-        command += f"grep -f {glist} {in_obj_path}/*_norm_counts.tsv | awk -v glist={glist} \'{{print glist,\"\\t\",$0}}\' >> {id_tab_Ncounts}; "
+        glist_name = glist.split('/')[-1].replace(".txt",'')
+        id_tab_DExpr_gl = id_tab_DExpr.replace('.tsv',f'_{glist_name}.tsv')
+        in_obj_name = in_obj.split('/')[-1].replace('.Rda','')
+        query_database(glist,in_obj_name,id_tab_DExpr_gl)
 
     logging.info(f'Running command: {command}')
     for cmd in command.split('; '):

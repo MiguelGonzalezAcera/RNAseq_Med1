@@ -7,6 +7,44 @@ import subprocess
 import pandas as pd
 import mysql.connector
 
+def query_database(genelist, tab_name, outfile):
+    """
+    """
+
+    mydb = mysql.connector.connect(
+      host="localhost",
+      user="root",
+      passwd="Plater1a",
+      database="RNAseq"
+    )
+
+    mycursor = mydb.cursor()
+
+    with open(genelist) as f:
+        genes = f.read().splitlines()
+    genes = "\',\'".join(genes)
+
+    header_command = f'DESCRIBE {tab_name};'
+
+    mycursor.execute(header_command)
+
+    header=[]
+    for row in mycursor:
+        header.append(row[0])
+
+    command = f"""select * from {tab_name} where EnsGenes in ('{genes}');"""
+
+    mycursor.execute(command)
+
+    df_set = []
+    for row in mycursor:
+        df_set.append(row)
+
+    df = pd.DataFrame(df_set)
+    df.columns = header
+
+    df.to_csv(outfile, sep='\t', index=False)
+
 
 def clustering_FC_heatmap(config, tool_name):
     """Get the
@@ -15,7 +53,11 @@ def clustering_FC_heatmap(config, tool_name):
 
     out_dir = "/".join(config['tools_conf'][tool_name]['output']['heatmap'].split('/')[0:-1])
 
-    heatmap = config['tools_conf'][tool_name]['output']['heatmap']
+    genes_groups_reference = {
+        "Goblet": "",
+        "Paneth": ""
+    }
+
     organism = config['options']['organism']
 
     # Create the command to run the pca R script
@@ -23,43 +65,50 @@ def clustering_FC_heatmap(config, tool_name):
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
-    gene_file = config['tools_conf'][tool_name]['input']['genelist']
-
-    if 'project' in config['tools_conf'][tool_name]['input']:
-        project = config['tools_conf'][tool_name]['input']['project']
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --project {project} --genelist {gene_file} --organism {organism}; '
-
-        mydb = mysql.connector.connect(
-          host="localhost",
-          user="root",
-          passwd="Plater1a",
-          database="Projects"
-        )
-
-        mycursor = mydb.cursor()
-
-        mycursor.execute(f"select Table_path from {project}")
-
-        RData_lst = []
-        for x in mycursor:
-            RData_lst.append(x[0])
-        RData_fix = ",".join(RData_lst)
-
+    if config['pipeline'] == 'RNAseq':
+        genes_dict = genes_groups_reference
     else:
-        RData = config['tools_conf'][tool_name]['input']['RData']
-        colnames = config['tools_conf'][tool_name]['input']['colnames']
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --Rdata {RData} --colnames {colnames} --genelist {gene_file} --organism {organism}; '
-        RData_fix = RData.replace('.Rda','.tsv')
+        genes_dict = {"genelist": config['tools_conf'][tool_name]['input']['genelist']}
 
-    RData_wsp = RData_fix.replace(","," ")
-    RData_fst = RData_fix.split(',')[0]
-    RData_path = "/".join(RData_fst.split('/')[0:-1])
-    RData_path_fix = RData_path.replace("/","\/") + "\/"
-    outtab_DE = heatmap.replace('_heatmap.png','_DiffExpr.tsv')
-    outtab_NC = heatmap.replace('_heatmap.png','_NormCounts.tsv')
+    mydb = mysql.connector.connect(
+      host="localhost",
+      user="root",
+      passwd="Plater1a",
+      database="Projects"
+    )
 
-    command += f'head -n +1 {RData_fst} | awk \'{{print \"Model\\t\" $0}}\' > {outtab_DE}; grep -f {gene_file} {RData_wsp} | sed "s/.tsv:/\t/g" | sed "s/{RData_path_fix}//g" >> {outtab_DE}; '
-    command += f'head -n +1 {RData_path}/*_norm_counts.tsv | awk \'{{print \"EnsemblID\\t\" $0}}\' > {outtab_NC}; grep -f {gene_file} {RData_path}/*_norm_counts.tsv >> {outtab_NC}; '
+    mycursor = mydb.cursor()
+
+    heatmap = config['tools_conf'][tool_name]['output']['heatmap']
+
+    for pway in genes_dict:
+        heatmap_pway = config['tools_conf'][tool_name]['output']['heatmap'].replace('.png',f'_{pway}.png')
+
+        if 'project' in config['tools_conf'][tool_name]['input']:
+            project = config['tools_conf'][tool_name]['input']['project']
+
+            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap_pway} --project {project} --genelist {genes_dict[pway]} --organism {organism}; '
+
+            mycursor.execute(f"select Robj_path from {project}")
+
+            RData_lst = []
+            for x in mycursor:
+                RData_lst.append(x[0])
+            RData_fix = ",".join(RData_lst)
+
+            mycursor.close()
+            mydb.close()
+
+        else:
+            RData = config['tools_conf'][tool_name]['input']['RData']
+            colnames = config['tools_conf'][tool_name]['input']['colnames']
+            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap_pway} --Rdata {RData} --colnames {colnames} --genelist {genes_dict[pway]} --organism {organism}; '
+            RData_fix = RData.replace('.Rda','.tsv')
+
+        for RData_file in RData_fix.split(','):
+            RData_in = RData_file.split('/')[-1].replace('.tsv','')
+            RData_out = heatmap.replace('heatmap.png',f'{RData_in}_{pway}_DE.tsv')
+            query_database(genes_dict[pway], RData_in, RData_out)
 
     logging.info(f'Running command: {command}')
     for cmd in command.split('; '):
@@ -114,6 +163,8 @@ def main():
 
     config = {'tools_conf': {'clustering_FC_heatmap': config_dict}}
     config['options'] = config['tools_conf']['clustering_FC_heatmap']['options']
+
+    config['pipeline'] = 'Clustering_fc'
 
     clustering_FC_heatmap(config, 'clustering_FC_heatmap')
 

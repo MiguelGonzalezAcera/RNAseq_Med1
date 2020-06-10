@@ -1,7 +1,7 @@
-library(clusterProfiler)
-library(enrichplot)
-library(DESeq2)
-library(optparse)
+suppressPackageStartupMessages(library(clusterProfiler))
+suppressPackageStartupMessages(library(enrichplot))
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(optparse))
 
 
 option_list = list(

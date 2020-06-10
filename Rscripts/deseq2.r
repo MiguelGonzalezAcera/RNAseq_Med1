@@ -1,9 +1,9 @@
 # DESeq2 Analysis
 
-library(DESeq2)
-library(optparse)
-library(data.table)
-library(gsubfn)
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(gsubfn))
 
 option_list = list(
   make_option("--counts", type="character",
@@ -39,7 +39,11 @@ Counts_tab$Geneid = NULL
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 Counts_tab <- Counts_tab[order(row.names(Counts_tab)),]
 
-# Design model matrix (STILL MANUAL)
+# Add row names as column and subset control samples
+sampleTableSingle$rn <- row.names(sampleTableSingle)
+control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn']]
+
+# Design model matrix
 #design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
 Tr1 = relevel(sampleTableSingle[,1], opt$control)
 design <- model.matrix( ~ Tr1)
@@ -57,7 +61,7 @@ keep <- rowSums(counts(dss)) >= 25
 dss <- dss[keep,]
 
 # Run the analysis
-dds <- DESeq(dss)
+dds <- DESeq(dss, betaPrior=FALSE)
 
 # Check the names of the main contrasts
 print(resultsNames(dds))
@@ -76,6 +80,8 @@ write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv",opt$out_obj, fixed 
 df_norm <- as.data.frame(norm_counts)
 save(df_norm, file=gsub(".Rda","_norm_counts.Rda",opt$out_obj, fixed = TRUE))
 
+df_norm$EnsGenes <- rownames(df_norm)
+
 #<TO_DO>: Now, this is doubtful, because now would be time to do the contrasts.
 # To do these accuratelz, we have to consider, number of factors, levels of each factor,
 #  interaction of the factors, and which factors interact.
@@ -93,7 +99,7 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   print(sample)
 
   # Using the names provided in the input as the samples, run this as a loop
-  res <- results(dds, name = paste("Tr1",sample,sep=""))
+  res <- results(dds, name = paste("Tr1",sample,sep=""), cooksCutoff=FALSE)
   
   # Save the full result object
   # Contrast name will be replaced by the sample and controls
@@ -119,6 +125,17 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # Save table with all the new names. Replace contrast
   res_tab_name = paste(paste("", sample, opt$control, sep='_'),"tsv", sep=".")
   write.table(resdf, file=gsub(".Rda",res_tab_name,opt$out_obj, fixed = TRUE),
+              sep="\t", row.names = FALSE)
+  
+  # Subset design table with sample to get vector
+  sample_samples <- sampleTableSingle[sampleTableSingle$Tr1 == sample,][['rn']]
+  
+  # Merge res table with the counts of its samples
+  resdf_wcounts <- merge(resdf, df_norm[,c("EnsGenes", control_samples, sample_samples)], by='EnsGenes', all.x=TRUE)
+  
+  #Save new table
+  res_exp_tab_name = paste(paste("", sample, opt$control, sep='_'),"expanded.tsv", sep="_")
+  write.table(resdf_wcounts, file=gsub(".Rda",res_exp_tab_name,opt$out_obj, fixed = TRUE),
               sep="\t", row.names = FALSE)
 }
 # Save environment
