@@ -72,6 +72,22 @@ rule update_project:
         }
         python_scripts.update_design.update_design(config_dict, tool_name)
 
+rule clustering_FC_heatmap:
+    input:
+        prloadtouched = rules.update_project.output.prupdtouched
+    output:
+        heatmaptouched = f"{outfolder}/plots/heatmaptouched_r{reanalisis_numm}.txt"
+    run:
+        tool_name = 'clustering_FC_heatmap'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.clustering_FC_heatmap.clustering_FC_heatmap(config_dict, tool_name)
+
+
 rule KEGG:
     input:
         DEtouched = rules.deseq2.output.DEtouched,

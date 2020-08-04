@@ -15,12 +15,14 @@ def get_script_names():
     data = {
         'RNAseq': {'path': '/DATA/RNAseq_test/Scripts/RNAseq.smk'},
         'RNAseq_update': {'path': '/DATA/RNAseq_test/Scripts/RNAseq_update.smk'},
+        'Gene_query': {'path': '/DATA/RNAseq_test/Scripts/Check_gene.smk'},
         'clustering_heatmap': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_heatmap.py'},
         'clustering_FC_exst': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
         'clustering_FC_mt': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
         'KEGG_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/KEGG.py'},
         'GO_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GO.py'},
-        'GSEA': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GSEA.py'}
+        'GSEA': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GSEA.py'},
+        'volcano': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/volcano_plot.py'}
     }
 
     return data
@@ -182,6 +184,20 @@ def launch_RNAseq_update():
 
     return generate_response(postdata, dag)
 
+@app.route('/Gene_query/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_Gene_query():
+    postdata = request.get_json()
+    pipeline = 'Gene_query'
+
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    status_job, dag = launch_job(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
 @app.route('/clustering/', methods=['POST'])
 @cross_origin(origin="*")
 def launch_clustering():
@@ -257,6 +273,20 @@ def launch_GO_enrichment():
 def launch_GSEA():
     postdata = request.get_json()
     pipeline = 'GSEA'
+
+    # Create and save configuration
+    status_config, config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    status_job, dag = launch_script(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/volcano_plot/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_volcano():
+    postdata = request.get_json()
+    pipeline = 'volcano'
 
     # Create and save configuration
     status_config, config_json_path = generate_configuration(postdata, pipeline)

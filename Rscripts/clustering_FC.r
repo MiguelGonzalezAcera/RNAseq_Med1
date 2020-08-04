@@ -82,6 +82,7 @@ for (filename in treats){
   FC_df <- full_df[genelist[order(genelist)],"log2FoldChange",drop=FALSE]
   pv_df <- full_df[genelist[order(genelist)],"padj",drop=FALSE]
   
+  filename_col <- gsub(".Rda","", tail(strsplit(filename, "/"), n=1), fixed = TRUE)
   # Name the column as the file
   colnames(FC_df) <- c(filename)
   colnames(pv_df) <- c(filename)
@@ -119,6 +120,11 @@ new <- 1000:2000
 rows_hm[is.na(rows_hm)] <- paste("Unk",new[1:sum(is.na(rows_hm))], sep="")
 rownames(clust_df) <- rows_hm
 
+if (length(rownames(clust_df)) < 2) {
+  print('Genelist doesn\'t have the necessary length to do the clustering in this group of samples')
+  quit()
+}
+
 # Perform the clustering analysis over the table
 # Tree construction (rows and columns)
 hr <- hclust(as.dist(1-cor(t(data.matrix(clust_df)),
@@ -136,7 +142,7 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorRamp2(c(-4, 0, 4), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 4000, height = 4000, res = 600)
+png(file=opt$heatmap, width = 3500, height = 3500, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 

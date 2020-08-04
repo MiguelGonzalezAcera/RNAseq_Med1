@@ -25,6 +25,7 @@ sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
 Counts_tab = read.table(opt$counts, fileEncoding = "UTF8", header=TRUE)
 row.names(Counts_tab) <- Counts_tab$Geneid
 Counts_tab$Geneid = NULL
+print(head(Counts_tab))
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 
 # do principal components analyses

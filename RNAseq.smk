@@ -218,6 +218,21 @@ rule load_project:
         }
         python_scripts.load_design.load_design(config_dict, tool_name)
 
+rule clustering_FC_heatmap:
+    input:
+        prloadtouched = rules.load_project.output.prloadtouched
+    output:
+        heatmaptouched = f"{outfolder}/plots/heatmaptouched.txt"
+    run:
+        tool_name = 'clustering_FC_heatmap'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.clustering_FC_heatmap.clustering_FC_heatmap(config_dict, tool_name)
+
 rule KEGG:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
@@ -259,7 +274,8 @@ rule all:
         gotouched = rules.GO.output.gotouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
         heatmap = rules.clustering_heatmap.output.heatmap,
-        prloadtouched = rules.load_project.output.prloadtouched
+        prloadtouched = rules.load_project.output.prloadtouched,
+        heatmaptouched = rules.clustering_FC_heatmap.output.heatmaptouched
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {

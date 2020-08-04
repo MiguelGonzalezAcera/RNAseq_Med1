@@ -5,6 +5,7 @@ import glob
 import subprocess
 import json
 import mysql.connector
+import pandas as pd
 
 
 def query_database(genelist, tab_name, outfile):

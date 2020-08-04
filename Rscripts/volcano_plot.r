@@ -9,7 +9,9 @@ option_list = list(
   make_option("--out_plot", type="character",
               help="file that contains the volcano."),
   make_option("--organism", type="character", default="mouse",
-              help="Organism for the genenames")
+              help="Organism for the genenames"),
+  make_option("--genelist", type="character", default="",
+              help="List of genes to be included in the plot, in txt format. Ensembl IDs only")
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -44,15 +46,21 @@ with(subset(resdf, abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue)
 with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue),
                                                               pch=20, col="green"))
 
-# with(subset(resdf, padj<.05 & abs(log2FoldChange)>1 & Genes %in% c("Ccl8", "Ccl1", "Ido1", "Ccr8", "Ifng", "Il18bp")), points(log2FoldChange, -log10(pvalue),
-#                                                              pch=20, col="blue"))
-# resdf$Genes_filt <- rapply(as.list(resdf$Genes),function(x) ifelse(x %in% c("Ccl8", "Ccl1", "Ido1", "Ccr8", "Ifng", "Il18bp"),x,""), how = "replace")
-# resdf$Genes_filt[is.na(resdf$Genes_filt)] <- ""
-# with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02, labs=Genes_filt, cex = .5))
+if (opt$genelist != ""){
+  genelist_ens <- scan(opt$genelist, character(), quote="")
+  genelist <- as.character(mapIds(database, as.character(genelist_ens),
+                                  'SYMBOL', 'ENSEMBL'))
+  
+  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1 & Genes %in% genelist), points(log2FoldChange, -log10(pvalue),pch=20, col="blue"))
+  resdf$Genes_filt <- rapply(as.list(resdf$Genes),function(x) ifelse(x %in% genelist,x,""), how = "replace")
+  resdf$Genes_filt[is.na(resdf$Genes_filt)] <- ""
+  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02, labs=Genes_filt, cex = .5)) 
+  
+}
 
 # Annotate significant points with genenames
-with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02,
-                                                              labs=Genes, cex = .5))
+# with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02,
+#                                                               labs=Genes, cex = .5))
 
 dev.off()
 

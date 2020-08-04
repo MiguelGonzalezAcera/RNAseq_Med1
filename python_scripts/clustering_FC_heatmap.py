@@ -24,16 +24,16 @@ def query_database(genelist, tab_name, outfile):
         genes = f.read().splitlines()
     genes = "\',\'".join(genes)
 
-    header_command = f'DESCRIBE {tab_name};'
-
+    header_command = f'DESCRIBE RNAseq.{tab_name};'
+    logging.info(header_command)
     mycursor.execute(header_command)
 
     header=[]
     for row in mycursor:
         header.append(row[0])
 
-    command = f"""select * from {tab_name} where EnsGenes in ('{genes}');"""
-
+    command = f"""select * from RNAseq.{tab_name} where EnsGenes in ('{genes}');"""
+    logging.info(command)
     mycursor.execute(command)
 
     df_set = []
@@ -51,24 +51,53 @@ def clustering_FC_heatmap(config, tool_name):
     """
     logging.info(f'Starting {tool_name} process')
 
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['heatmap'].split('/')[0:-1])
+    organism = config['options']['organism']
 
     genes_groups_reference = {
-        "Goblet": "",
-        "Paneth": ""
+        "Goblet": {
+            'human': "/DATA/references/Gene_markers/Goblet_human_markers.txt",
+            'mouse': "/DATA/references/Gene_markers/Goblet_markers.txt"
+            },
+        "Paneth": {
+            'human': "/DATA/references/Gene_markers/Paneth_human_markers.txt",
+            'mouse': "/DATA/references/Gene_markers/Paneth_markers.txt"
+            },
+        "Enteroendocrine": {
+            'human': "/DATA/references/Gene_markers/Enteroendocrine_human_markers.txt",
+            'mouse': "/DATA/references/Gene_markers/Enteroendocrine_markers.txt"
+            },
+        "Enterocyte_mat_distal": {
+            'human': "/DATA/references/Gene_markers/Enterocyte_mat_distal_human_markers.txt",
+            'mouse': "/DATA/references/Gene_markers/Enterocyte_mat_distal_markers.txt"
+            },
+        "Enterocyte_mat_proximal": {
+            'human': "/DATA/references/Gene_markers/Enterocyte_mat_proximal_human_markers.txt",
+            'mouse': "/DATA/references/Gene_markers/Enterocyte_mat_proximal_markers.txt"
+            },
+        "Tuft": {
+            'human': "/DATA/references/Gene_markers/Tuft_human_markers.txt",
+            'mouse': "/DATA/references/Gene_markers/Tuft_markers.txt"
+            }
     }
 
-    organism = config['options']['organism']
+    if config['pipeline'] == 'RNAseq' or config['pipeline'] == 'RNAseq_update':
+        genes_dict = genes_groups_reference
+
+        config['tools_conf'][tool_name]['input']['project'] = config['project']
+        heatmaptouched = config['tools_conf'][tool_name]['output']['heatmaptouched']
+        heatmap = "/".join(heatmaptouched.split('/')[0:-1]) + '/CellType_heatmap.png'
+    else:
+        genes_dict = {"genelist": {organism: config['tools_conf'][tool_name]['input']['genelist']}}
+        heatmaptouched = '/DATA/tmp/ht.txt'
+        heatmap = config['tools_conf'][tool_name]['output']['heatmap']
+
+    out_dir = "/".join(heatmap.split('/')[0:-1])
 
     # Create the command to run the pca R script
     command = ""
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
-    if config['pipeline'] == 'RNAseq':
-        genes_dict = genes_groups_reference
-    else:
-        genes_dict = {"genelist": config['tools_conf'][tool_name]['input']['genelist']}
 
     mydb = mysql.connector.connect(
       host="localhost",
@@ -79,15 +108,13 @@ def clustering_FC_heatmap(config, tool_name):
 
     mycursor = mydb.cursor()
 
-    heatmap = config['tools_conf'][tool_name]['output']['heatmap']
-
     for pway in genes_dict:
-        heatmap_pway = config['tools_conf'][tool_name]['output']['heatmap'].replace('.png',f'_{pway}.png')
+        heatmap_pway = heatmap.replace('.png',f'_{pway}.png')
 
         if 'project' in config['tools_conf'][tool_name]['input']:
             project = config['tools_conf'][tool_name]['input']['project']
 
-            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap_pway} --project {project} --genelist {genes_dict[pway]} --organism {organism}; '
+            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap_pway} --project {project} --genelist {genes_dict[pway][organism]} --organism {organism}; '
 
             mycursor.execute(f"select Robj_path from {project}")
 
@@ -96,19 +123,21 @@ def clustering_FC_heatmap(config, tool_name):
                 RData_lst.append(x[0])
             RData_fix = ",".join(RData_lst)
 
-            mycursor.close()
-            mydb.close()
-
         else:
             RData = config['tools_conf'][tool_name]['input']['RData']
             colnames = config['tools_conf'][tool_name]['input']['colnames']
-            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap_pway} --Rdata {RData} --colnames {colnames} --genelist {genes_dict[pway]} --organism {organism}; '
+            command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap_pway} --Rdata {RData} --colnames {colnames} --genelist {genes_dict[pway][organism]} --organism {organism}; '
             RData_fix = RData.replace('.Rda','.tsv')
 
         for RData_file in RData_fix.split(','):
-            RData_in = RData_file.split('/')[-1].replace('.tsv','')
+            RData_in = RData_file.split('/')[-1].replace('.tsv','').replace('.Rda','')
             RData_out = heatmap.replace('heatmap.png',f'{RData_in}_{pway}_DE.tsv')
-            query_database(genes_dict[pway], RData_in, RData_out)
+            query_database(genes_dict[pway][organism], RData_in, RData_out)
+
+    mycursor.close()
+    mydb.close()
+
+    command += f'touch {heatmaptouched}; '
 
     logging.info(f'Running command: {command}')
     for cmd in command.split('; '):
