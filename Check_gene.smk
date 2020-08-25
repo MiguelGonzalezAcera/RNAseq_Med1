@@ -27,6 +27,7 @@ logging.info(f'Starting consult for {genename}')
 rule gene_consult:
     output:
         FC_models_table = f"{outfolder}/{genename}_FC_models_table.tsv",
+        FC_course_table = f"{outfolder}/{genename}_FC_course_table.tsv",
         barplot_counts = f"{outfolder}/{genename}_barplot_counts.png",
         barplot_FC = f"{outfolder}/{genename}_barplot_FC.png",
         course_plot = f"{outfolder}/{genename}_course_plot.png"
@@ -43,6 +44,7 @@ rule gene_consult:
 rule report:
     input:
         FC_models_table = rules.gene_consult.output.FC_models_table,
+        FC_course_table = rules.gene_consult.output.FC_course_table,
         barplot_counts = rules.gene_consult.output.barplot_counts,
         barplot_FC = rules.gene_consult.output.barplot_FC,
         course_plot = rules.gene_consult.output.course_plot,

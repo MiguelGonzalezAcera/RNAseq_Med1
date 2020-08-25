@@ -105,7 +105,7 @@ def getStyles():
         'normal',
         parent=styles['default'],
         # fontName='Trebuchet',
-        fontSize=9,
+        fontSize=8,
         leading=12,
         alignment=TA_LEFT,
     )
@@ -262,16 +262,13 @@ def gene_info(genename, styles):
     mouse_ref_df.columns = ['ensembl','entrez','genename']
 
     gene_ensembl = mouse_ref_df[mouse_ref_df['genename'] == genename]['ensembl'].tolist()[0]
-    gene_entrez = str(mouse_ref_df[mouse_ref_df['genename'] == genename]['entrez'].tolist()[0])
+    gene_entrez = str(int(mouse_ref_df[mouse_ref_df['genename'] == genename]['entrez'].tolist()[0]))
     gene_description = consultBiomart(gene_ensembl)
 
     gene_ensembl_par = Paragraph(f"{gene_ensembl}", styles['normal'])
     description = Paragraph(f"{gene_description}", styles['normal'])
 
-    data = [['Gene', genename],
-            ['Ensembl ID', gene_ensembl_par],
-            ['NCBI ID', gene_entrez],
-            ['Gene Desc', description]]
+    data = [['Gene', genename, 'Ensembl ID', gene_ensembl_par, 'NCBI ID', gene_entrez]]
     t = Table(data)
     t.setStyle(TableStyle([
          ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
@@ -284,12 +281,26 @@ def gene_info(genename, styles):
          ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
          ]))
 
-    # t.wrapOn(c, width, height)
-
     story.append(t)
+
+    data2 = [['Gene Desc', description]]
+
+    t2 = Table(data2)
+    t2.setStyle(TableStyle([
+         ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+         ('SIZE', (0, 0), (-1, -1), 12),
+         ('LEADING', (0, 0), (-1, -1), 19),
+         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+         ]))
+
+    story.append(t2)
     return story
 
-def draw_image(FCPlot, h, w, styles, subtitle):
+def draw_image(FCPlot, h, w):
     story = []
     placeholder = Image(FCPlot)
     placeholder.drawHeight = h*cm
@@ -297,7 +308,13 @@ def draw_image(FCPlot, h, w, styles, subtitle):
 
     story.append(placeholder)
 
-    story.append(Paragraph(subtitle, styles['normal']))
+    return story
+
+def draw_paragraph(par_text, style):
+    story = []
+
+    story.append(Paragraph(par_text, style))
+
     return story
 
 def FC_table(FCTable, styles):
@@ -331,19 +348,25 @@ def models_info(styles):
     story = []
 
     story.append(Paragraph("Models available", styles['normal']))
-    story.append(Paragraph("- CErldc: Bl6 mice from Erlangen. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- DSSdc: DSS mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- cDSSdc: Chronic DSS mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- OxCdc: Oxazolone Colitis mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- RKOdc: Rag KO mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- TCdc: Transference Colitis mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- Janvdc: Bl6 mice from Janvier. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- KFdc: Germ Free mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- KFD4: Germ Free mice. Ileum D4.", styles['normal']))
-    story.append(Paragraph("- SPFdc: Pathogen Free mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- SPFD4: Pathogen Free mice. Ileum D4.", styles['normal']))
-    story.append(Paragraph("- O12dc: Minimal microbiome mice. Distant Colon.", styles['normal']))
-    story.append(Paragraph("- O12D4: Minimal microbiome mice. Ileum D4.", styles['normal']))
+
+    c1 = Paragraph(f"- CErldc: Bl6 mice from Erlangen. Distant Colon. 5 samples.<br/>- DSSdc: DSS mice. Distant Colon. 5 samples.<br/>- cDSSdc: Chronic DSS mice. Distant Colon. 5 samples.<br/>- OxCdc: Oxazolone Colitis mice. Distant Colon. 5 samples.<br/>- RKOdc: Rag KO mice. Distant Colon. 5 samples.<br/>- TCdc: Transference Colitis mice. Distant Colon. 5 samples.<br/>- Janvdc: Bl6 mice from Janvier. Distant Colon. 5 samples.", styles['normal'])
+    c2 = Paragraph(f"- KFdc: Germ Free mice. Distant Colon. 4 samples.<br/>- KFD4: Germ Free mice. Ileum D4. 4 samples.<br/>- SPFdc: Pathogen Free mice. Distant Colon. 3 samples.<br/>- SPFD4: Pathogen Free mice. Ileum D4. 3 samples.<br/>- O12dc: Minimal microbiome mice. Distant Colon. 4 samples.<br/>- O12D4: Minimal microbiome mice. Ileum D4. 4 samples.", styles['normal'])
+
+    data3 = [[c1, c2]]
+
+    t3 = Table(data3)
+    t3.setStyle(TableStyle([
+         ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+         ('SIZE', (0, 0), (-1, -1), 12),
+         ('LEADING', (0, 0), (-1, -1), 19),
+         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+         ]))
+
+    story.append(t3)
 
     return story
 
@@ -359,6 +382,7 @@ def report(config, tool_name):
     countsPlot = config['tools_conf'][tool_name]['input']['barplot_counts']
     coursePlot = config['tools_conf'][tool_name]['input']['course_plot']
     FCTable = config['tools_conf'][tool_name]['input']['FC_models_table']
+    FCCourseTable = config['tools_conf'][tool_name]['input']['FC_course_table']
 
     # Get date
     today = date.today()
@@ -366,15 +390,17 @@ def report(config, tool_name):
 
     geneInfo = gene_info(genename, styles)
 
-    subtitle = f'Behaviour of gene {genename} in differential expression assays using different mouse models.'
-    FCInfo = draw_image(FCPlot, 7, 7.5, styles, subtitle)
+    subtitle = f'Behaviour of gene {genename} in differential expression assays using different mouse models. Left: Bar chart with the fold change over different differential expression analysis of mouse models. Right: Table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Model-Control</b>.'
+    FCsubt = draw_paragraph(subtitle, styles["normal"])
+    FCInfo = draw_image(FCPlot, 7, 7.5)
 
-    subtitle = f'Normalized counts of {genename} in different mouse models.'
-    countsInfo = draw_image(countsPlot, 7, 7, styles, subtitle)
+    subtitle = f'Normalized counts of {genename} in different mouse models. Left: Counts across the different mouse models available. Right: Detailed view on the DSS colitis model over different time points during the inflammation stage. Samples taken at times 0, 4, 8 (end DSS), 11 and 19 days. Down: Fold changes of the stages on the time course compared with the healthy mouse at time 0.'
+    countssubt = draw_paragraph(subtitle, styles["normal"])
+    countsInfo = draw_image(countsPlot, 7, 7)
     FCTableInfo = FC_table(FCTable, styles)
+    FCCourseTableInfo = FC_table(FCCourseTable, styles)
 
-    subtitle = f'Normalized counts of {genename} across different stages of a DSS colitis time course model.'
-    courseInfo = draw_image(coursePlot, 7, 7, styles, subtitle)
+    courseInfo = draw_image(coursePlot, 7, 7)
     modelsInfo = models_info(styles)
 
     # Generate the canvas
@@ -383,22 +409,35 @@ def report(config, tool_name):
     header(c, d, styles)
     footer(c, styles)
 
-    geneInfoFrame = Frame(2*cm, 520, 200, 200, showBoundary=0)
+    geneInfoFrame = Frame(2*cm, 650, 500, 80, showBoundary=0)
     fillFrame(geneInfoFrame, geneInfo, c)
 
-    FCInfoFrame = Frame(10.6*cm, 480, 260, 250, showBoundary=0)
+    FCInfoFrame = Frame(2*cm, 400, 260, 250, showBoundary=0)
     fillFrame(FCInfoFrame, FCInfo, c)
 
-    countsInfoFrame = Frame(2*cm, 320, 220, 250, showBoundary=0)
-    fillFrame(countsInfoFrame, countsInfo, c)
-
-    FCTableInfoFrame = Frame(11.5*cm, 270, 200, 220, showBoundary=0)
+    FCTableInfoFrame = Frame(11.5*cm, 430, 200, 220, showBoundary=0)
     fillFrame(FCTableInfoFrame, FCTableInfo, c)
 
-    courseInfoFrame = Frame(2*cm, 65, 220, 250, showBoundary=0)
+    FCSubtFrame = Frame(2*cm, 400, 500, 50, showBoundary=0)
+    fillFrame(FCSubtFrame, FCsubt, c)
+
+    countsInfoFrame = Frame(2.5*cm, 150, 220, 250, showBoundary=0)
+    fillFrame(countsInfoFrame, countsInfo, c)
+
+    courseInfoFrame = Frame(11.5*cm, 150, 220, 250, showBoundary=0)
     fillFrame(courseInfoFrame, courseInfo, c)
 
-    modelsInfoFrame = Frame(11.5*cm, 35, 220, 220, showBoundary=0)
+    countsSubtFrame = Frame(2*cm, 150, 500, 50, showBoundary=0)
+    fillFrame(countsSubtFrame, countssubt, c)
+
+    FCCourseInfoFrame = Frame(2*cm, 35, 500, 120, showBoundary=0)
+    fillFrame(FCCourseInfoFrame, FCCourseTableInfo, c)
+
+    c.showPage()
+    header(c, d, styles)
+    footer(c, styles)
+
+    modelsInfoFrame = Frame(2*cm, 35, 500, 120, showBoundary=0)
     fillFrame(modelsInfoFrame, modelsInfo, c)
 
     c.save()

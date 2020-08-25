@@ -175,6 +175,8 @@ def mouse_course_plots(config, tool_name, mycursor, gene):
                         "DSS_Time_course_Rec_mod_Healthy", "DSS_Time_course_Rec_ful_Healthy"]
 
     counts_df = {}
+    tab_df = pd.DataFrame()
+    model_list = []
 
     for model in mouse_models_DSS:
         header_command = f'DESCRIBE {model};'
@@ -210,6 +212,17 @@ def mouse_course_plots(config, tool_name, mycursor, gene):
             counts_df[sample] = {}
             counts_df[sample]['mean'] = np.mean(df[filter_col_sample].iloc[0].tolist())
             counts_df[sample]['std'] = np.std(df[filter_col_sample].iloc[0].tolist())
+        if tab_df.empty:
+            tab_df = df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]]
+        else:
+            tab_df = tab_df.append(df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]])
+
+        model_list.append(f'{sample}_{control}')
+
+    tab_df['model'] = model_list
+
+    FC_course_table_path = config['tools_conf'][tool_name]['output']['FC_course_table']
+    tab_df.to_csv(FC_course_table_path, sep='\t', index=False)
 
     course_plot_path = config['tools_conf'][tool_name]['output']['course_plot']
     genename = config['genename']
