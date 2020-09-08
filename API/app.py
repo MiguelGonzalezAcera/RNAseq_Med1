@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, jsonify, make_response, request
+from flask import Flask, jsonify, make_response, request, render_template
 from snakemake import snakemake
 import threading
 from flask_cors import cross_origin
@@ -94,7 +94,7 @@ def generate_dag(snakemakepath, config_json_path, pipeline):
 
     return text
 
-def launch_process(config_json_path, postdata, pipeline):
+def launch_process(config_json_path, postdata, pipeline, mode='POPEN'):
 
     # Return name of the pipeline scripts
     config_names = get_script_names()
@@ -114,7 +114,10 @@ def launch_process(config_json_path, postdata, pipeline):
     cmd = f'snakemake -s {config_names[pipeline]["path"]} all -j 10 ' +\
         f"--config param={config_json_path} --use-conda"
 
-    subprocess.Popen(cmd, shell=True, executable='/bin/bash')
+    if mode == 'POPEN':
+        subprocess.Popen(cmd, shell=True, executable='/bin/bash')
+    elif mode == 'RUN':
+        subprocess.run(cmd, shell=True, executable='/bin/bash')
 
 
 def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
@@ -149,12 +152,35 @@ def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
 
     return True, dag
 
+def fix_postdata(postdata_list):
+    postdata = {
+        "outfolder": "/DATA/RNAseq_test/Scripts/API/static",
+    	"log_files": ["/tmp/full.log"],
+    	"options": {
+    		"organism": "mouse"
+    	}
+    }
+
+    for field in postdata_list:
+        field_list = field.replace("\r","").split('=')
+
+        if field_list[0] in ["reads","organism","sql_load","splicing","qc"]:
+            postdata['options'][field_list[0]] = field_list[1]
+        else:
+            postdata[field_list[0]] = field_list[1]
+
+    return postdata
 
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'Description': f"There is no pipeline in that direction",
                                   "Raw_data": f"{error}"}), 404)
 
+
+@app.route('/Gene_query/')
+@cross_origin(origin="*")
+def launch_Gene_query():
+    return render_template("gene_query.html")
 
 @app.route('/RNAseq/', methods=['POST'])
 @cross_origin(origin="*")
@@ -184,19 +210,26 @@ def launch_RNAseq_update():
 
     return generate_response(postdata, dag)
 
-@app.route('/Gene_query/', methods=['POST'])
+@app.route('/Gene_query_app/', methods=['POST'])
 @cross_origin(origin="*")
-def launch_Gene_query():
-    postdata = request.get_json()
+def launch_Gene_query_app():
+    postdata_list = request.get_data(as_text=True).rstrip().split('\n')
+    postdata = fix_postdata(postdata_list)
+
+    #postdata = request.get_json()
     pipeline = 'Gene_query'
 
     # Create and save configuration
     status_config, config_json_path = generate_configuration(postdata, pipeline)
 
-    # Initialize job
-    status_job, dag = launch_job(postdata, config_json_path, pipeline)
+    genename = postdata['genename']
 
-    return generate_response(postdata, dag)
+    # Initialize job
+    launch_process(config_json_path, postdata, pipeline, mode='RUN')
+    #status_job, dag = launch_job(postdata, config_json_path, pipeline)
+
+    #return generate_response(postdata, dag)
+    return render_template("gene_query_result.html", genename=genename)
 
 @app.route('/clustering/', methods=['POST'])
 @cross_origin(origin="*")
