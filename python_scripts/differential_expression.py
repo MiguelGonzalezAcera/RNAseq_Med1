@@ -38,7 +38,8 @@ def deseq2(config, tool_name):
       host="localhost",
       user="root",
       passwd="Plater1a",
-      database="RNAseq"
+      database="RNAseq",
+      allow_local_infile=True
     )
 
     mycursor = mydb.cursor()
@@ -111,7 +112,9 @@ def get_arguments():
     # Mandatory variables
     parser.add_argument('--counts', required=True, help='Table with the counts of the assay, straight from featurecounts (so far)')
     parser.add_argument('--design', required=True, help='Table with the design of the experiment')
-    parser.add_argument('--out_dir', required=True, help='Directory for all of the plots)')
+    parser.add_argument('--project', required=True, help='Project name')
+    parser.add_argument('--out_dir', required=True, help='Directory for all of the tables)')
+    parser.add_argument('--organism', required=True, help='Organism')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -132,19 +135,34 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
+    out_dir = "/".join(args.out_dir.split('/')[0:-1])
+    project = args.project
+
     config = {
       "DEBUG": args.debug,
       "TESTING": args.test,
       "DRY_RUN": args.dry_run,
       "log_files": ["/tmp/full.log"],
+      "project": project,
+      "options": {
+        "organism": args.organism,
+        "sql_load": "True"
+      },
+      "comparisons": {
+		"fl_mock":"fl_AA,ko_mock",
+        "fl_AA":"ko_AA",
+        "ko_mock":"ko_AA"
+	  },
       "tools_conf": {
-        "pca": {
+        "differential_expression": {
           "input": {
             "counts": args.counts,
             "design": args.design
             },
           "output": {
-            "out_dir": args.out_dir
+            "DEtouched": args.out_dir,
+            "design_tab": f"{out_dir}/{project}_design.tmp",
+            "norm_counts": f"{out_dir}/{project}_norm_counts.Rda"
             },
           "tool_conf": {
             }
@@ -155,7 +173,7 @@ def main():
     # Startup the logger format
     logger = pf.create_logger(config['log_files'][0])
 
-    pca(config, 'pca')
+    deseq2(config, 'differential_expression')
 
 
 if __name__ == "__main__":

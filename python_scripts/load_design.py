@@ -22,7 +22,8 @@ def load_design(config, tool_name):
       host="localhost",
       user="root",
       passwd="Plater1a",
-      database="Projects"
+      database="Projects",
+      allow_local_infile=True
     )
 
     mycursor = mydb.cursor()

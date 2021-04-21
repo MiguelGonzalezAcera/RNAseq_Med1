@@ -154,7 +154,7 @@ def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
 
 def fix_postdata(postdata_list):
     postdata = {
-        "outfolder": "/DATA/RNAseq_test/Scripts/API/static",
+        "outfolder": "/DATA/RNAseq_test/Scripts/API",
     	"log_files": ["/tmp/full.log"],
     	"options": {
     		"organism": "mouse"
@@ -176,11 +176,20 @@ def not_found(error):
     return make_response(jsonify({'Description': f"There is no pipeline in that direction",
                                   "Raw_data": f"{error}"}), 404)
 
-
 @app.route('/Gene_query/')
 @cross_origin(origin="*")
 def launch_Gene_query():
     return render_template("gene_query.html")
+
+@app.route('/test/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_test():
+    postdata_list = request.get_data(as_text=True).rstrip().split('\n')
+    print(postdata_list)
+
+    postdata = {}
+    dag = {}
+    return generate_response(postdata, dag)
 
 @app.route('/RNAseq/', methods=['POST'])
 @cross_origin(origin="*")
@@ -210,6 +219,7 @@ def launch_RNAseq_update():
 
     return generate_response(postdata, dag)
 
+
 @app.route('/Gene_query_app/', methods=['POST'])
 @cross_origin(origin="*")
 def launch_Gene_query_app():
@@ -223,19 +233,20 @@ def launch_Gene_query_app():
     status_config, config_json_path = generate_configuration(postdata, pipeline)
 
     genename = postdata['genename']
+    jobid = postdata['jobid']
 
     # Initialize job
     launch_process(config_json_path, postdata, pipeline, mode='RUN')
     #status_job, dag = launch_job(postdata, config_json_path, pipeline)
 
     #return generate_response(postdata, dag)
-    return render_template("gene_query_result.html", genename=genename)
+    return render_template(f"/{jobid}/{genename}_report.html")
 
 @app.route('/clustering/', methods=['POST'])
 @cross_origin(origin="*")
 def launch_clustering():
     postdata = request.get_json()
-    pipeline = 'clustering'
+    pipeline = 'clustering_heatmap'
 
     # Create and save configuration
     status_config, config_json_path = generate_configuration(postdata, pipeline)

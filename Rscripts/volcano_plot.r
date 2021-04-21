@@ -1,6 +1,6 @@
-library(DESeq2)
-library(optparse)
-library(calibrate)
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(calibrate))
 
 # Create options
 option_list = list(
@@ -11,7 +11,9 @@ option_list = list(
   make_option("--organism", type="character", default="mouse",
               help="Organism for the genenames"),
   make_option("--genelist", type="character", default="",
-              help="List of genes to be included in the plot, in txt format. Ensembl IDs only")
+              help="List of genes to be included in the plot, in txt format. Ensembl IDs only"),
+  make_option("--labels", type="character", default=FALSE,
+              help="Add labels of the genes")
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -28,6 +30,17 @@ load(opt$res)
 #load("/VAULT/Thesis_proj/detables/Mouse_models_cDSSdc_Cerldc.Rda")
 resdf <- data.frame(res)[complete.cases(data.frame(res)),]
 
+if (opt$genelist != "") {
+  #Load list of genes
+  genes = readLines(opt$genelist)
+
+  resdf$Genename <- rownames(resdf)
+
+  # Get rows in the list of genes
+  resdf <- resdf[resdf$Genename %in% genes, ,drop=FALSE]
+  resdf$Genename = NULL
+}
+
 # add genenames to the table
 resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
                                    'SYMBOL', 'ENSEMBL'))
@@ -35,26 +48,26 @@ resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
 png(file=opt$out_plot, width = 3000, height = 3000, res = 600)
 #png(file="/DATA/Thesis_proj/Requests_n_stuff/20200217_Le_request/cDSS_volcano_plot.png", width = 3000, height = 3000, res = 600)
 # Create scatterplot for the volcano
-with(resdf, plot(log2FoldChange, -log10(pvalue), pch=20))
+with(resdf, plot(log2FoldChange, -log10(pvalue), pch=20, cex = 0.6))
 
 # Color the points using thresholds
 #<TO_DO>: replace the thresholds by parameters
 with(subset(resdf, padj<.05), points(log2FoldChange, -log10(pvalue),
-                                      pch=20, col="red"))
+                                      pch=20, col="red", cex = 0.6))
 with(subset(resdf, abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue),
-                                                  pch=20, col="orange"))
+                                                  pch=20, col="orange", cex = 0.6))
 with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue),
-                                                              pch=20, col="green"))
+                                                              pch=20, col="green", cex = 0.6))
 
-if (opt$genelist != ""){
+if (opt$genelist != "" & opt$labels == TRUE){
   genelist_ens <- scan(opt$genelist, character(), quote="")
   genelist <- as.character(mapIds(database, as.character(genelist_ens),
                                   'SYMBOL', 'ENSEMBL'))
   
-  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1 & Genes %in% genelist), points(log2FoldChange, -log10(pvalue),pch=20, col="blue"))
+  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1 & Genes %in% genelist), points(log2FoldChange, -log10(pvalue),pch=20, col="blue", cex = 1.2))
   resdf$Genes_filt <- rapply(as.list(resdf$Genes),function(x) ifelse(x %in% genelist,x,""), how = "replace")
   resdf$Genes_filt[is.na(resdf$Genes_filt)] <- ""
-  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02, labs=Genes_filt, cex = .5)) 
+  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02, labs=Genes_filt, cex = .6)) 
   
 }
 

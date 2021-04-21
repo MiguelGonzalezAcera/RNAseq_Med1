@@ -51,7 +51,12 @@ def clustering_heatmap(config, tool_name):
             gene_file.write(f"{gene}\n")
         gene_file.close()
 
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism}; '
+    if 'design' in config['tools_conf'][tool_name]['input']:
+        design = config['tools_conf'][tool_name]['input']['design']
+
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism} --design {design}; '
+    else:
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism}; '
 
     command += f'head -n +1 {norm_counts_tab} | awk \'{{print \"EnsemblID\\t\" $0}}\' > {norm_counts_res}; grep -f {genelist_path} {norm_counts_tab} >> {norm_counts_res}; '
 

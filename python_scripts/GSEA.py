@@ -1,3 +1,4 @@
+import mysql.connector
 import argparse
 import logging
 import os
@@ -5,7 +6,6 @@ import glob
 import json
 import subprocess
 import pandas as pd
-import mysql.connector
 
 def query_database(genelist, tab_name, outfile):
     """
@@ -24,16 +24,16 @@ def query_database(genelist, tab_name, outfile):
         genes = f.read().splitlines()
     genes = "\',\'".join(genes)
 
-    header_command = f'DESCRIBE {tab_name};'
-
+    header_command = f'DESCRIBE RNAseq.{tab_name};'
+    logging.info(header_command)
     mycursor.execute(header_command)
 
     header=[]
     for row in mycursor:
         header.append(row[0])
 
-    command = f"""select * from {tab_name} where EnsGenes in ('{genes}');"""
-
+    command = f"""select * from RNAseq.{tab_name} where EnsGenes in ('{genes}');"""
+    logging.info(command)
     mycursor.execute(command)
 
     df_set = []
@@ -45,13 +45,13 @@ def query_database(genelist, tab_name, outfile):
 
     df.to_csv(outfile, sep='\t', index=False)
 
-def fix_genelists(genelists_path):
+def fix_genelists(genelists_path,  organism):
     """"""
     genelist_files = genelists_path.split(',')
 
     genelist_path = "/".join(genelist_files[0].split('/')[0:-1])
 
-    all_genes = pd.read_csv("/DATA/mouse_genes.tsv", sep='\t', index_col=None, header=None)
+    all_genes = pd.read_csv(f"/DATA/{organism}_genes.tsv", sep='\t', index_col=None, header=None)
     all_genes.columns = ['ensembl','entrez','genename']
 
     resdf = pd.DataFrame()
@@ -99,7 +99,7 @@ def GSEA(config, tool_name):
 
     genegroup_path = config['tools_conf'][tool_name]['input']['genegroup']
     genegroup_path_spac = genegroup_path.split(",")
-    genegroup = fix_genelists(genegroup_path)
+    genegroup = fix_genelists(genegroup_path, organism)
 
     # Create the command to run the pca R script
     command = ""

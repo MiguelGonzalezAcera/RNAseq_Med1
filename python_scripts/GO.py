@@ -5,6 +5,7 @@ import subprocess
 import glob
 import json
 import mysql.connector
+import pandas as pd
 
 def query_database(genelist, tab_name, outfile):
     """
@@ -100,7 +101,7 @@ def GO_enrichment(config, tool_name):
         if not os.path.exists(out_dir):
             command += f"mkdir {out_dir};"
 
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment.r --out_tab {id_tab} --obj {in_obj} --universe {universe} --organism {organism} --genelist {genelist}; '
+        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment.r --out_tab {out_tab} --obj {in_obj} --universe {universe} --organism {organism} --genelist {genelist}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
         command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
@@ -129,9 +130,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--counts', required=True, help='Table with the counts of the assay, straight from featurecounts (so far)')
-    parser.add_argument('--design', required=True, help='Table with the design of the experiment')
-    parser.add_argument('--out_dir', required=True, help='Directory for all of the plots)')
+    parser.add_argument('--config', required=True, help='Config for the run')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')

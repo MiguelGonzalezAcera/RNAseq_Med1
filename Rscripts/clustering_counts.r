@@ -17,6 +17,8 @@ option_list = list(
         make_option("--genelist", type="character",
                     help='List of genes to analyze. Ensembl coding'),
         make_option("--organism", type="character", default= "mouse",
+                    help="Organism analyzed. Available = human, mouse. Default = mouse"),
+        make_option("--design", type="character", default = "",
                     help="Organism analyzed. Available = human, mouse. Default = mouse")
 )
 
@@ -32,6 +34,12 @@ database <- select.organism(opt$organism)
 # Load the r object containing the data. 
 load(opt$counts)
 #df_norm <- subset(df_norm, select=c("Mock_1", "Mock_2", "Mock_3", "IL13_1", "IL13_2", "IL13_3"))
+
+if (opt$design != "") {
+        sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
+        
+        df_norm <- df_norm[c(rownames(sampleTableSingle) ,'Genename')]
+}
 
 genes = readLines(opt$genelist)
 
@@ -56,13 +64,14 @@ hc <- hclust(as.dist(1-cor(log(data.matrix(clust_df) + 1 ),
                            method="pearson")), method="complete") 
 
 # Establish colors
-color <- colorRamp2(c(0, 2), c("white", "red"))
+color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 3500, height = 10000, res = 600)
+png(file=opt$heatmap, width = 3500, height = 7000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
-Heatmap(t(scale(t(data.matrix(clust_df)))), cluster_rows = as.dendrogram(hr),
+Heatmap(t(scale(t(log(data.matrix(clust_df) + 1)))), cluster_rows = as.dendrogram(hr),
         cluster_columns = FALSE,
+        row_names_gp = gpar(fontsize = (90/length(genes)+5)),
         col=color, column_dend_height = unit(5, "cm"),
         row_dend_width = unit(2, "cm"))
 dev.off()

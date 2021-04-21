@@ -130,7 +130,7 @@ if config_dict['options']['qc'] == 'True':
     include: './subworkflows/qc.smk'
     cpbtouched = rules.CoveragePerBase.output.cpbtouched
     fastqceval = rules.Fastqc.output.fastqceval
-    bamqceval = rules.Bamqceval.output.evaloutfile
+    bamqceval = rules.BamqcEval.output.evaloutfile
 else:
     cpbtouched = config['param']
     fastqceval = config['param']
@@ -186,6 +186,36 @@ rule clustering_heatmap:
         }
         python_scripts.clustering_heatmap.clustering_heatmap(config_dict, tool_name)
 
+rule clustering_markers:
+    input:
+        norm_counts = rules.deseq2.output.norm_counts
+    output:
+        markerstouched = f"{outfolder}/markers/markerstouched.txt"
+    run:
+        tool_name = 'clustering_markers'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.clustering_markers.clustering_markers(config_dict, tool_name)
+
+rule volcano_markers:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched
+    output:
+        MVtouched = f"{outfolder}/markers/MVtouched.txt"
+    run:
+        tool_name = 'volcano_markers'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.volcano_markers.volcano_markers(config_dict, tool_name)
+
 rule volcano_plot:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
@@ -218,28 +248,13 @@ rule load_project:
         }
         python_scripts.load_design.load_design(config_dict, tool_name)
 
-rule clustering_FC_heatmap:
-    input:
-        prloadtouched = rules.load_project.output.prloadtouched
-    output:
-        heatmaptouched = f"{outfolder}/plots/heatmaptouched.txt"
-    run:
-        tool_name = 'clustering_FC_heatmap'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.clustering_FC_heatmap.clustering_FC_heatmap(config_dict, tool_name)
-
 rule KEGG:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
     output:
-        keggtouched = f"{outfolder}/KEEG_enrichment/keggtouched.txt"
+        keggtouched = f"{outfolder}/KEGG_enrichment/keggtouched.txt"
     run:
-        tool_name = 'KEEG_enrichment'
+        tool_name = 'KEGG_enrichment'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input.allitems()},
             'output': {i[0]: i[1] for i in output.allitems()},
@@ -263,6 +278,22 @@ rule GO:
         }
         python_scripts.GO.GO_enrichment(config_dict, tool_name)
 
+rule report:
+    input:
+        markerstouched = rules.clustering_markers.output.markerstouched,
+        MVtouched = rules.volcano_markers.output.MVtouched
+    output:
+        report = f"{outfolder}/report.pdf"
+    run:
+        tool_name = 'report'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.markers_report.report(config_dict, tool_name)
+
 rule all:
     input:
         fastqceval = fastqceval,
@@ -275,7 +306,7 @@ rule all:
         volcanotouched = rules.volcano_plot.output.volcanotouched,
         heatmap = rules.clustering_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,
-        heatmaptouched = rules.clustering_FC_heatmap.output.heatmaptouched
+        report = rules.report.output.report
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {
@@ -286,10 +317,6 @@ rule all:
         }
 
         config_dict['results'] = {"results": [
-        {
-            "name": "BAMDIR",
-            "value": rules.Mapping.output.mappingtouched
-        },
         {
             "name": "Counts",
             "value": rules.Counts.output.counts

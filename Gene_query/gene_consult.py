@@ -74,26 +74,40 @@ def barplot_FC(diff_df, barplot_FC_path, genename):
     plt.savefig(barplot_FC_path)
 
 def mouse_models_plots(config, tool_name, mycursor, gene):
+    # Define mouse models ids
     mouse_models = ["Mouse_models_DSSdc_Cerldc", "Mouse_models_cDSSdc_Cerldc",
                 "Mouse_models_OxCdc_Cerldc", "Mouse_models_RKOdc_Cerldc",
                 "Mouse_models_TCdc_RKOdc", "Mouse_models_Janvdc_Cerldc",
                 "Mouse_models_O12dc_KFdc", "Mouse_models_SPFdc_KFdc",
-                "Mouse_models_O12D4_KFD4", "Mouse_models_SPFD4_KFD4"]
+                "Mouse_models_O12D4_KFD4", "Mouse_models_SPFD4_KFD4"
+                # "Mouse_models_KFdc_Cerldc","Mouse_models_O12dc_Cerldc",
+                # "Mouse_models_SPFdc_Cerldc","Mouse_models_KFD4_CErlD4",
+                # "Mouse_models_O12D4_CErlD4","Mouse_models_SPFD4_CErlD4"
+                ]
 
+    # Create result objects empty
     diff_df = {}
     counts_df = {}
-    tab_df = pd.DataFrame()
+    tab_df = []
     model_list = []
 
     for model in mouse_models:
+        # Get header from database
         header_command = f'DESCRIBE {model};'
 
         mycursor.execute(header_command)
 
-        header=[]
+        header = []
         for row in mycursor:
             header.append(row[0])
 
+        # Parse control and sample names
+        control = model.replace('Mouse_models_','').split('_')[1]
+        if control == 'Cerldc':
+            control = 'CErldc'
+        sample = model.replace('Mouse_models_','').split('_')[0]
+
+        # Get gene data from database in each model
         command = f"""select * from {model} where EnsGenes='{gene}';"""
 
         mycursor.execute(command)
@@ -102,35 +116,58 @@ def mouse_models_plots(config, tool_name, mycursor, gene):
         for row in mycursor:
             df_set.append(row)
 
+        # Transform to dataframe w/ header
         df = pd.DataFrame(df_set)
-        df.columns = header
 
-        control = model.replace('Mouse_models_','').split('_')[1]
-        if control == 'Cerldc':
-            control = 'CErldc'
-        sample = model.replace('Mouse_models_','').split('_')[0]
+        # If the result exists, then run the tables. if not then create a mock for the plots
+        if not df.empty:
+            df.columns = header
 
-        diff_df[f'{sample}_{control}'] = {}
-        diff_df[f'{sample}_{control}']['foldchange'] = df['log2FoldChange'][0]
-        diff_df[f'{sample}_{control}']['pval'] = df['pvalue'][0]
+            # Get foldchange and pvalue into dict
+            diff_df[f'{sample}_{control}'] = {}
+            diff_df[f'{sample}_{control}']['foldchange'] = df['log2FoldChange'][0]
+            diff_df[f'{sample}_{control}']['pval'] = df['pvalue'][0]
 
-        filter_col_control = [col for col in df if col.startswith(control)]
-        filter_col_sample = [col for col in df if col.startswith(sample)]
+            # Get counts for each sample in each model in each loop
+            filter_col_control = [col for col in df if col.startswith(control)]
+            filter_col_sample = [col for col in df if col.startswith(sample)]
 
-        if control not in counts_df:
-            counts_df[control] = {}
-            counts_df[control]['mean'] = np.mean(df[filter_col_control].iloc[0].tolist())
-            counts_df[control]['std'] = np.std(df[filter_col_control].iloc[0].tolist())
-        if sample not in counts_df:
-            counts_df[sample] = {}
-            counts_df[sample]['mean'] = np.mean(df[filter_col_sample].iloc[0].tolist())
-            counts_df[sample]['std'] = np.std(df[filter_col_sample].iloc[0].tolist())
-        if tab_df.empty:
-            tab_df = df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]]
+            # Get mean and standard deviation of counts
+            if control not in counts_df:
+                counts_df[control] = {}
+                counts_df[control]['mean'] = np.nanmean(df[filter_col_control].iloc[0].tolist())
+                counts_df[control]['std'] = np.nanstd(df[filter_col_control].iloc[0].tolist())
+            if sample not in counts_df:
+                counts_df[sample] = {}
+                counts_df[sample]['mean'] = np.nanmean(df[filter_col_sample].iloc[0].tolist())
+                counts_df[sample]['std'] = np.nanstd(df[filter_col_sample].iloc[0].tolist())
+
+            # Create/append differential expression
+            tab_df.append(df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]].values.tolist()[0])
+
         else:
-            tab_df = tab_df.append(df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]])
+            # Get 0 values into diff_df and counts_df
+            diff_df[f'{sample}_{control}'] = {}
+            diff_df[f'{sample}_{control}']['foldchange'] = 0
+            diff_df[f'{sample}_{control}']['pval'] = 0
+
+            if control not in counts_df:
+                counts_df[control] = {}
+                counts_df[control]['mean'] = 0
+                counts_df[control]['std'] = 0
+            if sample not in counts_df:
+                counts_df[sample] = {}
+                counts_df[sample]['mean'] = 0
+                counts_df[sample]['std'] = 0
+
+            # Add null content to table
+            tab_df.append(["-",gene,0,0,0,0,1,1,"-"])
 
         model_list.append(f'{sample}_{control}')
+
+    # Set model names for Diff Expr table
+    tab_df = pd.DataFrame(tab_df)
+    tab_df.columns = ['id','EnsGenes','baseMean','log2FoldChange','lfcSE','stat','pvalue','padj','Genes']
 
     tab_df['model'] = model_list
 
@@ -171,11 +208,11 @@ def course_plot(counts_df, course_plot_path, genename):
 
 def mouse_course_plots(config, tool_name, mycursor, gene):
 
-    mouse_models_DSS = ["DSS_Time_course_Inf_mid_Healthy", "DSS_Time_course_Inf_hi_Healthy",
-                        "DSS_Time_course_Rec_mod_Healthy", "DSS_Time_course_Rec_ful_Healthy"]
+    mouse_models_DSS = ["DSS_TimeCourse_Inf_mid_Healthy", "DSS_TimeCourse_Inf_hi_Healthy",
+                        "DSS_TimeCourse_Rec_mod_Healthy", "DSS_TimeCourse_Rec_ful_Healthy"]
 
     counts_df = {}
-    tab_df = pd.DataFrame()
+    tab_df = []
     model_list = []
 
     for model in mouse_models_DSS:
@@ -187,6 +224,9 @@ def mouse_course_plots(config, tool_name, mycursor, gene):
         for row in mycursor:
             header.append(row[0])
 
+        control = model.replace('DSS_TimeCourse_','').split('_')[-1]
+        sample = '_'.join(model.replace('DSS_TimeCourse_','').split('_')[0:2])
+
         command = f"""select * from {model} where EnsGenes='{gene}';"""
 
         mycursor.execute(command)
@@ -196,28 +236,42 @@ def mouse_course_plots(config, tool_name, mycursor, gene):
             df_set.append(row)
 
         df = pd.DataFrame(df_set)
-        df.columns = header
 
-        control = model.replace('DSS_Time_course_','').split('_')[-1]
-        sample = '_'.join(model.replace('DSS_Time_course_','').split('_')[0:2])
+        if not df.empty:
+            df.columns = header
 
-        filter_col_control = [col for col in df if col.startswith(control)]
-        filter_col_sample = [col for col in df if col.startswith(sample)]
+            filter_col_control = [col for col in df if col.startswith(control)]
+            filter_col_sample = [col for col in df if col.startswith(sample)]
 
-        if control not in counts_df:
-            counts_df[control] = {}
-            counts_df[control]['mean'] = np.mean(df[filter_col_control].iloc[0].tolist())
-            counts_df[control]['std'] = np.std(df[filter_col_control].iloc[0].tolist())
-        if sample not in counts_df:
-            counts_df[sample] = {}
-            counts_df[sample]['mean'] = np.mean(df[filter_col_sample].iloc[0].tolist())
-            counts_df[sample]['std'] = np.std(df[filter_col_sample].iloc[0].tolist())
-        if tab_df.empty:
-            tab_df = df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]]
+            if control not in counts_df:
+                counts_df[control] = {}
+                counts_df[control]['mean'] = np.nanmean(df[filter_col_control].iloc[0].tolist())
+                counts_df[control]['std'] = np.nanstd(df[filter_col_control].iloc[0].tolist())
+            if sample not in counts_df:
+                counts_df[sample] = {}
+                counts_df[sample]['mean'] = np.nanmean(df[filter_col_sample].iloc[0].tolist())
+                counts_df[sample]['std'] = np.nanstd(df[filter_col_sample].iloc[0].tolist())
+
+            tab_df.append(df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]].values.tolist()[0])
         else:
-            tab_df = tab_df.append(df[[col for col in df if not col.startswith(control) and not col.startswith(sample)]])
+            # Get 0 values into counts_df
+            if control not in counts_df:
+                counts_df[control] = {}
+                counts_df[control]['mean'] = 0
+                counts_df[control]['std'] = 0
+            if sample not in counts_df:
+                counts_df[sample] = {}
+                counts_df[sample]['mean'] = 0
+                counts_df[sample]['std'] = 0
+
+            # Add null content to table
+            tab_df.append(["-",gene,0,0,0,0,1,1,"-"])
 
         model_list.append(f'{sample}_{control}')
+
+
+    tab_df = pd.DataFrame(tab_df)
+    tab_df.columns = ['id','EnsGenes','baseMean','log2FoldChange','lfcSE','stat','pvalue','padj','Genes']
 
     tab_df['model'] = model_list
 
@@ -229,9 +283,12 @@ def mouse_course_plots(config, tool_name, mycursor, gene):
     course_plot(counts_df, course_plot_path, genename)
 
 def get_gene_id(genename):
+
+    # Load the gene name file
     mouse_ref_df = pd.read_csv("/DATA/mouse_genes.tsv", sep='\t', index_col=None, header=None)
     mouse_ref_df.columns = ['ensembl','entrez','genename']
 
+    # Transform name into ensembl
     gene = mouse_ref_df[mouse_ref_df['genename'] == genename]['ensembl'].tolist()[0]
 
     return gene
@@ -239,6 +296,7 @@ def get_gene_id(genename):
 def gene_consult(config, tool_name):
     """"""
 
+    # Extract gene name and route of the outfolder
     genename = config['genename']
 
     outfolder = "/".join(config['tools_conf'][tool_name]['output']['FC_models_table'].split('/')[0:-1])
@@ -246,24 +304,29 @@ def gene_consult(config, tool_name):
     if not os.path.exists(outfolder):
         os.system(f"mkdir {outfolder}")
 
+    # Transform gene name into ensembl id
     gene = get_gene_id(genename)
 
+    # Establish size of the ticks for the plots
     plt.rc('xtick', labelsize=18)
     plt.rc('ytick', labelsize=21)
 
+    # Create a connection and cursor to the database
     mydb = mysql.connector.connect(
           host="localhost",
           user="root",
           passwd="Plater1a",
           database="RNAseq"
         )
-
     mycursor = mydb.cursor()
 
+    # Get the mouse models data and plots
     mouse_models_plots(config, tool_name, mycursor, gene)
 
+    # Get the DSS time course data and plots
     mouse_course_plots(config, tool_name, mycursor, gene)
 
+    # Close connection to database
     mycursor.close()
     mydb.close()
 

@@ -48,8 +48,8 @@ if (length(rownames(as.data.frame(z))) >= 10){
 # Save enrichment table
 write.table(as.data.frame(z), file=gsub(".png",".tsv",opt$gseaplot, fixed = TRUE),sep="\t",row.names = FALSE)
 
-png(file=opt$gseaplot, width = 8000, height = 8000, res = 600)
-gseaplot2(z, geneSetID = 1:len, pvalue_table = TRUE)
+png(file=opt$gseaplot, width = 2000, height = 2000, res = 200)
+gseaplot2(z, geneSetID = 1:len, pvalue_table = FALSE, base_size = 24)
 dev.off()
 
 # Barplot

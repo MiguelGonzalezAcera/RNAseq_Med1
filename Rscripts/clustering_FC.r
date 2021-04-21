@@ -80,7 +80,7 @@ for (filename in treats){
   
   # Get the fold change and the pvalue column
   FC_df <- full_df[genelist[order(genelist)],"log2FoldChange",drop=FALSE]
-  pv_df <- full_df[genelist[order(genelist)],"padj",drop=FALSE]
+  pv_df <- full_df[genelist[order(genelist)],"pvalue",drop=FALSE]
   
   filename_col <- gsub(".Rda","", tail(strsplit(filename, "/"), n=1), fixed = TRUE)
   # Name the column as the file
@@ -107,17 +107,23 @@ clust_df <- clust_df[complete.cases(clust_df), ]
 pval_df <- pval_df[complete.cases(pval_df), ]
 
 # Keep only genes with valid pvalues
+print(rownames(clust_df))
+print(rownames(pval_df))
 clust_df <- clust_df[rownames(clust_df) %in% rownames(pval_df), ,drop=FALSE]
 
 # Change column names
 colnames(clust_df) <- colnames
 colnames(pval_df) <- colnames
 
+# Sort by original genelist
+#clust_df <- clust_df[match(genelist, rownames(clust_df)),]
+
 # Genenames as Gene symbol
 rows_hm <- as.character(mapIds(database, as.character(rownames(clust_df)),
                                'SYMBOL', 'ENSEMBL'))
-new <- 1000:2000
-rows_hm[is.na(rows_hm)] <- paste("Unk",new[1:sum(is.na(rows_hm))], sep="")
+# new <- 1000:2000
+rows_hm[is.na(rows_hm)|duplicated(rows_hm)] <- rownames(clust_df)[is.na(rows_hm)|duplicated(rows_hm)]
+#paste("Unk",new[1:sum(is.na(rows_hm))], sep="")
 rownames(clust_df) <- rows_hm
 
 if (length(rownames(clust_df)) < 2) {
@@ -142,16 +148,19 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorRamp2(c(-4, 0, 4), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 3500, height = 3500, res = 600)
+png(file=opt$heatmap, width = 4000, height = 4000, res = 300)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 
-Heatmap(data.matrix(clust_df), cluster_rows = as.dendrogram(row_den),
+Heatmap(data.matrix(clust_df), cluster_rows = FALSE,
+        #as.dendrogram(row_den),
         cluster_columns = FALSE, 
         col=color, column_dend_height = unit(5, "cm"),
-        row_dend_width = unit(3, "cm"), 
+        #row_dend_width = unit(3, "cm"), 
         row_names_gp = gpar(fontsize = (90/length(genelist)+5)),
-        split = max(mycl), gap = unit(2, "mm"),
+        column_names_gp = gpar(fontsize = (90/length(genelist)+5) + 2),
+        column_names_max_height = unit(8, "cm"),
+        #split = max(mycl), gap = unit(2, "mm"),
         cell_fun = function(j, i, x, y, width, height, fill) {
           grid.text(sprintf("%.2f", data.matrix(pval_df)[i, j]), x, y, gp = gpar(fontsize = (80/length(genelist)+3)))
         }

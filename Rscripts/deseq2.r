@@ -64,7 +64,7 @@ dss <- dss[keep,]
 dds <- DESeq(dss, betaPrior=FALSE)
 
 # Check the names of the main contrasts
-print(resultsNames(dds))
+# print(resultsNames(dds))
 
 # Plot the dispersion of the set
 # plotDispEsts(dds)
@@ -96,11 +96,8 @@ df_norm$EnsGenes <- rownames(df_norm)
 
 # Split the comparisons and run the loop of tables
 for (sample in strsplit(opt$comparisons, ",")[[1]]){
-  print(sample)
-
   # Using the names provided in the input as the samples, run this as a loop
   res <- results(dds, name = paste("Tr1",sample,sep=""), cooksCutoff=FALSE)
-  
   # Save the full result object
   # Contrast name will be replaced by the sample and controls
   res_name = paste(paste("", sample, opt$control, sep='_'),"Rda", sep=".")

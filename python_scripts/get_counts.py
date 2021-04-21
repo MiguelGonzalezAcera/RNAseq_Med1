@@ -73,6 +73,7 @@ def get_arguments():
     parser.add_argument('--bamdir', required=True, help='Folder with bam files')
     parser.add_argument('--counts', required=True, help='Table with the counts')
     parser.add_argument('--annot', required=True, help='Annotation file (same than used in mapping)')
+    parser.add_argument('--organism', required=True, help='Organism', default='mouse')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -98,6 +99,9 @@ def main():
       "TESTING": args.test,
       "DRY_RUN": args.dry_run,
       "log_files": ["/tmp/full.log"],
+      "options": {
+        "organism": args.organism
+      },
       "tools_conf": {
         "get_counts": {
           "input": {

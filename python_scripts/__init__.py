@@ -9,6 +9,9 @@ from python_scripts import GO
 from python_scripts import load_design
 from python_scripts import update_design
 from python_scripts import volcano_plot
+from python_scripts import markers_report
+from python_scripts import volcano_markers
 from python_scripts import clustering_heatmap
+from python_scripts import clustering_markers
 from python_scripts import clustering_FC_heatmap
 from python_scripts import python_functions as pf
