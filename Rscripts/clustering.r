@@ -52,6 +52,13 @@ df_norm$Genename <- rownames(df_norm)
 clust_df <- df_norm[df_norm$Genename %in% genes, ,drop=FALSE]
 clust_df$Genename = NULL
 
+if (dim(clust_df)[1] <= 1) {
+        print(sprintf("Could not find enough genes expressed for marker %s.", opt$genelist))
+        opt <- options(show.error.messages=FALSE)
+        on.exit(options(opt))
+        quit(save = "no") 
+}
+
 rows_hm <- as.character(mapIds(database, as.character(rownames(clust_df)),
                                'SYMBOL', 'ENSEMBL'))
 # new <- 1000:2000
@@ -59,19 +66,22 @@ rows_hm[is.na(rows_hm)|duplicated(rows_hm)] <- rownames(clust_df)[is.na(rows_hm)
         #paste("Unk",new[1:sum(is.na(rows_hm))], sep="")
 rownames(clust_df) <- rows_hm
 
-# Perform the clustering analysis over the table
-# Tree construction (rows and columns)
-hr <- hclust(as.dist(1-cor(t(data.matrix(clust_df)),
-                           method="pearson")), method="complete")
-hc <- hclust(as.dist(1-cor(log(data.matrix(clust_df) + 1 ),
-                           method="pearson")), method="complete") 
-
-# Establish colors
-color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
-
 # Transform matrix to numeric
 cdf = sapply(clust_df, as.numeric.factor)
 rownames(cdf) <- rows_hm
+
+# Quick fix for column clustering in case seome values are equal
+a <- cor(log(cdf + 1), method='pearson')
+a[is.na(a)] = 0
+
+# Perform the clustering analysis over the table
+# Tree construction (rows and columns)
+hr <- hclust(as.dist(1-cor(t(cdf),
+                           method="pearson")), method="complete")
+hc <- hclust(as.dist(1-a), method="complete") 
+
+# Establish colors
+color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
 png(file=opt$heatmap, width = 2000, height = 2000, res = 300)
 # Mount the heatmap

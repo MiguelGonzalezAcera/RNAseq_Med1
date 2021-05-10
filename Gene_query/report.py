@@ -152,7 +152,7 @@ def getStyles():
     )
     return(styles)
 
-def header(canvas, d, styles):
+def header(canvas, d, styles, title):
     """ Function to add a header to the canvas
 
     Inputs
@@ -166,7 +166,7 @@ def header(canvas, d, styles):
     """
     canvas.saveState()
 
-    P = Paragraph("Murine IBD models gene query", styles['title'])
+    P = Paragraph(f"{title} gene query", styles['title'])
     w, h = P.wrap(350, 72)
     P.drawOn(canvas, 1.5*cm, 745)
 
@@ -230,45 +230,98 @@ def fillFrame(frame, list, c):
     """
     frame.addFromList(list, c)
 
-def consultBiomart(genename):
-    server = BiomartServer('http://www.ensembl.org/biomart')
+def consultBiomart(mouse_genename, human_genename):
+    # Connect with biomart
+    try:
+        server = BiomartServer('http://www.ensembl.org/biomart')
+    except:
+        return ['Biomart is offline', 'Biomart is offline']
 
+    # Connect with mouse genome
     ensembl_connection = server.datasets['mmusculus_gene_ensembl']
 
+    # Query data
     response = ensembl_connection.search({
             'filters': {
-                'ensembl_gene_id': [genename]
+                'ensembl_gene_id': [mouse_genename]
             },
             'attributes': [
                 "ensembl_gene_id","refseq_ncrna","entrezgene_id","external_gene_name","description"
             ]
             })
 
+    # Store lines into list
     data = []
     for line in response.iter_lines():
         line = line.decode('utf-8')
         data.append(line.split("\t"))
 
+    # Connect with human genome
+    ensembl_connection = server.datasets['hsapiens_gene_ensembl']
+
+    # Query data
+    response = ensembl_connection.search({
+            'filters': {
+                'ensembl_gene_id': [human_genename]
+            },
+            'attributes': [
+                "ensembl_gene_id","refseq_ncrna","entrezgene_id","external_gene_name","description"
+            ]
+            })
+
+    # Store lines into list
+    for line in response.iter_lines():
+        line = line.decode('utf-8')
+        data.append(line.split("\t"))
+
+    # Transform into df
     resdf = pd.DataFrame(data)
 
+    # Name the new columns
     resdf.columns = ['EnsemblID','Refseq','NCBI_ID','GeneName','Description']
 
-    return resdf['Description'].tolist()[0]
+    # Add column with the organism, for manteinance
+    resdf['organism'] = ['mouse', 'human']
+
+    return resdf['Description'].tolist()
 
 def gene_info(genename, styles):
+    # Generate story
     story = []
 
+    # Get mouse ensembl id
     mouse_ref_df = pd.read_csv("/DATA/mouse_genes.tsv", sep='\t', index_col=None, header=None)
     mouse_ref_df.columns = ['ensembl','entrez','genename']
+    # Turn genename column to uppercase
+    mouse_ref_df['genename'] = mouse_ref_df['genename'].str.upper()
 
-    gene_ensembl = mouse_ref_df[mouse_ref_df['genename'] == genename]['ensembl'].tolist()[0]
-    gene_entrez = str(int(mouse_ref_df[mouse_ref_df['genename'] == genename]['entrez'].tolist()[0]))
-    gene_description = consultBiomart(gene_ensembl)
+    mouse_gene_ensembl = mouse_ref_df[mouse_ref_df['genename'] == genename.upper()]['ensembl'].tolist()[0]
+    mouse_gene_entrez = str(int(mouse_ref_df[mouse_ref_df['genename'] == genename.upper()]['entrez'].tolist()[0]))
 
-    gene_ensembl_par = Paragraph(f"{gene_ensembl}", styles['normal'])
-    description = Paragraph(f"{gene_description}", styles['normal'])
+    # Get human ensembl id
+    human_ref_df = pd.read_csv("/DATA/human_genes.tsv", sep='\t', index_col=None, header=None)
+    human_ref_df.columns = ['ensembl','entrez','genename']
+    # Turn genename column to uppercase
+    human_ref_df['genename'] = human_ref_df['genename'].str.upper()
 
-    data = [['Gene', genename, 'Ensembl ID', gene_ensembl_par, 'NCBI ID', gene_entrez]]
+    human_gene_ensembl = human_ref_df[human_ref_df['genename'] == genename.upper()]['ensembl'].tolist()[0]
+    human_gene_entrez = str(int(human_ref_df[human_ref_df['genename'] == genename.upper()]['entrez'].tolist()[0]))
+
+    # Get gene descriptions
+    descriptions = consultBiomart(mouse_gene_ensembl, human_gene_ensembl)
+    mouse_gene_description = descriptions[0]
+    human_gene_description = descriptions[1]
+
+    # Create title paragraph for mouse
+    story.append(Paragraph(f"Mouse information", styles['subtitle']))
+    story.append(Spacer(10, 20))
+
+    # Create paragraphs for text
+    mouse_gene_ensembl_par = Paragraph(f"{mouse_gene_ensembl}", styles['normal'])
+    mouse_description = Paragraph(f"{mouse_gene_description}", styles['normal'])
+
+    # Create table with the data in 2 parts
+    data = [['Gene', genename, 'Ensembl ID', mouse_gene_ensembl_par, 'NCBI ID', mouse_gene_entrez]]
     t = Table(data)
     t.setStyle(TableStyle([
          ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
@@ -283,7 +336,7 @@ def gene_info(genename, styles):
 
     story.append(t)
 
-    data2 = [['Gene Desc', description]]
+    data2 = [['Gene Desc', mouse_description]]
 
     t2 = Table(data2)
     t2.setStyle(TableStyle([
@@ -298,6 +351,53 @@ def gene_info(genename, styles):
          ]))
 
     story.append(t2)
+
+    # Add spacer to split
+    story.append(Spacer(10, 20))
+
+    # Repeat for human data
+
+    # Create title paragraph for human
+    story.append(Paragraph(f"Human information", styles['subtitle']))
+    story.append(Spacer(10, 20))
+
+    # Create paragraphs for text
+    human_gene_ensembl_par = Paragraph(f"{human_gene_ensembl}", styles['normal'])
+    human_description = Paragraph(f"{human_gene_description}", styles['normal'])
+
+    # Create table with the data in 2 parts
+    data3 = [['Gene', genename, 'Ensembl ID', human_gene_ensembl_par, 'NCBI ID', human_gene_entrez]]
+    t3 = Table(data3)
+    t3.setStyle(TableStyle([
+         ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+         ('SIZE', (0, 0), (-1, -1), 12),
+         ('LEADING', (0, 0), (-1, -1), 19),
+         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+         ]))
+
+    story.append(t3)
+
+    data4 = [['Gene Desc', human_description]]
+
+    t4 = Table(data4)
+    t4.setStyle(TableStyle([
+         ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+         ('SIZE', (0, 0), (-1, -1), 12),
+         ('LEADING', (0, 0), (-1, -1), 19),
+         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+         ]))
+
+    story.append(t4)
+
+    # Return the damn thing
     return story
 
 def draw_image(FCPlot, h, w):
@@ -335,7 +435,7 @@ def FC_table(FCTable, styles):
          ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
          ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
          ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-         ('SIZE', (0, 0), (-1, -1), 9),
+         ('SIZE', (0, 0), (-1, -1), 5),
          ('LEADING', (0, 0), (-1, -1), 9),
          ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
          ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
@@ -344,24 +444,32 @@ def FC_table(FCTable, styles):
     story.append(t)
     return story
 
-def models_info(styles):
+def models_info(styles, samples):
+    # Create story
     story = []
 
-    story.append(Paragraph("Models available", styles['normal']))
+    # Add title for the section
+    story.append(Paragraph("Samples description", styles['normal']))
 
-    c1 = Paragraph(f"- CErldc: Bl6 mice from Erlangen. Distant Colon. 5 samples.<br/>- DSSdc: DSS mice. Distant Colon. 5 samples.<br/>- cDSSdc: Chronic DSS mice. Distant Colon. 5 samples.<br/>- OxCdc: Oxazolone Colitis mice. Distant Colon. 5 samples.<br/>- RKOdc: Rag KO mice. Distant Colon. 5 samples.<br/>- TCdc: Transference Colitis mice. Distant Colon. 5 samples.<br/>- Janvdc: Bl6 mice from Janvier. Distant Colon. 5 samples.", styles['normal'])
-    c2 = Paragraph(f"- KFdc: Germ Free mice. Distant Colon. 4 samples.<br/>- KFD4: Germ Free mice. Ileum D4. 4 samples.<br/>- SPFdc: Pathogen Free mice. Distant Colon. 3 samples.<br/>- SPFD4: Pathogen Free mice. Ileum D4. 3 samples.<br/>- O12dc: Minimal microbiome mice. Distant Colon. 4 samples.<br/>- O12D4: Minimal microbiome mice. Ileum D4. 4 samples.", styles['normal'])
+    # Init list of samples
+    sampleList = []
 
-    data3 = [[c1, c2]]
+    # Iter and add samples to the list
+    for sample in samples:
+        sampleList.append(f"- {sample}: {samples[sample]}")
 
-    t3 = Table(data3)
+    # Split in groups of 2
+    sampleList_split = [sampleList[x:x+2] for x in range(0, len(sampleList), 2)]
+
+    # Transform into table
+    t3 = Table(sampleList_split)
     t3.setStyle(TableStyle([
          ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
-         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+         ('ALIGN', (1, 0), (-1, -1), 'LEFT'),
          ('ALIGN', (0, 0), (0, -1), 'LEFT'),
          ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-         ('SIZE', (0, 0), (-1, -1), 12),
-         ('LEADING', (0, 0), (-1, -1), 19),
+         ('SIZE', (0, 0), (-1, -1), 7),
+         ('LEADING', (0, 0), (-1, -1), 12),
          ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
          ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
          ]))
@@ -376,70 +484,193 @@ def report(config, tool_name):
     styles = recover_styles()
 
     # Define inputs
-    OUTPDF = config['tools_conf'][tool_name]['output']['report']
     genename = config['genename']
-    FCPlot = config['tools_conf'][tool_name]['input']['barplot_FC']
-    countsPlot = config['tools_conf'][tool_name]['input']['barplot_counts']
-    coursePlot = config['tools_conf'][tool_name]['input']['course_plot']
-    FCTable = config['tools_conf'][tool_name]['input']['FC_models_table']
-    FCCourseTable = config['tools_conf'][tool_name]['input']['FC_course_table']
+
+    countsPlot = config['tools_conf'][tool_name]['input']['counts_plot']
+    FCTable = config['tools_conf'][tool_name]['input']['FC_table']
+    FCPlot = config['tools_conf'][tool_name]['input']['FC_barplot']
+
+    # Define outputs
+    OUTPDF = config['tools_conf'][tool_name]['output']['report']
+
+    # Define experiment sets and characteristics
+    comparisons = {
+        "mouse": {
+            "Mouse_models": {
+                "design": "/VAULT/Thesis_proj/design.txt",
+                "samples": {
+                    'Cerldc': 'Bl6 mice from Erlangen. Distant Colon. 5 samples',
+                    'cDSSdc': 'Chronic DSS mice. Distant Colon. 5 samples',
+                    'DSSdc': 'DSS mice. Distant Colon. 5 samples',
+                    'OxCdc': 'Oxazolone Colitis mice. Distant Colon. 5 samples',
+                    'RKOdc': 'Rag KO mice. Distant Colon. 5 samples',
+                    'TCdc': 'Transference Colitis mice. Distant Colon. 5 samples'
+                },
+                "type": "normal"
+            },
+            'DSS_TimeCourse': {
+                "design": "/VAULT/DSS_rec_evolution/design.txt",
+                "samples": {
+                    "Healthy": 'Healthy Bl6 mice. Time 0 days',
+                    "Inf_mid": 'Mid DSS inflammation. Time 4 days',
+                    "Inf_hi": 'High DSS inflammation. Time 8 days',
+                    "Rec_mod": 'Moderate recovery. Time 12 days',
+                    "Rec_ful": 'Full recovery. Time 19 days'
+                },
+                "type": "timecourse"
+            },
+            'WoundHealing': {
+                "design": "/VAULT/20200629_Wound_Healing_TC/design.txt",
+                "samples": {
+                    "h0": 'Healthy Bl6 mice. Time 0 hours',
+                    "h6": 'Wounded mice. Time 6 hours',
+                    "h24": 'Wounded mice. Time 24 hours',
+                    "h48": 'Wounded mice. Time 48 hours'
+                },
+                "type": "timecourse"
+            }
+        },
+        "human": {
+            "WashUCohort_EMTAB5783": {
+                "design": "/VAULT/Human_data/E_MTAB_5783_WashU_Cohort/design.txt",
+                "samples": {
+                    "normal": "Healthy patient",
+                    "CD": "Diseased individual"
+                },
+                "type": ""
+            },
+            "RISK_GSE57945": {
+                "design": "/VAULT/Human_data/GSE57945_IBD_RISK_Cohort_Ileum/design.txt",
+                "samples": {
+                    "Not_IBD_Male": "Healthy male",
+                    "UC_Male": "Ulcerative colitis male",
+                    "CD_M_MaInf_DUlcer": "Macroinflammation, Deep ulcer Crohn male",
+                    "CD_M_MaInf_NDUlcer": "Macroinflammation, Non deep ulcer Crohn male",
+                    "CD_M_MiInf_DUlcer": "Microinflammation, Deep ulcer Crohn male",
+                    "CD_M_MiInf_NDUlcer": "Microinflammation, Non deep ulcer Crohn male",
+                    "CD_M_NMiMaInf_NDUlcer": "Not macro/microinflammation, Non deep ulcer Crohn male",
+                    "Not_IBD_Female": "Healthy female",
+                    "UC_Female": "Ulcerative colitis female",
+                    "CD_F_MaInf_DUlcer": "Macroinflammation, Deep ulcer Crohn female",
+                    "CD_F_MaInf_NDUlcer": "Macroinflammation, Non deep ulcer Crohn female",
+                    "CD_F_MiInf_NDUlcer": "Microinflammation, Non deep ulcer Crohn female",
+                    "CD_F_NMiMaInf_NDUlcer": "Not macro/microinflammation, Non deep ulcer Crohn female"
+                },
+                "type": ""
+            },
+            "PSC_EMTAB7915": {
+                "design": "/VAULT/Human_data/E_MTAB_7915_PSC_cohort/design.txt",
+                "samples": {
+                    "normal": "Healthy patient",
+                    "sclerosing_cholangitis": "Sclerosing cholangitis patient",
+                    "ulcerative_colitis": "Ulcerative colitis patient"
+                },
+                "type": "normal"
+            },
+            "RISK_GSE117993": {
+                "design": "/VAULT/Human_data/GSE117993_IBD_RISK_cohort_Rectum/design.txt",
+                "samples": {
+                    "NotIBD": "Healthy patient",
+                    "cCD": "Colonic Chrohns Disease",
+                    "iCD": "Ileal Chrohns Disease",
+                    "UC": "Ulcerative colitis"
+                },
+                "type": "normal"
+            },
+            "PROTECT_GSE109142": {
+                "design": "/VAULT/Human_data/GSE109142_Ulcerative_colitis_PROTECT_Cohort/design.txt",
+                "samples": {
+                    "Control_Male": "Healthy male patient",
+                    "UC_Male_5ASA": "UC Mesalazine treated male",
+                    "UC_Male_CSIV": "UC Intravenous cyclosporin treated male",
+                    "UC_Male_CSOral": "UC Oral cyclosporin male",
+                    "Control_Female": "Healthy female patient",
+                    "UC_Ffemale_5ASA": "UC Mesalazine treated female",
+                    "UC_Ffemale_CSIV": "UC Intravenous cyclosporin female",
+                    "UC_Ffemale_CSOral": "UC Oral cyclosporin female"
+                },
+                "type": "normal"
+            }
+        }
+    }
 
     # Get date
     today = date.today()
     d = today.strftime("%Y-%m-%d")
 
+    # Get paragraph with gene info
     geneInfo = gene_info(genename, styles)
-
-    subtitle = f'Behaviour of gene {genename} in differential expression assays using different mouse models. Left: Bar chart with the fold change over different differential expression analysis of mouse models. Right: Table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Model-Control</b>.'
-    FCsubt = draw_paragraph(subtitle, styles["normal"])
-    FCInfo = draw_image(FCPlot, 7, 7.5)
-
-    subtitle = f'Normalized counts of {genename} in different mouse models. Left: Counts across the different mouse models available. Right: Detailed view on the DSS colitis model over different time points during the inflammation stage. Samples taken at times 0, 4, 8 (end DSS), 11 and 19 days. Down: Fold changes of the stages on the time course compared with the healthy mouse at time 0.'
-    countssubt = draw_paragraph(subtitle, styles["normal"])
-    countsInfo = draw_image(countsPlot, 7, 7)
-    FCTableInfo = FC_table(FCTable, styles)
-    FCCourseTableInfo = FC_table(FCCourseTable, styles)
-
-    courseInfo = draw_image(coursePlot, 7, 7)
-    modelsInfo = models_info(styles)
 
     # Generate the canvas
     c = Canvas(OUTPDF)
-
-    header(c, d, styles)
+    header(c, d, styles, f"{genename}")
     footer(c, styles)
 
-    geneInfoFrame = Frame(2*cm, 650, 500, 80, showBoundary=0)
+    # Write the gene info and basics
+    geneInfoFrame = Frame(2*cm, 520, 500, 200, showBoundary=0)
     fillFrame(geneInfoFrame, geneInfo, c)
 
-    FCInfoFrame = Frame(2*cm, 400, 260, 250, showBoundary=0)
-    fillFrame(FCInfoFrame, FCInfo, c)
+    # Loop through the organisms, mouse and human, with one page per experiment
+    for organism in comparisons:
+        for experiment in comparisons[organism]:
+            # Set title
+            if organism == "human":
+                title = 'Public human IBD cohorts'
+            elif organism == "mouse":
+                title = 'Murine IBD models'
 
-    FCTableInfoFrame = Frame(11.5*cm, 430, 200, 220, showBoundary=0)
-    fillFrame(FCTableInfoFrame, FCTableInfo, c)
+            # Page up
+            c.showPage()
+            header(c, d, styles, title)
+            footer(c, styles)
 
-    FCSubtFrame = Frame(2*cm, 400, 500, 50, showBoundary=0)
-    fillFrame(FCSubtFrame, FCsubt, c)
+            # Generate title for section
+            title = f"Behaviour of {genename} in {experiment}"
+            sectTitle = draw_paragraph(title, styles["title"])
 
-    countsInfoFrame = Frame(2.5*cm, 150, 220, 250, showBoundary=0)
-    fillFrame(countsInfoFrame, countsInfo, c)
+            sectTitleFrame = Frame(2*cm, 650, 500, 80, showBoundary=0)
+            fillFrame(sectTitleFrame, sectTitle, c)
 
-    courseInfoFrame = Frame(11.5*cm, 150, 220, 250, showBoundary=0)
-    fillFrame(courseInfoFrame, courseInfo, c)
+            # Add explanation for the following plots
+            subtitle = f'Behaviour of gene {genename} in differential expression assays. Left: Bar chart with the fold change over different differential expression analysis. Right: Table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Sample-Control</b>.'
+            FCsubt = draw_paragraph(subtitle, styles["normal"])
 
-    countsSubtFrame = Frame(2*cm, 150, 500, 50, showBoundary=0)
-    fillFrame(countsSubtFrame, countssubt, c)
+            FCSubtFrame = Frame(2*cm, 635, 500, 50, showBoundary=0)
+            fillFrame(FCSubtFrame, FCsubt, c)
 
-    FCCourseInfoFrame = Frame(2*cm, 35, 500, 120, showBoundary=0)
-    fillFrame(FCCourseInfoFrame, FCCourseTableInfo, c)
+            # Include fold change plot and table
+            FCPlotInfo = draw_image(FCPlot.replace('Mouse_models', experiment), 7, 7.5)
+            FCTableInfo = FC_table(FCTable.replace('Mouse_models', experiment), styles)
 
-    c.showPage()
-    header(c, d, styles)
-    footer(c, styles)
+            FCInfoFrame = Frame(2*cm, 380, 260, 250, showBoundary=0)
+            fillFrame(FCInfoFrame, FCPlotInfo, c)
 
-    modelsInfoFrame = Frame(2*cm, 35, 500, 120, showBoundary=0)
-    fillFrame(modelsInfoFrame, modelsInfo, c)
+            FCTableInfoFrame = Frame(11.5*cm, 420, 200, 220, showBoundary=0)
+            fillFrame(FCTableInfoFrame, FCTableInfo, c)
 
+            # Add counts plot description
+            if comparisons[organism][experiment]['type'] == 'timecourse':
+                subtitle = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
+            else:
+                subtitle = f'Normalized counts of {genename} in different samples where available.'
+
+            FCsubt = draw_paragraph(subtitle, styles["normal"])
+            FCSubtFrame = Frame(2*cm, 370, 500, 50, showBoundary=0)
+            fillFrame(FCSubtFrame, FCsubt, c)
+
+            # Include the counts plot
+            countsInfo = draw_image(countsPlot.replace('Mouse_models', experiment), 7, 7)
+
+            countsInfoFrame = Frame(2.5*cm, 150, 500, 250, showBoundary=0)
+            fillFrame(countsInfoFrame, countsInfo, c)
+
+            # Include table with legend of samples
+            modelsInfo = models_info(styles, comparisons[organism][experiment]['samples'])
+
+            modelsInfoFrame = Frame(2*cm, 35, 500, 160, showBoundary=0)
+            fillFrame(modelsInfoFrame, modelsInfo, c)
+
+    # Save the canvas
     c.save()
 
 def get_arguments():

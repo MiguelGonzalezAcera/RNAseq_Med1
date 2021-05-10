@@ -97,7 +97,7 @@ def getStyles():
         parent=styles['default'],
         # fontName='Geogrotesque_Md',
         fontSize=12,
-        leading=0,
+        leading=15,
         alignment=TA_LEFT,
     )
     styles['bigSubtitle'] = ParagraphStyle(
@@ -279,7 +279,9 @@ def get_gene_markers(organism):
             "NK_ILC1": loremIpsum,
             "Endothelial": loremIpsum,
             "Neutrophils": loremIpsum,
-            "Smooth_muscle": loremIpsum
+            "Smooth_muscle": loremIpsum,
+            "EntericGlial": loremIpsum,
+            "EntericNeuron": loremIpsum
         }
     }
 
@@ -323,17 +325,36 @@ def report(config, tool_name):
         # Object with the title
         titleInfo = draw_paragraph(marker, styles['bigSubtitle'])
 
+        # Fill the frame for the title
+        titleInfoFrame = Frame(1.5*cm, 650, 500, 80, showBoundary=0)
+        fillFrame(titleInfoFrame, titleInfo, c)
+
         # Object with the heatmap
-        hmapPath = glob.glob(f"{markerHeatmapsPath}/*_clustering_markers_{marker}_marker.png")[0]
+        hmapPath_list = glob.glob(f"{markerHeatmapsPath}/*_clustering_markers_{marker}_marker.png")
+
+        # Check if heatmap is empty and pass if it is
+        if  len(hmapPath_list) == 0:
+            missingInfo = draw_paragraph(f"No markers have been found expressed for marker:\n{marker}", styles['leftSubtitle'])
+
+            missingInfoFrame = Frame(1.5*cm, 390, 300, 300, showBoundary=0)
+            fillFrame(missingInfoFrame, missingInfo, c)
+
+            # Add to the counter
+            i += 1
+
+            c.showPage()
+            header(c, d, styles)
+            footer(c, styles)
+
+            continue
+
+        # If plot exists, plot it
+        hmapPath = hmapPath_list[0]
         heatmapInfo = draw_image(hmapPath, 9, 9)
 
         # Object with info about the marker
         markerData = gene_markers[marker]
         markerInfo = draw_paragraph(markerData, styles['normal'])
-
-        # Fill the frames for the title, heatmap and marker info
-        titleInfoFrame = Frame(1.5*cm, 650, 500, 80, showBoundary=0)
-        fillFrame(titleInfoFrame, titleInfo, c)
 
         heatmapInfoFrame = Frame(1.5*cm, 390, 300, 300, showBoundary=0)
         fillFrame(heatmapInfoFrame, heatmapInfo, c)
@@ -379,8 +400,12 @@ def report(config, tool_name):
                     j = 0
 
                 # Object with the plot:
-                scplot = glob.glob(f"{markerHeatmapsPath}/{marker}_{sample}_{control}_scattermarkers.png")[0]
-                scplotInfo = draw_image(scplot, 5, 5)
+                scplot_list = glob.glob(f"{markerHeatmapsPath}/{marker}_{sample}_{control}_scattermarkers.png")
+                if len(scplot_list) == 0:
+                    scplotInfo = draw_paragraph(f"No markers have been found differentially expressed for assay {sample} - {control}.", styles['subtitle'])
+                else:
+                    scplot = scplot_list[0]
+                    scplotInfo = draw_image(scplot, 5, 5)
 
                 scplotInfoFrame = Frame(x*cm, y, 160, 160, showBoundary=0)
                 fillFrame(scplotInfoFrame, scplotInfo, c)
@@ -389,15 +414,17 @@ def report(config, tool_name):
                 l += 1
                 x += 6
 
+                #print(f"{marker}_{sample}_{control}, {y}, {j}, {l}, {len(samples)}")
+
                 # If heigth is less than the threshold, the line is full and there is still plots to add
-                if y < 60  and j == 3 and l != len(samples):
+                if y < 90  and j == 3 and l != len(samples):
                     # Reset page
                     c.showPage()
                     header(c, d, styles)
                     footer(c, styles)
 
                     # Reset heigth, width and counter
-                    y = 660
+                    y = 560
                     x = 2
                     j = 0
 
@@ -407,7 +434,7 @@ def report(config, tool_name):
             k +=1
 
             # Check if a new page has to be made
-            if y < 60 and k != len(comparisons):
+            if y < 100 and k != len(comparisons):
                 # Reset page
                 c.showPage()
                 header(c, d, styles)

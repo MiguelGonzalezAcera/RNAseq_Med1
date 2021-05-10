@@ -31,11 +31,9 @@ logging.info(f'Starting consult for {genename}')
 # Rules
 rule gene_consult:
     output:
-        FC_models_table = f"{outfolder}/static/{jobid}/{genename}_FC_models_table.tsv",
-        FC_course_table = f"{outfolder}/static/{jobid}/{genename}_FC_course_table.tsv",
-        barplot_counts = f"{outfolder}/static/{jobid}/{genename}_barplot_counts.png",
-        barplot_FC = f"{outfolder}/static/{jobid}/{genename}_barplot_FC.png",
-        course_plot = f"{outfolder}/static/{jobid}/{genename}_course_plot.png"
+        FC_table = f"{outfolder}/static/{jobid}/{genename}_FC_Mouse_models_table.tsv",
+        FC_barplot = f"{outfolder}/static/{jobid}/{genename}_FC_Mouse_models_barplot.png",
+        counts_plot = f"{outfolder}/static/{jobid}/{genename}_counts_Mouse_models_plot.png"
     run:
         tool_name = 'gene_consult'
         config_dict['tools_conf'][tool_name] = {
@@ -48,11 +46,9 @@ rule gene_consult:
 
 rule report:
     input:
-        FC_models_table = rules.gene_consult.output.FC_models_table,
-        FC_course_table = rules.gene_consult.output.FC_course_table,
-        barplot_counts = rules.gene_consult.output.barplot_counts,
-        barplot_FC = rules.gene_consult.output.barplot_FC,
-        course_plot = rules.gene_consult.output.course_plot,
+        FC_table = rules.gene_consult.output.FC_table,
+        counts_plot = rules.gene_consult.output.counts_plot,
+        FC_barplot = rules.gene_consult.output.FC_barplot
     output:
         report = f"{outfolder}/static/{jobid}/{genename}_report.pdf"
     run:
@@ -67,11 +63,9 @@ rule report:
 
 rule html:
     input:
-        FC_models_table = rules.gene_consult.output.FC_models_table,
-        FC_course_table = rules.gene_consult.output.FC_course_table,
-        barplot_counts = rules.gene_consult.output.barplot_counts,
-        barplot_FC = rules.gene_consult.output.barplot_FC,
-        course_plot = rules.gene_consult.output.course_plot,
+        FC_table = rules.gene_consult.output.FC_table,
+        counts_plot = rules.gene_consult.output.counts_plot,
+        FC_barplot = rules.gene_consult.output.FC_barplot,
         report = rules.report.output.report
     output:
         html = f"{outfolder}/templates/{jobid}/{genename}_report.html"

@@ -75,9 +75,6 @@ def clustering_FC_heatmap(config, tool_name):
 
     mycursor = mydb.cursor()
 
-
-    heatmap_pway = heatmap.replace('.png',f'_{pway}.png')
-
     if 'project' in config['tools_conf'][tool_name]['input']:
         project = config['tools_conf'][tool_name]['input']['project']
 
@@ -98,8 +95,8 @@ def clustering_FC_heatmap(config, tool_name):
 
     for RData_file in RData_fix.split(','):
         RData_in = RData_file.split('/')[-1].replace('.tsv','').replace('.Rda','')
-        RData_out = heatmap.replace('heatmap.png',f'{RData_in}_{pway}_DE.tsv')
-        query_database(genes_dict[pway][organism], RData_in, RData_out)
+        RData_out = heatmap.replace('heatmap.png',f'{RData_in}_genelist_DE.tsv')
+        query_database(genes_dict['genelist'][organism], RData_in, RData_out)
 
     mycursor.close()
     mydb.close()
