@@ -23,7 +23,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load Rfunctions
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Load R object
 load(opt$obj)
@@ -42,7 +42,7 @@ if (opt$genelist == ""){
   entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res)), 'ENTREZID', 'ENSEMBL')))
 } else {
   genes = readLines(opt$genelist)
-  
+
   # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
   entrezgeneids <- as.character(mapIds(database, as.character(genes), 'ENTREZID', 'ENSEMBL'))
 }
@@ -62,29 +62,29 @@ ontologies <- c("BP","MF","CC")
 #  params <- new("GOHyperGParams", annotation=database$packageName, geneIds=entrezgeneids,
 #                universeGeneIds=universeids, ontology=ont, pvalueCutoff=hgCutoff,
 #                conditional=FALSE, testDirection="over")
-#  
+#
 #  hg <- hyperGTest(params)
-#  
+#
 #  # Get the pvalues
 #  hg.pv <- pvalues(hg)
-#  
+#
 #  # Adjust the p values for comparisons
 #  hg.pv.fdr <- p.adjust(hg.pv,'fdr')
-#  
+#
 #  # Get the significately enriched GO terms
 #  sigGO.ID <- names(hg.pv.fdr[hg.pv.fdr < hgCutoff])
 #  ## length(sigGO.ID)
-#  
+#
 #  # Select the GO terms from the table
 #  df <- summary(hg)
 #  GOannot.table <- df[df[,1] %in% sigGO.ID,]
-#  
+#
 #  # Save the enrichment table
-#  write.table(GOannot.table, file=sprintf("%s_%s.tsv", 
+#  write.table(GOannot.table, file=sprintf("%s_%s.tsv",
 #                                          gsub(".tsv","", opt$out_tab, fixed=TRUE),ont),
 #              sep="\t", row.names = FALSE)
 #}
-  
+
 ##OPTION 2
 # Also loop for each ontology
 for (ont in ontologies) {
@@ -92,15 +92,15 @@ for (ont in ontologies) {
   hgCutoff <- 0.05
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = T,
                 pAdjustMethod = "BH", universe = universeids)
-  
-  save(x, file=sprintf("%s_%s.Rda", 
+
+  save(x, file=sprintf("%s_%s.Rda",
                        gsub(".tsv","", opt$out_tab, fixed=TRUE),ont))
-  
+
   # Transform the result into a data frame
   GOtable <- as.data.frame(x)
-  
+
   # Save the data frame
-  write.table(GOtable, file=sprintf("%s_%s.tsv", 
+  write.table(GOtable, file=sprintf("%s_%s.tsv",
                                     gsub(".tsv","", opt$out_tab, fixed=TRUE),ont),
               sep="\t", row.names = FALSE)
 }

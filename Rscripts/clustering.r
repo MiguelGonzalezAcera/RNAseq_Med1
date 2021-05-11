@@ -28,18 +28,18 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism(opt$organism)
 
-# Load the r object containing the data. 
+# Load the r object containing the data.
 load(opt$counts)
 #df_norm <- subset(df_norm, select=c("Mock_1", "Mock_2", "Mock_3", "IL13_1", "IL13_2", "IL13_3"))
 
 if (opt$design != "") {
         sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
-        
+
         df_norm <- df_norm[c(rownames(sampleTableSingle) ,'Genename')]
 }
 
@@ -56,7 +56,7 @@ if (dim(clust_df)[1] <= 1) {
         print(sprintf("Could not find enough genes expressed for marker %s.", opt$genelist))
         opt <- options(show.error.messages=FALSE)
         on.exit(options(opt))
-        quit(save = "no") 
+        quit(save = "no")
 }
 
 rows_hm <- as.character(mapIds(database, as.character(rownames(clust_df)),
@@ -78,7 +78,7 @@ a[is.na(a)] = 0
 # Tree construction (rows and columns)
 hr <- hclust(as.dist(1-cor(t(cdf),
                            method="pearson")), method="complete")
-hc <- hclust(as.dist(1-a), method="complete") 
+hc <- hclust(as.dist(1-a), method="complete")
 
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))

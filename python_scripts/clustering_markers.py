@@ -40,7 +40,7 @@ def markers_plots(norm_counts, heatmap, organism, command):
     for marker in gene_markers['mouse']:
         marker_path = gene_markers['mouse'][marker]
         heatmap_mark = heatmap.replace(".png",f"_{marker}_marker.png")
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering.r --heatmap {heatmap_mark} --counts {norm_counts} --genelist {marker_path} --organism {organism}; '
+        command += f'Rscript Rscripts/clustering.r --heatmap {heatmap_mark} --counts {norm_counts} --genelist {marker_path} --organism {organism}; '
 
     return(command)
 

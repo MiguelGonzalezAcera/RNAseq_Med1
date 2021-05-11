@@ -76,7 +76,7 @@ def KEGG_enrichment(config, tool_name):
                 id_obj = f"{sample}_{control}"
 
                 command += f"mkdir {id_dir}; "
-                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '
+                command += f'Rscript Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '
         command += f'touch {keggtouched}'
     else:
         out_tab = config['tools_conf'][tool_name]['output']['out_tab']
@@ -92,7 +92,7 @@ def KEGG_enrichment(config, tool_name):
         if not os.path.exists(out_dir):
             command += f"mkdir {out_dir};"
 
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}; '
+        command += f'Rscript Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}; '
 
         in_obj_name = in_obj.split('/')[-1].replace('.Rda','')
         query_database(genelist,in_obj_name,id_tab_DExpr)

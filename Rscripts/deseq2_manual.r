@@ -2,7 +2,7 @@
 library(DESeq2)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism("mouse")

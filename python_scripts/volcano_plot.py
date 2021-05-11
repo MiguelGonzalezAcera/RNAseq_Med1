@@ -34,7 +34,7 @@ def volcano_plot(config, tool_name):
                 id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.Rda"
                 id_obj = f"{sample}_{control}"
 
-                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/volcano_plot.r --out_plot {id_tab} --res {id_sample} --organism {organism}; '
+                command += f'Rscript Rscripts/volcano_plot.r --out_plot {id_tab} --res {id_sample} --organism {organism}; '
 
                 path_list.append([id_sample, id_tab])
 
@@ -50,7 +50,7 @@ def volcano_plot(config, tool_name):
         id_sample = config['tools_conf'][tool_name]['input']['RData']
         out_dir = "/".join(config['tools_conf'][tool_name]['output']['volcano'].split('/')[0:-1])
 
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/volcano_plot.r --out_plot {id_tab} --res {id_sample} --organism {organism}'
+        command += f'Rscript Rscripts/volcano_plot.r --out_plot {id_tab} --res {id_sample} --organism {organism}'
 
         if 'genelist' in config['tools_conf'][tool_name]['input']:
             genelist = config['tools_conf'][tool_name]['input']['genelist']

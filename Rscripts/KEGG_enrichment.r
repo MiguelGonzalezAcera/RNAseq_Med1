@@ -27,7 +27,7 @@ opt = parse_args(opt_parser)
 load(opt$in_obj)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism(opt$organism)

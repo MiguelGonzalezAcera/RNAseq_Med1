@@ -16,7 +16,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load Rfunctions
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Load R object
 load(opt$out_tab)

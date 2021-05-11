@@ -107,7 +107,7 @@ def GSEA(config, tool_name):
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot} --organism {organism}; '
+    command += f'Rscript Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot} --organism {organism}; '
 
     for glist in genegroup_path_spac:
         glist_name = glist.split('/')[-1].replace(".txt",'')

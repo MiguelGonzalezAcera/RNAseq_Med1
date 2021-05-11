@@ -29,7 +29,7 @@ def pca(config, tool_name):
     command = ""
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
+    command += f'Rscript Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
     command += f'touch {pcatouched}'
 
     pf.run_command(command)

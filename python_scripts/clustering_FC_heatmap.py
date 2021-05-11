@@ -78,7 +78,7 @@ def clustering_FC_heatmap(config, tool_name):
     if 'project' in config['tools_conf'][tool_name]['input']:
         project = config['tools_conf'][tool_name]['input']['project']
 
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --project {project} --genelist {genes_dict["genelist"][organism]} --organism {organism}; '
+        command += f'Rscript Rscripts/clustering_FC.r --heatmap {heatmap} --project {project} --genelist {genes_dict["genelist"][organism]} --organism {organism}; '
 
         mycursor.execute(f"select Robj_path from {project}")
 
@@ -90,7 +90,7 @@ def clustering_FC_heatmap(config, tool_name):
     else:
         RData = config['tools_conf'][tool_name]['input']['RData']
         colnames = config['tools_conf'][tool_name]['input']['colnames']
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/clustering_FC.r --heatmap {heatmap} --Rdata {RData} --colnames {colnames} --genelist {genes_dict["genelist"][organism]} --organism {organism}; '
+        command += f'Rscript Rscripts/clustering_FC.r --heatmap {heatmap} --Rdata {RData} --colnames {colnames} --genelist {genes_dict["genelist"][organism]} --organism {organism}; '
         RData_fix = RData.replace('.Rda','.tsv')
 
     for RData_file in RData_fix.split(','):

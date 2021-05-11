@@ -78,10 +78,10 @@ def GO_enrichment(config, tool_name):
                 id_universe = out_dir_DE + "/" + config['project'] + "_universe.Rda"
 
                 command += f"mkdir {id_dir}; "
-                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment.r --out_tab {id_tab} --obj {id_sample} --universe {id_universe} --organism {organism}; '
-                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
-                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
-                command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
+                command += f'Rscript Rscripts/GO_enrichment.r --out_tab {id_tab} --obj {id_sample} --universe {id_universe} --organism {organism}; '
+                command += f'Rscript Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
+                command += f'Rscript Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
+                command += f'Rscript Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
         command += f'touch {GOtouched}'
     else:
         out_tab = config['tools_conf'][tool_name]['output']['out_tab']
@@ -101,10 +101,10 @@ def GO_enrichment(config, tool_name):
         if not os.path.exists(out_dir):
             command += f"mkdir {out_dir};"
 
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment.r --out_tab {out_tab} --obj {in_obj} --universe {universe} --organism {organism} --genelist {genelist}; '
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
+        command += f'Rscript Rscripts/GO_enrichment.r --out_tab {out_tab} --obj {in_obj} --universe {universe} --organism {organism} --genelist {genelist}; '
+        command += f'Rscript Rscripts/GO_enrichment_plots.r --out_tab {id_tab_BP} --organism {organism} --geneids {id_geneids}; '
+        command += f'Rscript Rscripts/GO_enrichment_plots.r --out_tab {id_tab_MF} --organism {organism} --geneids {id_geneids}; '
+        command += f'Rscript Rscripts/GO_enrichment_plots.r --out_tab {id_tab_CC} --organism {organism} --geneids {id_geneids}; '
 
         in_obj_name = in_obj.split('/')[-1].replace('.Rda','')
         query_database(genelist,in_obj_name,id_tab_DExpr)

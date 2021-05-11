@@ -89,9 +89,9 @@ def single_html(config, tool_name):
     genename = config['genename']
 
     # Get inputs paths
-    countsPlot = config['tools_conf'][tool_name]['input']['counts_plot'].replace("/DATA/RNAseq_test/Scripts/API", "")
+    countsPlot = config['tools_conf'][tool_name]['input']['counts_plot'].replace("API", "")
     FCTable = config['tools_conf'][tool_name]['input']['FC_table']
-    FCPlot = config['tools_conf'][tool_name]['input']['FC_barplot'].replace("/DATA/RNAseq_test/Scripts/API", "")
+    FCPlot = config['tools_conf'][tool_name]['input']['FC_barplot'].replace("API", "")
 
     report = config['tools_conf'][tool_name]['input']['report'].replace(outfolder,"")
 

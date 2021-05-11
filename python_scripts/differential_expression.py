@@ -27,7 +27,7 @@ def deseq2(config, tool_name):
         command += f"mkdir {out_dir};"
 
     for control in samples:
-        command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/deseq2.r --counts {counts} --design {design} --out_obj {out_obj} --organism {organism} --control {control} --comparisons {samples[control]}; '
+        command += f'Rscript Rscripts/deseq2.r --counts {counts} --design {design} --out_obj {out_obj} --organism {organism} --control {control} --comparisons {samples[control]}; '
     command += f'touch {DEtouched}'
 
     pf.run_command(command)

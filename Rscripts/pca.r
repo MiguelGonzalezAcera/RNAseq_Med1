@@ -16,7 +16,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load functions
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Read the table with the metadata
 sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
