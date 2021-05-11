@@ -343,6 +343,6 @@ def launch_volcano():
 
 if __name__ == "__main__":
     if Repository('.').head.shorthand == 'master':
-        app.run(host="0.0.0.0", use_reloader=True, debug=True, port=80)
+        app.run(host="0.0.0.0", use_reloader=True, debug=True, port=5001)
     else:
         app.run(host="0.0.0.0", use_reloader=True, debug=True)
