@@ -230,7 +230,7 @@ def report_plots(config, tool_name, mycursor, genename, gene_display, comparison
                         counts_df[sample]['std'] = 0
 
                     # Add null content to table
-                    tab_df.append(["-",gene,0,0,0,0,1,1,"-"])
+                    tab_df.append(["-",gene_display,0,0,0,0,1,1,"-"])
 
                 # Add model to list
                 model_list.append(f'{sample}_{control}')

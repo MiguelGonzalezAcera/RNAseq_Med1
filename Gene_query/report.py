@@ -246,7 +246,7 @@ def consultBiomart(mouse_genename, human_genename):
                 'ensembl_gene_id': [mouse_genename]
             },
             'attributes': [
-                "ensembl_gene_id","refseq_ncrna","entrezgene_id","external_gene_name","description"
+                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
             ]
             })
 
@@ -265,7 +265,7 @@ def consultBiomart(mouse_genename, human_genename):
                 'ensembl_gene_id': [human_genename]
             },
             'attributes': [
-                "ensembl_gene_id","refseq_ncrna","entrezgene_id","external_gene_name","description"
+                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
             ]
             })
 
@@ -278,7 +278,7 @@ def consultBiomart(mouse_genename, human_genename):
     resdf = pd.DataFrame(data)
 
     # Name the new columns
-    resdf.columns = ['EnsemblID','Refseq','NCBI_ID','GeneName','Description']
+    resdf.columns = ['EnsemblID','NCBI_ID','GeneName','Description']
 
     # Add column with the organism, for manteinance
     resdf['organism'] = ['mouse', 'human']

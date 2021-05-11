@@ -17,7 +17,7 @@ def consultBiomart(mouse_genename, human_genename):
                 'ensembl_gene_id': [mouse_genename]
             },
             'attributes': [
-                "ensembl_gene_id","refseq_ncrna","entrezgene_id","external_gene_name","description"
+                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
             ]
             })
 
@@ -36,7 +36,7 @@ def consultBiomart(mouse_genename, human_genename):
                 'ensembl_gene_id': [human_genename]
             },
             'attributes': [
-                "ensembl_gene_id","refseq_ncrna","entrezgene_id","external_gene_name","description"
+                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
             ]
             })
 
@@ -49,7 +49,7 @@ def consultBiomart(mouse_genename, human_genename):
     resdf = pd.DataFrame(data)
 
     # Name the new columns
-    resdf.columns = ['EnsemblID','Refseq','NCBI_ID','GeneName','Description']
+    resdf.columns = ['EnsemblID','NCBI_ID','GeneName','Description']
 
     # Add column with the organism, for manteinance
     resdf['organism'] = ['mouse', 'human']
@@ -207,6 +207,9 @@ def single_html(config, tool_name):
     <title>{genename} Result</title>
     <!-- Set table style (I thing this is css, but im not so sure, need to re read on html) -->
     <style media=\"screen\">
+    hr.solid {{
+        border-top: 3px solid #bbb;
+    }}
     table, th, td {{
         border: 2px solid black;
         border-collapse: collapse;
@@ -269,6 +272,10 @@ def single_html(config, tool_name):
 
             # Start adding the titles, texts and plots for fold change
             html_result += f"""<div class=\"header\">
+            <br>
+            <!-- Insert a line separator. Style in css on top -->
+            <hr class="solid">
+            <br>
             <p>
             {genename} in {model} ({organism})
             </p>
@@ -276,7 +283,7 @@ def single_html(config, tool_name):
             <br>
 
             <div class=\"subtitle\">
-            <p>Behaviour of gene {genename} in differential expression assays using different mouse models. Left: Bar chart with the fold change over different differential expression analysis of mouse models. Right: Table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Model-Control</b>.</p>
+            <p>Behaviour of gene {genename} in differential expression assays. Bar chart with the fold change over the different differential expression analysis performed in the experiment and table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Model-Control</b>.</p>
             </div>
             <br>
             <br>
