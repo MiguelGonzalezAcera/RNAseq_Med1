@@ -147,7 +147,7 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 1000, height = 4000, res = 300)
+png(file=opt$heatmap, width = 2000, height = 4000, res = 300)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5) 

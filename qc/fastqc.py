@@ -15,7 +15,7 @@ def fastqc(config, tool_name):
     """
 
     # Get the paths to the files that are going to be input/output
-    FQfilelist = config['tools_conf'][tool_name]['input']['fastq']
+    FQfilelist = config['tools_conf'][tool_name]['input']['fastq_r1']
     fastqcdir = "/".join(config['tools_conf'][tool_name]['output']['fastqceval'].split('/')[0:-1])
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 

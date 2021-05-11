@@ -16,7 +16,7 @@ rule CoveragePerBase:
 
 rule Fastqc:
     input:
-        fastq = fastq
+        fastq_r1 = fastq_r1
     output:
         fastqceval = f"{outfolder}/fastqc/fastqc.results.txt"
     run:

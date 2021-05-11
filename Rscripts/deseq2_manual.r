@@ -18,8 +18,7 @@ Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 Counts_tab <- Counts_tab[order(row.names(Counts_tab)),]
 
 # Design model matrix (STILL MANUAL)
-Tr1 = relevel(sampleTableSingle[,1],"B6cTEC")
-Tr2 = relevel(sampleTableSingle[,2], "mock")
+Tr1 = relevel(sampleTableSingle[,1],"Control")
 design <- model.matrix( ~ Tr1)
 
 # Create the experiment from a SummarizedExperiment object
