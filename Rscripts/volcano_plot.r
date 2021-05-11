@@ -20,7 +20,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load Rfunctions
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select database
 database <- select.organism(opt$organism)
@@ -63,12 +63,12 @@ if (opt$genelist != "" & opt$labels == TRUE){
   genelist_ens <- scan(opt$genelist, character(), quote="")
   genelist <- as.character(mapIds(database, as.character(genelist_ens),
                                   'SYMBOL', 'ENSEMBL'))
-  
+
   with(subset(resdf, padj<.05 & abs(log2FoldChange)>1 & Genes %in% genelist), points(log2FoldChange, -log10(pvalue),pch=20, col="blue", cex = 1.2))
   resdf$Genes_filt <- rapply(as.list(resdf$Genes),function(x) ifelse(x %in% genelist,x,""), how = "replace")
   resdf$Genes_filt[is.na(resdf$Genes_filt)] <- ""
-  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02, labs=Genes_filt, cex = .6)) 
-  
+  with(subset(resdf, padj<.05 & abs(log2FoldChange)>1), textxy(log2FoldChange*0.9, -log10(pvalue)*1.02, labs=Genes_filt, cex = .6))
+
 }
 
 # Annotate significant points with genenames

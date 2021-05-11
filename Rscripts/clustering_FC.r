@@ -26,12 +26,12 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism(opt$organism)
 
-# Read this from the metadata file. 
+# Read this from the metadata file.
 # These are the full DE analysis results of all the samples
 
 ## UNUSED
@@ -42,19 +42,19 @@ if (opt$project != "") {
   # Connect to the database
   storiesDb <- dbConnect(RMariaDB::MariaDB(), user='root', password="Plater1a", dbname='Projects', host='localhost')
   # dbListTables(storiesDb)
-  
+
   # Create the query
   query <- sprintf("select * from %s order by Control ASC, Sample ASC;", opt$project)
-  
+
   # Execute and retriece the query
   rsInsert <- dbSendQuery(storiesDb, query)
   dbRows<-dbFetch(rsInsert)
-  
+
   # Select the needed data
   treats = dbRows["Robj_path"][[1]]
   colnames = dbRows["Comparison"][[1]]
 
-  # Disconnect from the database  
+  # Disconnect from the database
   dbDisconnect(storiesDb)
 } else {
   treats = strsplit(opt$Rdata, ",")[[1]]
@@ -74,19 +74,19 @@ for (filename in treats){
   # Read each file
   load(filename)
   full_df <- as.data.frame(res)
-  
+
   # Sort the names by rowname (ENSEMBLID)
   full_df <- full_df[order(row.names(full_df)),]
-  
+
   # Get the fold change and the pvalue column
   FC_df <- full_df[genelist[order(genelist)],"log2FoldChange",drop=FALSE]
   pv_df <- full_df[genelist[order(genelist)],"pvalue",drop=FALSE]
-  
+
   filename_col <- gsub(".Rda","", tail(strsplit(filename, "/"), n=1), fixed = TRUE)
   # Name the column as the file
   colnames(FC_df) <- c(filename)
   colnames(pv_df) <- c(filename)
-  
+
   if (is.null(clust_df) == T){
     # If the final df is empty, fill it with one column
     clust_df <- FC_df
@@ -96,7 +96,7 @@ for (filename in treats){
     clust_df <- merge(clust_df, FC_df, by=0,all=T)
     rownames(clust_df) <- clust_df$Row.names
     clust_df$Row.names <- NULL
-    
+
     pval_df <- merge(pval_df, pv_df, by=0,all=T)
     rownames(pval_df) <- pval_df$Row.names
     pval_df$Row.names <- NULL
@@ -135,14 +135,14 @@ if (length(rownames(clust_df)) < 2) {
 hr <- hclust(as.dist(1-cor(t(data.matrix(clust_df)),
                            method="pearson")), method="average")
 hc <- hclust(as.dist(1-cor(data.matrix(clust_df),
-                           method="pearson")), method="average") 
+                           method="pearson")), method="average")
 
 # Tree cutting
 mycl <- cutree(hr, h=max(hr$height)/1.3)
 
 # Clustering boxes
 mycolhc <- rainbow(length(unique(mycl)), start=0.1, end=0.9)
-mycolhc <- mycolhc[as.vector(mycl)] 
+mycolhc <- mycolhc[as.vector(mycl)]
 
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
@@ -150,12 +150,12 @@ color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 png(file=opt$heatmap, width = 2000, height = 4000, res = 300)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
-row_den = color_branches(hr, h = max(hr$height)/1.5) 
+row_den = color_branches(hr, h = max(hr$height)/1.5)
 Heatmap(data.matrix(clust_df), cluster_rows = as.dendrogram(hr),
         #as.dendrogram(row_den),
-        cluster_columns = FALSE, 
+        cluster_columns = FALSE,
         col=color, column_dend_height = unit(5, "cm"),
-        #row_dend_width = unit(3, "cm"), 
+        #row_dend_width = unit(3, "cm"),
         row_names_gp = gpar(fontsize = (90/length(genelist)+5)),
         column_names_gp = gpar(fontsize = (90/length(genelist)+5) + 2),
         column_names_max_height = unit(8, "cm"),
@@ -165,4 +165,3 @@ Heatmap(data.matrix(clust_df), cluster_rows = as.dendrogram(hr),
         }
         )
 dev.off()
-

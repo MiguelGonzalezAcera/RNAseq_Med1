@@ -18,7 +18,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load Rfunctions
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Load R object
 load(opt$out_tab)
@@ -31,20 +31,20 @@ database <- select.organism(opt$organism)
 
 # Obtain plots
 # barplot
-png(file=sprintf("%s_barplot.png", 
+png(file=sprintf("%s_barplot.png",
                  gsub(".rda","",opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
 barplot(x, showCategory=16)
 dev.off()
 
 # Enrichment map
-png(file=sprintf("%s_emap.png", 
+png(file=sprintf("%s_emap.png",
                  gsub(".rda","", opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
 emapplot(x)
 dev.off()
 
 # Gene-Concept Network
 # plot linkages of genes and enriched concepts (e.g. GO categories, KEGG pathways)
-png(file=sprintf("%s_cnet.png", 
+png(file=sprintf("%s_cnet.png",
                  gsub(".rda","", opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
 cnetplot(x, categorySize="pvalue", foldChange = entrezgeneids)
 dev.off()

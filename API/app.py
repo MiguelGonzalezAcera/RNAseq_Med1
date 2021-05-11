@@ -13,16 +13,16 @@ app = Flask(__name__)
 
 def get_script_names():
     data = {
-        'RNAseq': {'path': '/DATA/RNAseq_test/Scripts/RNAseq.smk'},
-        'RNAseq_update': {'path': '/DATA/RNAseq_test/Scripts/RNAseq_update.smk'},
-        'Gene_query': {'path': '/DATA/RNAseq_test/Scripts/Check_gene.smk'},
-        'clustering_heatmap': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_heatmap.py'},
-        'clustering_FC_exst': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
-        'clustering_FC_mt': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/clustering_FC_heatmap.py'},
-        'KEGG_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/KEGG.py'},
-        'GO_enrichment': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GO.py'},
-        'GSEA': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/GSEA.py'},
-        'volcano': {'path': '/DATA/RNAseq_test/Scripts/python_scripts/volcano_plot.py'}
+        'RNAseq': {'path': 'RNAseq.smk'},
+        'RNAseq_update': {'path': 'RNAseq_update.smk'},
+        'Gene_query': {'path': 'Check_gene.smk'},
+        'clustering_heatmap': {'path': 'python_scripts/clustering_heatmap.py'},
+        'clustering_FC_exst': {'path': 'python_scripts/clustering_FC_heatmap.py'},
+        'clustering_FC_mt': {'path': 'python_scripts/clustering_FC_heatmap.py'},
+        'KEGG_enrichment': {'path': 'python_scripts/KEGG.py'},
+        'GO_enrichment': {'path': 'python_scripts/GO.py'},
+        'GSEA': {'path': 'python_scripts/GSEA.py'},
+        'volcano': {'path': 'python_scripts/volcano_plot.py'}
     }
 
     return data
@@ -154,7 +154,7 @@ def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
 
 def fix_postdata(postdata_list):
     postdata = {
-        "outfolder": "/DATA/RNAseq_test/Scripts/API",
+        "outfolder": "API",
     	"log_files": ["/tmp/full.log"],
     	"options": {
     		"organism": "mouse"

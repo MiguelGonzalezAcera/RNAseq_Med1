@@ -24,7 +24,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism(opt$organism)
@@ -102,34 +102,34 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # Contrast name will be replaced by the sample and controls
   res_name = paste(paste("", sample, opt$control, sep='_'),"Rda", sep=".")
   save(res,file=gsub(".Rda",res_name,opt$out_obj, fixed = TRUE))
-  
+
   # A simple helper function that makes a so-called "MA-plot", i.e. a scatter plot of
   # log2 fold changes (on the y-axis) versus the mean of normalized counts (on the x-axis).
   png(file=gsub(".Rda","_MA.png",opt$out_obj, fixed = TRUE))
   plotMA(res)
   dev.off()
-  
+
   # Transform result into data frame
   resdf <- data.frame(res)[complete.cases(data.frame(res)),]
-  
+
   # Transform row ensembl IDs into column
   resdf$EnsGenes <- rownames(resdf)
-  
+
   # Add also gene symbols
   resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
                                      'SYMBOL', 'ENSEMBL'))
-  
+
   # Save table with all the new names. Replace contrast
   res_tab_name = paste(paste("", sample, opt$control, sep='_'),"tsv", sep=".")
   write.table(resdf, file=gsub(".Rda",res_tab_name,opt$out_obj, fixed = TRUE),
               sep="\t", row.names = FALSE)
-  
+
   # Subset design table with sample to get vector
   sample_samples <- sampleTableSingle[sampleTableSingle$Tr1 == sample,][['rn']]
-  
+
   # Merge res table with the counts of its samples
   resdf_wcounts <- merge(resdf, df_norm[,c("EnsGenes", control_samples, sample_samples)], by='EnsGenes', all.x=TRUE)
-  
+
   #Save new table
   res_exp_tab_name = paste(paste("", sample, opt$control, sep='_'),"expanded.tsv", sep="_")
   write.table(resdf_wcounts, file=gsub(".Rda",res_exp_tab_name,opt$out_obj, fixed = TRUE),
