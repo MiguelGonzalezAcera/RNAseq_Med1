@@ -2,30 +2,32 @@
 library(DESeq2)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism("mouse")
 
 # Read the table with the metadata
-sampleTableSingle = read.table("/DATA/DSS_rec_evolution/design.txt", fileEncoding = "UTF8")
+sampleTableSingle = read.table("/VAULT/20191216_Marta_Request/design.txt", fileEncoding = "UTF8")
 
 # Read the table containing the counts
-Counts_tab = read.table("/DATA/DSS_rec_evolution/DSS_rec_evol.counts.fixed.tsv", fileEncoding = "UTF8", header=TRUE)
+Counts_tab = read.table("/VAULT/20191216_Marta_Request/counts.tsv", fileEncoding = "UTF8", header=TRUE)
 row.names(Counts_tab) <- Counts_tab$Geneid
 Counts_tab$Geneid = NULL
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 Counts_tab <- Counts_tab[order(row.names(Counts_tab)),]
 
 # Design model matrix (STILL MANUAL)
-Tr1 = relevel(sampleTableSingle[,1],"Healthy")
-Tr2 = relevel(sampleTableSingle[,2], "mock")
+Tr1 = relevel(sampleTableSingle[,1],"Control")
 design <- model.matrix( ~ Tr1)
 
 # Create the experiment from a SummarizedExperiment object
 dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
                               colData = sampleTableSingle,
                               design = design)
+
+# Keep the universe
+save(dss,file="/VAULT/20191216_Marta_Request/universe.rda")
 
 # Get the genomic ranges
 Grang_tab = read.table("/DATA/DSS_rec_evolution/DSS_rec_evol.counts.ranges.tsv", fileEncoding = "UTF8", header=TRUE)
@@ -34,7 +36,7 @@ Grlist_filt <- Grlist[names(Grlist) %in% rownames(assay(dss))]
 rowRanges(dss) <- Grlist_filt
 
 # filter the counts
-keep <- rowSums(counts(dss)) >= 20
+keep <- rowSums(counts(dss)) >= 25
 dss <- dss[keep,]
 
 # Get and save the fpkm
@@ -43,6 +45,9 @@ save(fpkm_df, file="/DATA/DSS_rec_evolution/DSS_rec_evol.fpkm.Rda")
 
 # Run the analysis
 dds <- DESeq(dss)
+
+# Only for cases with high variation
+dds <- DESeq(dss, betaPrior=FALSE)
 
 # Check the names of the main contrasts
 resultsNames(dds)
@@ -53,9 +58,9 @@ plotDispEsts(dds)
 # Save the normalized counts
 # <TO_DO>: The header is odd in the file, so check the samples or load the whole object when working with the normalized counts.
 norm_counts <- counts(estimateSizeFactors(dds), normalized = T)
-write.table(norm_counts, file="/DATA/DSS_rec_evolution/20190508-Jay_genelist/DSS_norm_counts.tsv",sep="\t")
+write.table(norm_counts, file="/VAULT/20191216_Marta_Request/norm_counts.tsv",sep="\t")
 df_norm <- as.data.frame(norm_counts)
-save(df_norm, file="/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
+save(df_norm, file="/VAULT/20191216_Marta_Request/norm_counts.Rda")
 
 #<TO_DO>: Now, this is doubtful, because now would be time to do the contrasts.
 # To do these accuratelz, we have to consider, number of factors, levels of each factor,
@@ -67,11 +72,14 @@ save(df_norm, file="/DATA/DSS_rec_evolution/DSS_rec_evol.norm_counts.Rda")
 
 # Contrast may vary. Probably need to use loop for all contrasts,
 # even more if there is interaction. <TO_DO>: Also, use given threshold
-res <- results(dds, alpha = 0.001, name = 'Tr1Rec_ful')
+res <- results(dds, name = 'Tr1B6mTEC')
+
+# High variation cases
+res <- results(dds, name = 'Tr1O12dc', cooksCutoff=FALSE)
 
 # Save the full result object
 # <TO_DO>: Change 'contrast' for actual contrast name
-save(res,file="/DATA/DSS_rec_evolution/test/Da_test_obj.rda")
+save(res,file="/VAULT/20191216_Marta_Request/B6mTEC_v_B6cTEC.rda")
 
 # A simple helper function that makes a so-called "MA-plot", i.e. a scatter plot of
 # log2 fold changes (on the y-axis) versus the mean of normalized counts (on the x-axis).
@@ -90,7 +98,7 @@ resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
                                    'SYMBOL', 'ENSEMBL'))
 
 # Save table with all the new names. Replace contrast
-write.table(resdf, file=gsub(".Rda","_contrast.tsv",opt$obj_out, fixed = TRUE),
+write.table(resdf, file="/VAULT/20191216_Marta_Request/B6mTEC_v_B6cTEC.tsv",
             sep="\t", row.names = FALSE)
 
 # Save environment

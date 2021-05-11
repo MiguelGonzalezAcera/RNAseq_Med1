@@ -2,47 +2,44 @@ import argparse
 import logging
 import os
 import glob
-import imageio
+import mysql.connector
+import pandas as pd
 import python_scripts.python_functions as pf
 
-def gif(filelist, out_dir):
-    """Create a gif file from a list of images
-    """
-
-    result = f"{out_dir}/pca_3d.gif"
-    with imageio.get_writer(result, mode='I', fps=25) as writer:
-        for filename in filelist:
-            image = imageio.imread(filename)
-            writer.append_data(image)
-
-def pca(config, tool_name):
+def update_design(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
-    logging.info(f'Starting {tool_name} process')
 
-    counts = config['tools_conf'][tool_name]['input']['counts']
-    design = config['tools_conf'][tool_name]['input']['design']
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['pcatouched'].split('/')[0:-1])
-    pcatouched = config['tools_conf'][tool_name]['output']['pcatouched']
+    design_tab = config['tools_conf'][tool_name]['input']['design_tab']
+    project = config['project']
+    organism = config['options']['organism']
+    prupdtouched = config['tools_conf'][tool_name]['output']['prupdtouched']
 
-    # Create the command to run the pca R script
-    command = ""
-    if not os.path.exists(out_dir):
-        command += f"mkdir {out_dir};"
-    command += f'Rscript /DATA/RNAseq_test/Scripts/Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
-    command += f'touch {pcatouched}'
+    # Establish the connection to the datbase
+    mydb = mysql.connector.connect(
+      host="localhost",
+      user="root",
+      passwd="Plater1a",
+      database="Projects"
+    )
 
+    mycursor = mydb.cursor()
+
+    df = pd.read_csv(design_tab, sep='\t', index_col=None)
+
+    for index, row in df.iterrows():
+        insert_command = f"""insert into Projects.{project}(Comparison,Control,Sample,Table_path,Robj_path,Volcano_path) value('{row[0]}','{row[1]}','{row[2]}','{row[3]}','{row[4]}','{row[5]}');"""
+        logging.info(insert_command)
+        mycursor.execute(insert_command)
+
+    mydb.commit()
+
+    mycursor.close()
+    mydb.close()
+
+    command = f'touch {prupdtouched}'
     pf.run_command(command)
 
-    # List files to make gif
-    try:
-        filelist = pf.list_files_dir(out_dir, ext = "*3d*")
-    except:
-        filelist = []
-
-    # Run the creation of a gif if filelist is not empty
-    if len(filelist) != 0:
-        gif(sorted(filelist), out_dir)
 
 def get_arguments():
     """

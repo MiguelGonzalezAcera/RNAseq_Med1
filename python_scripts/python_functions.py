@@ -6,11 +6,17 @@ import glob
 def run_command(command):
     """Runs a command. Raises error if it misses
     """
-    try:
-    #process = subprocess.Popen(command, shell=True, executable='/bin/bash')
-        os.system(command)
-    except ErrorCommandRun as errcomm:
-        print(errcomm)
+    logging.info(f'Running command: {command}')
+    for cmd in command.split('; '):
+        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stout = output.stdout.decode('utf-8')
+        error = output.stderr.decode('utf-8')
+        if output.returncode == 1:
+            logging.error(f'{cmd}\n\n{error}')
+            raise ValueError(f'Error in command: {cmd}\n\n{error}')
+        elif output.returncode == 0:
+            logging.info(stout)
+            logging.info(error)
 
 def create_logger(logpath, name='logger'):
     """Create a logger

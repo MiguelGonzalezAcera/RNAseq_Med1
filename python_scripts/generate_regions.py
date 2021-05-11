@@ -8,8 +8,10 @@ def regions(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
 
+    logging.info(f'Starting {tool_name} process')
+
     bedfile = config['tools_conf'][tool_name]['input']['bedfile']
-    genome = config['tools_conf'][tool_name]['tool_conf']['genome']
+    genome = config['tools_conf']['genomedict']
     list = config['tools_conf'][tool_name]['output']['list']
 
     # Create the picard command

@@ -19,30 +19,44 @@ def mapping(config, tool_name):
     needed for the process
 
     """
+    logging.info(f'Starting {tool_name} process')
 
     # Get the paths to the files that are going to be input/output
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
-    R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
+    if 'fastq_r2' in config['tools_conf'][tool_name]['input']:
+        R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
+    else:
+        R2_FILES = ''
     bamdir = "/".join(config['tools_conf'][tool_name]['output']['mappingtouched'].split('/')[0:-1])
     mappingtouched = config['tools_conf'][tool_name]['output']['mappingtouched']
-    genomePath = config['tools_conf'][tool_name]['tool_conf']['genome']
+    genomePath = config['tools_conf']['genome']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
+
+    # Select STAR version for organism
+    #<TO_DO>: Replace this in the configuration file, as a software manager. Also, index the human genome.
+    if config['options']['organism'] == 'human':
+        star_version = "STAR_old"
+    else:
+        star_version = "STAR"
 
     ## Possible Command style
     # STAR --genomeLoad LoadAndExit --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/; for file in $(cat fastq.test.txt); do echo $file STAR --runThreadN 10 --readFilesCommand gzip -cd --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/ --readFilesIn $file ${file%_1.fastq.gz}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > ${file%_1.fastq.gz}.bam; samtools-1.9 index ${file%_1.fastq.gz}.bam; mv ${file%_1.fastq.gz}.bam* BAM/; done; STAR --genomeLoad Remove --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/
     command = ""
 
-    command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}; "
+    command += f"{star_version} --genomeLoad LoadAndExit --genomeDir {genomePath}; "
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
     for filer1 in R1_FILES:
-        filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
-        bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
-        command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
-    command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
+        if R2_FILES:
+            bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
+            filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
+            command += f'{star_version} --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+        else:
+            bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
+            command += f'{star_version} --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+    command += f"{star_version} --genomeLoad Remove --genomeDir {genomePath}; "
     command += f"touch {mappingtouched}"
 
-    print(command)
     pf.run_command(command)
 
 def get_arguments():

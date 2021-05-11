@@ -26,14 +26,22 @@ def transformToRanges(counts):
     out_counts = counts.replace(".tmpranges.tsv",".ranges.tsv")
     df2.to_csv(out_counts, sep='\t', index=False)
 
+def fixFormat(counts):
+    """"""
+    df = pd.read_csv(counts, sep='\t', index_col=None)
+    df = df.drop_duplicates(subset='Geneid')
+    df.to_csv(counts, sep='\t', index=False)
+
 def counts(config, tool_name):
     """Get the counts of a number of bam files in a directory
     """
+    logging.info(f'Starting {tool_name} process')
 
     bamdir = "/".join(config['tools_conf'][tool_name]['input']['bamdir'].split('/')[0:-1])
     annot = config['tools_conf'][tool_name]['input']['annot']
     output = config['tools_conf'][tool_name]['output']['counts']
     rangestable = output.replace(".tsv",".tmpranges.tsv")
+    organism = config['options']['organism']
 
     # Lsit all the bam files in the directory
     filelist = pf.list_files_dir(bamdir, ext = '*.bam')
@@ -41,10 +49,13 @@ def counts(config, tool_name):
     # Create the featurecounts command
     tmpoutput = output.replace('.tsv','.tmp.tsv')
     command = f'featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; '
-    command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 > {output};"
+    command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 | perl -pe 's|(\.).*?\t|\t|' > {output};"
     command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut -f 1,2,3,4,5 > {rangestable}"
 
     pf.run_command(command)
+
+    if organism == "human":
+        fixFormat(output)
 
     # Create the ranges file. Useful later for the fpkm
     transformToRanges(rangestable)
@@ -62,6 +73,7 @@ def get_arguments():
     parser.add_argument('--bamdir', required=True, help='Folder with bam files')
     parser.add_argument('--counts', required=True, help='Table with the counts')
     parser.add_argument('--annot', required=True, help='Annotation file (same than used in mapping)')
+    parser.add_argument('--organism', required=True, help='Organism', default='mouse')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -87,6 +99,9 @@ def main():
       "TESTING": args.test,
       "DRY_RUN": args.dry_run,
       "log_files": ["/tmp/full.log"],
+      "options": {
+        "organism": args.organism
+      },
       "tools_conf": {
         "get_counts": {
           "input": {

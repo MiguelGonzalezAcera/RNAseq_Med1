@@ -13,10 +13,10 @@ pca2d <- function(tab,d1,d2,perc,out){
 # Select the database for a list of organisms. Updateable.
 select.organism <- function(organism){
   if (organism == "human") {
-    library(org.Hs.eg.db)
+    suppressPackageStartupMessages(library(org.Hs.eg.db))
     database <- org.Hs.eg.db
   } else if (organism == "mouse") {
-    library(org.Mm.eg.db)
+    suppressPackageStartupMessages(library(org.Mm.eg.db))
     database <- org.Mm.eg.db
   } else {
     print("Organism not recognized")

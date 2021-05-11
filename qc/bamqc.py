@@ -28,7 +28,7 @@ def bamqc(config, tool_name):
     CPBDIR = "/".join(config['tools_conf'][tool_name]['input']['cpbtouched'].split('/')[0:-1])
     LIST = config['tools_conf'][tool_name]['input']['list']
 
-    GENOME = config['tools_conf'][tool_name]['tool_conf']['genome']
+    GENOME = config['tools_conf']['genomefasta']
 
     OUTDIR = "/".join(config['tools_conf'][tool_name]['output']['bamqctouched'].split('/')[0:-1])
     bamqctouched = config['tools_conf'][tool_name]['output']['bamqctouched']
@@ -46,6 +46,9 @@ def bamqc(config, tool_name):
         QCMTROUT = BAM.replace('.bam','.mtrg.txt')
         COVFILE = BAM.replace('.bam','.coverages.json')
 
+        # Get sample name
+        sample = BAM.split("/")[-1].replace(".bam", "")
+
         # Init command
         command = ''
 
@@ -61,6 +64,8 @@ def bamqc(config, tool_name):
             f' I={BAM} O={QCMTROUT} TI={LIST} AI={LIST}; '
 
         command += f"qualimap bamqc --java-mem-size=20G -bam {BAM} -gff {BED} -outdir {OUTDIR}; "
+        # rename qualimap result
+        command += f"mv {OUTDIR}/genome_results.txt {OUTDIR}/{sample}.genome_results.txt; "
         command += f'touch {bamqctouched}; '
 
         value_dict = {}
