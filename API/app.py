@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 import datetime
+from pygit2 import Repository
 
 app = Flask(__name__)
 
@@ -341,4 +342,7 @@ def launch_volcano():
     return generate_response(postdata, dag)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", use_reloader=True, debug=True)
+    if Repository('.').head.shorthand == 'master':
+        app.run(host="0.0.0.0", use_reloader=True, debug=True, port=80)
+    else:
+        app.run(host="0.0.0.0", use_reloader=True, debug=True)
