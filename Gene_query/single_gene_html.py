@@ -2,59 +2,17 @@ import pandas as pd
 from biomart import BiomartServer
 
 def consultBiomart(mouse_genename, human_genename):
-    # Connect with biomart
-    try:
-        server = BiomartServer('http://www.ensembl.org/biomart')
-    except:
-        return ['Biomart is offline', 'Biomart is offline']
+    # Read biomart files
+    mouse_bmart_df = pd.read_csv("/DATA/mouse_biomart.tsv", sep='\t', index_col=None)
+    human_bmart_df = pd.read_csv("/DATA/human_biomart.tsv", sep='\t', index_col=None)
 
-    # Connect with mouse genome
-    ensembl_connection = server.datasets['mmusculus_gene_ensembl']
+    # Select the gene description from each
+    mouse_desc = mouse_bmart_df[mouse_bmart_df['Expression Atlas ID'] == mouse_genename]['Gene description'].tolist()[0]
+    human_desc = human_bmart_df[human_bmart_df['Expression Atlas ID'] == human_genename]['Gene description'].tolist()[0]
 
-    # Query data
-    response = ensembl_connection.search({
-            'filters': {
-                'ensembl_gene_id': [mouse_genename]
-            },
-            'attributes': [
-                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
-            ]
-            })
+    descriptions = [mouse_desc, human_desc]
 
-    # Store lines into list
-    data = []
-    for line in response.iter_lines():
-        line = line.decode('utf-8')
-        data.append(line.split("\t"))
-
-    # Connect with human genome
-    ensembl_connection = server.datasets['hsapiens_gene_ensembl']
-
-    # Query data
-    response = ensembl_connection.search({
-            'filters': {
-                'ensembl_gene_id': [human_genename]
-            },
-            'attributes': [
-                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
-            ]
-            })
-
-    # Store lines into list
-    for line in response.iter_lines():
-        line = line.decode('utf-8')
-        data.append(line.split("\t"))
-
-    # Transform into df
-    resdf = pd.DataFrame(data)
-
-    # Name the new columns
-    resdf.columns = ['EnsemblID','NCBI_ID','GeneName','Description']
-
-    # Add column with the organism, for manteinance
-    resdf['organism'] = ['mouse', 'human']
-
-    return resdf['Description'].tolist()
+    return descriptions
 
 def gene_info(genename):
     # Get mouse ensembl id
@@ -101,17 +59,18 @@ def single_html(config, tool_name):
     # Define experiment sets and characteristics
     comparisons = {
         "mouse": {
-            "Mouse_models": {
-                "design": "/VAULT/Thesis_proj/design.txt",
+            "MouseModelsInflammation": {
+                "design": "/VAULT/Thesis_proj/design_inflammation.txt",
                 "samples": {
-                    'Cerldc': 'Bl6 mice from Erlangen. Distant Colon. 5 samples',
-                    'cDSSdc': 'Chronic DSS mice. Distant Colon. 5 samples',
-                    'DSSdc': 'DSS mice. Distant Colon. 5 samples',
-                    'OxCdc': 'Oxazolone Colitis mice. Distant Colon. 5 samples',
-                    'RKOdc': 'Rag KO mice. Distant Colon. 5 samples',
-                    'TCdc': 'Transference Colitis mice. Distant Colon. 5 samples'
+                    'Cerl': 'Bl6 mice from Erlangen. Distant Colon. 5 samples',
+                    'cDSS': 'Chronic DSS mice. Distant Colon. 5 samples',
+                    'DSS': 'DSS mice. Distant Colon. 5 samples',
+                    'OxC': 'Oxazolone Colitis mice. Distant Colon. 5 samples',
+                    'RKO': 'Rag KO mice. Distant Colon. 5 samples',
+                    'TC': 'Transference Colitis mice. Distant Colon. 5 samples'
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Compilation of several of the more relevant gut inflammation models in mice."
             },
             'DSS_TimeCourse': {
                 "design": "/VAULT/DSS_rec_evolution/design.txt",
@@ -122,7 +81,8 @@ def single_html(config, tool_name):
                     "Rec_mod": 'Moderate recovery. Time 12 days',
                     "Rec_ful": 'Full recovery. Time 19 days'
                 },
-                "type": "timecourse"
+                "type": "timecourse",
+                "description": "Time course of a 19 days DSS experiment. DSS treatment lasted for 8 days. Recovery was measured by the weight of the mice."
             },
             'WoundHealing': {
                 "design": "/VAULT/20200629_Wound_Healing_TC/design.txt",
@@ -132,7 +92,8 @@ def single_html(config, tool_name):
                     "h24": 'Wounded mice. Time 24 hours',
                     "h48": 'Wounded mice. Time 48 hours'
                 },
-                "type": "timecourse"
+                "type": "timecourse",
+                "description": "Time course of a gut wound healing. Time 0 represents the healthy mouse, and the experiment begins when a clip wound is performed through endoscopy in the gut wall."
             }
         },
         "human": {
@@ -142,7 +103,8 @@ def single_html(config, tool_name):
                     "normal": "Healthy patient",
                     "CD": "Diseased individual"
                 },
-                "type": ""
+                "type": "normal",
+                "description": "Ileal biopsies, paraffin fixed, of Crohn Diseased patients. 36 diseased and 32 non diseased controls."
             },
             "RISK_GSE57945": {
                 "design": "/VAULT/Human_data/GSE57945_IBD_RISK_Cohort_Ileum/design.txt",
@@ -161,7 +123,8 @@ def single_html(config, tool_name):
                     "CD_F_MiInf_NDUlcer": "Microinflammation, Non deep ulcer Crohn female",
                     "CD_F_NMiMaInf_NDUlcer": "Not macro/microinflammation, Non deep ulcer Crohn female"
                 },
-                "type": ""
+                "type": "normal",
+                "description": "Ileal biopsies of under 17 years old patients with simptoms of IBD. 359 samples segregated by sex, disease and size and depth of the ulcers"
             },
             "PSC_EMTAB7915": {
                 "design": "/VAULT/Human_data/E_MTAB_7915_PSC_cohort/design.txt",
@@ -170,7 +133,8 @@ def single_html(config, tool_name):
                     "sclerosing_cholangitis": "Sclerosing cholangitis patient",
                     "ulcerative_colitis": "Ulcerative colitis patient"
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Colonic biopsies of Ulcerative Colitis and Primary Scleroting Cholangitis. 30 samples"
             },
             "RISK_GSE117993": {
                 "design": "/VAULT/Human_data/GSE117993_IBD_RISK_cohort_Rectum/design.txt",
@@ -180,7 +144,8 @@ def single_html(config, tool_name):
                     "iCD": "Ileal Chrohns Disease",
                     "UC": "Ulcerative colitis"
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Rectal biopsies of pediatric patients of IBD. 190 samples."
             },
             "PROTECT_GSE109142": {
                 "design": "/VAULT/Human_data/GSE109142_Ulcerative_colitis_PROTECT_Cohort/design.txt",
@@ -194,7 +159,8 @@ def single_html(config, tool_name):
                     "UC_Ffemale_CSIV": "UC Intravenous cyclosporin female",
                     "UC_Ffemale_CSOral": "UC Oral cyclosporin female"
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Rectal biopsies of Ulcerative Colitis patients. 206 samples segregated by sex and treatment recieved."
             }
         }
     }
@@ -266,9 +232,9 @@ def single_html(config, tool_name):
 
     for organism in comparisons:
         for model in comparisons[organism]:
-            barplot_FC_model = FCPlot.replace('Mouse_models', model)
-            table_FC_models = FCTable.replace('Mouse_models', model)
-            counts_plot = countsPlot.replace('Mouse_models', model)
+            barplot_FC_model = FCPlot.replace('MouseModelsInflammation', model)
+            table_FC_models = FCTable.replace('MouseModelsInflammation', model)
+            counts_plot = countsPlot.replace('MouseModelsInflammation', model)
 
             # Start adding the titles, texts and plots for fold change
             html_result += f"""<div class=\"header\">

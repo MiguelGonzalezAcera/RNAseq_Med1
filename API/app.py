@@ -65,8 +65,17 @@ def generate_configuration(postdata, pipeline):
         os.system(f"mkdir {config_json['outfolder']};")
 
     # Serialize class attributes into a configuration fileW
-    config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
     config_json['pipeline'] = pipeline
+
+    # If pipeline is Gene consult, dump in the actual result folder
+    if pipeline == "Gene_query":
+        jobid = config_json['jobid']
+        genename = config_json['genename']
+        config_json_path = config_json['outfolder'] + f'/static/{jobid}/{genename}_config_{pipeline}.json'
+    else:
+        config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
+
+    # Dump json configuration into file
     with open(config_json_path, 'w') as outfile:
         json.dump(config_json, outfile)
 
@@ -114,6 +123,7 @@ def launch_process(config_json_path, postdata, pipeline, mode='POPEN'):
 
     cmd = f'snakemake -s {config_names[pipeline]["path"]} all -j 10 ' +\
         f"--config param={config_json_path} --use-conda"
+    print(cmd)
 
     if mode == 'POPEN':
         subprocess.Popen(cmd, shell=True, executable='/bin/bash')
@@ -154,6 +164,7 @@ def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
     return True, dag
 
 def fix_postdata(postdata_list):
+    # TODO: This uses API as outfolder all the time, therefore messing up simultaneous runs I THINK, fix the parameter outfolder after the reading of pootdata
     postdata = {
         "outfolder": "API",
     	"log_files": ["/tmp/full.log"],
@@ -343,6 +354,6 @@ def launch_volcano():
 
 if __name__ == "__main__":
     if Repository('.').head.shorthand == 'master':
-        app.run(host="0.0.0.0", use_reloader=True, debug=True, port=80)
+        app.run(host="0.0.0.0", use_reloader=True, debug=True, port=5001)
     else:
         app.run(host="0.0.0.0", use_reloader=True, debug=True)
