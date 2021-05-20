@@ -228,6 +228,11 @@ def single_html(config, tool_name):
 
     <p>Open results as <a href=\"{report}\">PDF file</a>.</p>
     <br>
+    <!-- Insert a button for going back to the form -->
+    <form action="../Gene_query/">
+    <input type="submit" value="Go Back" />
+    </form>
+    <br>
     """
 
     for organism in comparisons:

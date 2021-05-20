@@ -15,8 +15,9 @@
       cursor: wait;
       }
     </style>
-    <script type="text/javascript">// <![CDATA[
+    <script type="text/javascript">
       function loader(){
+          document.getElementById("formSubmit").style.display = "none";
           document.getElementById("loading").style.display = "block";
       }
     </script>
@@ -33,7 +34,7 @@
           <input type="text" name="genename">
         </p>
 
-        <input value="Submit" type="submit" onclick="loader();">
+        <input id="formSubmit" value="Submit" type="submit" onclick="loader();">
       </form>
     </div>
     <div id="loading"></div>
