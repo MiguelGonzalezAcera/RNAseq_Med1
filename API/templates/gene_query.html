@@ -3,6 +3,31 @@
   <head>
     <meta charset="utf-8">
     <style media="screen">
+    .HolyGrail {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .HolyGrail-body {
+      display: flex;
+      flex: 1;
+    }
+
+    .HolyGrail-content {
+      flex: 1;
+    }
+
+    .HolyGrail-nav, .HolyGrail-ads {
+      /* 12em is the width of the columns */
+      flex: 0 0 12em;
+    }
+
+    .HolyGrail-nav {
+      /* put the nav on the left */
+      order: -1;
+    }
+
     #loading {
       display: none;
       top: 200 px;
@@ -23,20 +48,37 @@
     </script>
     <title></title>
   </head>
-  <body>
-    <div id="content">
-      <form enctype="text/plain" action="../Gene_query_app/" method="post">
+  <body class="HolyGrail">
+    <header>
+      <div class=\"header\">
         <p>
-          <label for="Job Name">Job Name:</label>
-          <input type="text" name="jobid">
-          <br>
-          <label for="Genename">Genename:</label>
-          <input type="text" name="genename">
+        IBD models query
         </p>
+        <br>
+        <hr class="solid">
+        <br>
+      </div>
+    </header>
+    <div class="HolyGrail-body">
+      <main class="HolyGrail-content">
+        <form enctype="text/plain" action="../Gene_query_app/" method="post">
+          <p>
+            <label for="Job Name">Job Name:</label>
+            <input type="text" name="jobid">
+            <br>
+            <label for="Genename">Genename:</label>
+            <input type="text" name="genename">
+          </p>
 
-        <input id="formSubmit" value="Submit" type="submit" onclick="loader();">
-      </form>
+          <input id="formSubmit" value="Submit" type="submit" onclick="loader();">
+        </form>
+        <div id="loading"></div>
+      </main>
+      <nav class="HolyGrail-nav">
+        <a href="https://www.transregio241.de/">TRR241 homepage</a>
+      </nav>
+      <aside class="HolyGrail-ads"></aside>
     </div>
-    <div id="loading"></div>
+    <footer></footer>
   </body>
 </html>
