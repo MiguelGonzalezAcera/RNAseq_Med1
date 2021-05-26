@@ -375,7 +375,10 @@ def single_html(config, tool_name):
     # End the html file
     html_result += """
     </main>
-    <nav class="HolyGrail-nav"></nav>
+    <nav class="HolyGrail-nav">
+    <a href="https://www.transregio241.de/">TRR241 homepage</a>
+    <hr class="solid">
+    </nav>
     <aside class="HolyGrail-ads"></aside>
     </div>
     <footer></footer>
