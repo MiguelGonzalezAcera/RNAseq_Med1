@@ -216,6 +216,21 @@ rule volcano_markers:
         }
         python_scripts.volcano_markers.volcano_markers(config_dict, tool_name)
 
+rule GSEA_markers:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched
+    output:
+        GSEAMtouched = f"{outfolder}/markers/GSEAMtouched.txt"
+    run:
+        tool_name = 'GSEA_markers'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.GSEA_markers.GSEA_markers(config_dict, tool_name)
+
 rule volcano_plot:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
@@ -281,7 +296,8 @@ rule GO:
 rule report:
     input:
         markerstouched = rules.clustering_markers.output.markerstouched,
-        MVtouched = rules.volcano_markers.output.MVtouched
+        MVtouched = rules.volcano_markers.output.MVtouched,
+        GSEAMtouched = rules.GSEA_markers.output.GSEAMtouched
     output:
         report = f"{outfolder}/report.pdf"
     run:
