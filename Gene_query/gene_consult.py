@@ -243,7 +243,7 @@ def report_plots(config, tool_name, mycursor, genename, gene_display, comparison
         tab_df['model'] = model_list
 
         # Save the table to a file
-        FC_table_path = config['tools_conf'][tool_name]['output']['FC_table'].replace('Mouse_models', project)
+        FC_table_path = config['tools_conf'][tool_name]['output']['FC_table'].replace('MouseModelsInflammation', project)
 
         tab_df.to_csv(FC_table_path, sep='\t', index=False)
 
@@ -253,15 +253,15 @@ def report_plots(config, tool_name, mycursor, genename, gene_display, comparison
         # Check if the project is a time course or a normal
         if comparisons[organism][project]['type'] == 'normal':
             # 1.- Counts plot
-            counts_path = config['tools_conf'][tool_name]['output']['counts_plot'].replace('Mouse_models', project)
+            counts_path = config['tools_conf'][tool_name]['output']['counts_plot'].replace('MouseModelsInflammation', project)
             counts_plot(counts_df, counts_path, gene_display)
         elif comparisons[organism][project]['type'] == 'timecourse':
             # 1.- Time course plot
-            counts_path = config['tools_conf'][tool_name]['output']['counts_plot'].replace('Mouse_models', project)
+            counts_path = config['tools_conf'][tool_name]['output']['counts_plot'].replace('MouseModelsInflammation', project)
             course_plot(counts_df, counts_path, gene_display)
 
         # 2.- Diff expression plot
-        barplot_FC_path = config['tools_conf'][tool_name]['output']['FC_barplot'].replace('Mouse_models', project)
+        barplot_FC_path = config['tools_conf'][tool_name]['output']['FC_barplot'].replace('MouseModelsInflammation', project)
         barplot_FC(diff_df, barplot_FC_path, gene_display)
 
 def gene_consult(config, tool_name):
@@ -294,11 +294,11 @@ def gene_consult(config, tool_name):
     # Create a dict with the comparisons that have to be in the report (hand selected)
     comparisons = {
         "mouse": {
-            "Mouse_models": {
-                "design": "/VAULT/Thesis_proj/design.txt",
+            "MouseModelsInflammation": {
+                "design": "/VAULT/Thesis_proj/design_inflammation.txt",
                 "comparisons": {
-                    'Cerldc': 'cDSSdc,DSSdc,OxCdc,RKOdc',
-                    'RKOdc': 'TCdc'
+                    'Cerl': 'cDSS,DSS,OxC,RKO',
+                    'RKO': 'TC'
                 },
                 "type": "normal"
             },

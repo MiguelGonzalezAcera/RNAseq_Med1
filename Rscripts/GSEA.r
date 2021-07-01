@@ -2,7 +2,7 @@ suppressPackageStartupMessages(library(clusterProfiler))
 suppressPackageStartupMessages(library(enrichplot))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
-
+suppressPackageStartupMessages(library(ggplot2))
 
 option_list = list(
   make_option("--genegroup", type="character",
@@ -49,7 +49,7 @@ if (length(rownames(as.data.frame(z))) >= 10){
 write.table(as.data.frame(z), file=gsub(".png",".tsv",opt$gseaplot, fixed = TRUE),sep="\t",row.names = FALSE)
 
 png(file=opt$gseaplot, width = 2000, height = 2000, res = 200)
-gseaplot2(z, geneSetID = 1:len, pvalue_table = FALSE, base_size = 24)
+gseaplot2(z, geneSetID = 1, color="red", pvalue_table = FALSE, base_size = 24)
 dev.off()
 
 # Barplot

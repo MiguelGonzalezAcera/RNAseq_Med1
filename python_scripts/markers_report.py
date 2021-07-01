@@ -15,6 +15,7 @@ import argparse
 import logging
 import time
 import glob
+import pandas as pd
 from datetime import date
 
 def recover_styles():
@@ -254,6 +255,42 @@ def draw_paragraph(par_text, style):
 
     return story
 
+def draw_GSEA_table(table_path):
+    story = []
+
+    df = pd.read_csv(table_path, sep='\t', index_col=None)
+
+    data = [['Enrichment score','p value']]
+
+    for index, row in df.iterrows():
+        # Select color for the background
+        if row['pvalue'] < 0.05 and row['enrichmentScore'] >= 0:
+            color_cell = colors.pink
+        elif row['pvalue'] < 0.05 and row['enrichmentScore'] < 0:
+            color_cell = colors.lavender
+        else:
+            color_cell = colors.white
+
+        # Get data in table format
+        data_row = [round(row['enrichmentScore'], 2),round(row['pvalue'], 2)]
+        data.append(data_row)
+
+    # Table the data
+    t = Table(data)
+    t.setStyle(TableStyle([
+         ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+         ('SIZE', (0, 0), (-1, -1), 5),
+         ('LEADING', (0, 0), (-1, -1), 9),
+         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BACKGROUND', (0, 1), (0, 1), color_cell),
+         ]))
+
+    story.append(t)
+    return story
+
 def get_gene_markers(organism):
     # TEMP: change lorem for actual description
 
@@ -303,6 +340,7 @@ def report(config, tool_name):
 
     markerHeatmapsPath = "/".join(config['tools_conf'][tool_name]['input']['markerstouched'].split('/')[0:-1])
     markerScatterPath = "/".join(config['tools_conf'][tool_name]['input']['MVtouched'].split('/')[0:-1])
+    markerGSEAPath = "/".join(config['tools_conf'][tool_name]['input']['GSEAMtouched'].split('/')[0:-1])
 
     # Select the list of markers
     gene_markers = get_gene_markers(organism)
@@ -362,17 +400,15 @@ def report(config, tool_name):
         markerInfoFrame = Frame(12*cm, 390, 200, 250, showBoundary=0)
         fillFrame(markerInfoFrame, markerInfo, c)
 
-        # Dot plots
+        # Dot plots and GSEAs
 
         ## TRAIN OF THOUGHT:
         # Define before the loops the initial parameters, x, y, heigth, width. Change them as the loop goes using the proper counter, usually "j".
         # If titles are needed, add/subtract from the current params for the frames.
         # Establish a minimal "y" for rows. When value of "y" goes under a threshold for a line, finish the row, change page.
 
-        # Define initial params in cm
-        x = 2
+        # Define initial params
         y = 350
-        width = 6
 
         # Set a counter for the final pages
         k = 0
@@ -383,54 +419,67 @@ def report(config, tool_name):
             # Write title of section
             controlInfo = draw_paragraph(f"DE with control: {control}", styles['leftSubtitle'])
 
-            controlInfoFrame = Frame(x*cm, y, 500, 60, showBoundary=0)
+            controlInfoFrame = Frame(2*cm, y, 500, 60, showBoundary=0)
             fillFrame(controlInfoFrame, controlInfo, c)
 
-            y -= 120
+            y -= 170
 
-            # Init counter for rows and counter for last page
-            j = 0
+            # Init counter for last page
             l = 0
 
             for sample in samples:
-                # Reset line if there are too many comparisons to a single control
-                if j == 3:
-                    x = 2
-                    y -= 150
-                    j = 0
-
-                # Object with the plot:
+                # Object with the scatter plot:
                 scplot_list = glob.glob(f"{markerHeatmapsPath}/{marker}_{sample}_{control}_scattermarkers.png")
                 if len(scplot_list) == 0:
                     scplotInfo = draw_paragraph(f"No markers have been found differentially expressed for assay {sample} - {control}.", styles['subtitle'])
                 else:
                     scplot = scplot_list[0]
-                    scplotInfo = draw_image(scplot, 5, 5)
+                    scplotInfo = draw_image(scplot, 6, 6)
 
-                scplotInfoFrame = Frame(x*cm, y, 160, 160, showBoundary=0)
+                scplotInfoFrame = Frame(2*cm, y, 200, 200, showBoundary=0)
                 fillFrame(scplotInfoFrame, scplotInfo, c)
 
-                j += 1
+                # Object with the GSEA plot:
+                GSEAplot_list = glob.glob(f"{markerHeatmapsPath}/*_{sample}_{control}_{marker}_GSEA.png")
+                if len(GSEAplot_list) == 0:
+                    GSEAplotInfo = draw_paragraph(f"No markers have been found differentially expressed for assay {sample} - {control}.", styles['subtitle'])
+                else:
+                    GSEAplot = GSEAplot_list[0]
+                    GSEAplotInfo = draw_image(GSEAplot, 6, 6)
+
+                GSEAplotInfoFrame = Frame(9*cm, y, 200, 200, showBoundary=0)
+                fillFrame(GSEAplotInfoFrame, GSEAplotInfo, c)
+
+                # Object with the GSEA plot:
+                GSEAtab_list = glob.glob(f"{markerHeatmapsPath}/*_{sample}_{control}_{marker}_GSEA.tsv")
+                if len(GSEAtab_list) == 0:
+                    GSEAtabInfo = draw_paragraph(f"No markers have been found differentially expressed for assay {sample} - {control}.", styles['subtitle'])
+                else:
+                    GSEAtab = GSEAtab_list[0]
+                    GSEAtabInfo = draw_GSEA_table(GSEAtab)
+
+                GSEAtabInfoFrame = Frame(15*cm, y, 160, 130, showBoundary=0)
+                fillFrame(GSEAtabInfoFrame, GSEAtabInfo, c)
+
                 l += 1
-                x += 6
 
                 #print(f"{marker}_{sample}_{control}, {y}, {j}, {l}, {len(samples)}")
 
                 # If heigth is less than the threshold, the line is full and there is still plots to add
-                if y < 90  and j == 3 and l != len(samples):
+                if y < 90  and l != len(samples):
                     # Reset page
                     c.showPage()
                     header(c, d, styles)
                     footer(c, styles)
 
                     # Reset heigth, width and counter
-                    y = 560
-                    x = 2
-                    j = 0
+                    y = 500
+                elif l != len(samples):
+                    # Add space exept if its the first one
+                    y -= 170
 
             # Decrease heigth and reset width for the next iteration
-            x = 2
-            y -= 50
+            y -= 70
             k +=1
 
             # Check if a new page has to be made

@@ -1,60 +1,20 @@
 import pandas as pd
+import dominate
+from dominate.tags import *
 from biomart import BiomartServer
 
 def consultBiomart(mouse_genename, human_genename):
-    # Connect with biomart
-    try:
-        server = BiomartServer('http://www.ensembl.org/biomart')
-    except:
-        return ['Biomart is offline', 'Biomart is offline']
+    # Read biomart files
+    mouse_bmart_df = pd.read_csv("/DATA/mouse_biomart.tsv", sep='\t', index_col=None)
+    human_bmart_df = pd.read_csv("/DATA/human_biomart.tsv", sep='\t', index_col=None)
 
-    # Connect with mouse genome
-    ensembl_connection = server.datasets['mmusculus_gene_ensembl']
+    # Select the gene description from each
+    mouse_desc = mouse_bmart_df[mouse_bmart_df['Expression Atlas ID'] == mouse_genename]['Gene description'].tolist()[0]
+    human_desc = human_bmart_df[human_bmart_df['Expression Atlas ID'] == human_genename]['Gene description'].tolist()[0]
 
-    # Query data
-    response = ensembl_connection.search({
-            'filters': {
-                'ensembl_gene_id': [mouse_genename]
-            },
-            'attributes': [
-                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
-            ]
-            })
+    descriptions = [mouse_desc, human_desc]
 
-    # Store lines into list
-    data = []
-    for line in response.iter_lines():
-        line = line.decode('utf-8')
-        data.append(line.split("\t"))
-
-    # Connect with human genome
-    ensembl_connection = server.datasets['hsapiens_gene_ensembl']
-
-    # Query data
-    response = ensembl_connection.search({
-            'filters': {
-                'ensembl_gene_id': [human_genename]
-            },
-            'attributes': [
-                "ensembl_gene_id","entrezgene_id","external_gene_name","description"
-            ]
-            })
-
-    # Store lines into list
-    for line in response.iter_lines():
-        line = line.decode('utf-8')
-        data.append(line.split("\t"))
-
-    # Transform into df
-    resdf = pd.DataFrame(data)
-
-    # Name the new columns
-    resdf.columns = ['EnsemblID','NCBI_ID','GeneName','Description']
-
-    # Add column with the organism, for manteinance
-    resdf['organism'] = ['mouse', 'human']
-
-    return resdf['Description'].tolist()
+    return descriptions
 
 def gene_info(genename):
     # Get mouse ensembl id
@@ -101,17 +61,18 @@ def single_html(config, tool_name):
     # Define experiment sets and characteristics
     comparisons = {
         "mouse": {
-            "Mouse_models": {
-                "design": "/VAULT/Thesis_proj/design.txt",
+            "MouseModelsInflammation": {
+                "design": "/VAULT/Thesis_proj/design_inflammation.txt",
                 "samples": {
-                    'Cerldc': 'Bl6 mice from Erlangen. Distant Colon. 5 samples',
-                    'cDSSdc': 'Chronic DSS mice. Distant Colon. 5 samples',
-                    'DSSdc': 'DSS mice. Distant Colon. 5 samples',
-                    'OxCdc': 'Oxazolone Colitis mice. Distant Colon. 5 samples',
-                    'RKOdc': 'Rag KO mice. Distant Colon. 5 samples',
-                    'TCdc': 'Transference Colitis mice. Distant Colon. 5 samples'
+                    'Cerl': 'Bl6 mice from Erlangen. Distant Colon. 5 samples',
+                    'cDSS': 'Chronic DSS mice. Distant Colon. 5 samples',
+                    'DSS': 'DSS mice. Distant Colon. 5 samples',
+                    'OxC': 'Oxazolone Colitis mice. Distant Colon. 5 samples',
+                    'RKO': 'Rag KO mice. Distant Colon. 5 samples',
+                    'TC': 'Transference Colitis mice. Distant Colon. 5 samples'
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Compilation of several of the more relevant gut inflammation models in mice."
             },
             'DSS_TimeCourse': {
                 "design": "/VAULT/DSS_rec_evolution/design.txt",
@@ -122,7 +83,8 @@ def single_html(config, tool_name):
                     "Rec_mod": 'Moderate recovery. Time 12 days',
                     "Rec_ful": 'Full recovery. Time 19 days'
                 },
-                "type": "timecourse"
+                "type": "timecourse",
+                "description": "Time course of a 19 days DSS experiment. DSS treatment lasted for 8 days. Recovery was measured by the weight of the mice."
             },
             'WoundHealing': {
                 "design": "/VAULT/20200629_Wound_Healing_TC/design.txt",
@@ -132,7 +94,8 @@ def single_html(config, tool_name):
                     "h24": 'Wounded mice. Time 24 hours',
                     "h48": 'Wounded mice. Time 48 hours'
                 },
-                "type": "timecourse"
+                "type": "timecourse",
+                "description": "Time course of a gut wound healing. Time 0 represents the healthy mouse, and the experiment begins when a clip wound is performed through endoscopy in the gut wall."
             }
         },
         "human": {
@@ -142,7 +105,8 @@ def single_html(config, tool_name):
                     "normal": "Healthy patient",
                     "CD": "Diseased individual"
                 },
-                "type": ""
+                "type": "normal",
+                "description": "Ileal biopsies, paraffin fixed, of Crohn Diseased patients. 36 diseased and 32 non diseased controls."
             },
             "RISK_GSE57945": {
                 "design": "/VAULT/Human_data/GSE57945_IBD_RISK_Cohort_Ileum/design.txt",
@@ -161,7 +125,8 @@ def single_html(config, tool_name):
                     "CD_F_MiInf_NDUlcer": "Microinflammation, Non deep ulcer Crohn female",
                     "CD_F_NMiMaInf_NDUlcer": "Not macro/microinflammation, Non deep ulcer Crohn female"
                 },
-                "type": ""
+                "type": "normal",
+                "description": "Ileal biopsies of under 17 years old patients with simptoms of IBD. 359 samples segregated by sex, disease and size and depth of the ulcers"
             },
             "PSC_EMTAB7915": {
                 "design": "/VAULT/Human_data/E_MTAB_7915_PSC_cohort/design.txt",
@@ -170,7 +135,8 @@ def single_html(config, tool_name):
                     "sclerosing_cholangitis": "Sclerosing cholangitis patient",
                     "ulcerative_colitis": "Ulcerative colitis patient"
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Colonic biopsies of Ulcerative Colitis and Primary Scleroting Cholangitis. 30 samples"
             },
             "RISK_GSE117993": {
                 "design": "/VAULT/Human_data/GSE117993_IBD_RISK_cohort_Rectum/design.txt",
@@ -180,7 +146,8 @@ def single_html(config, tool_name):
                     "iCD": "Ileal Chrohns Disease",
                     "UC": "Ulcerative colitis"
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Rectal biopsies of pediatric patients of IBD. 190 samples."
             },
             "PROTECT_GSE109142": {
                 "design": "/VAULT/Human_data/GSE109142_Ulcerative_colitis_PROTECT_Cohort/design.txt",
@@ -194,191 +161,233 @@ def single_html(config, tool_name):
                     "UC_Ffemale_CSIV": "UC Intravenous cyclosporin female",
                     "UC_Ffemale_CSOral": "UC Oral cyclosporin female"
                 },
-                "type": "normal"
+                "type": "normal",
+                "description": "Rectal biopsies of Ulcerative Colitis patients. 206 samples segregated by sex and treatment recieved."
             }
         }
     }
 
-    # Start with constant stuff
-    html_result = f"""<!DOCTYPE html>
-    <html lang=\"en\" dir=\"ltr\">
-    <head>
-    <meta charset=\"utf-8\">
-    <title>{genename} Result</title>
-    <!-- Set table style (I thing this is css, but im not so sure, need to re read on html) -->
-    <style media=\"screen\">
-    hr.solid {{
-        border-top: 3px solid #bbb;
-    }}
-    table, th, td {{
-        border: 2px solid black;
-        border-collapse: collapse;
-        padding: 5px;
-    }}
-    .textTable {{
-    text-align: left;
-    }}
-    </style>
+    # Start the html object
+    doc = dominate.document(title=f'{genename} Result')
 
-    </head>
-    <body>
-    <!-- Put the title in its own division -->
-    <div class=\"header\">
-    <p>
-    IBD models query for {genename}
-    </p>
-    </div>
+    # Write the head element
+    with doc.head:
+        # Set charset
+        meta(charset='utf-8')
 
-    """
+        # Set CSS style
+        style("""
+        hr.solid {
+            border-top: 3px solid #bbb;
+        }
+        table, th, td {
+            border: 2px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+        .textTable {
+        text-align: left;
+        }
 
-    # Get data for info table
-    res_gene_info = gene_info(genename)
+        .HolyGrail {
+          display: flex;
+          min-height: 100vh;
+          flex-direction: column;
+        }
 
-    # include table in html scheme
-    html_result += f"""<!-- Create a table for the gene information. Remember, tr opens a row, th opens a cell in the row and all is subjected to the format set in styles at the beginning of the page -->
-    <table>
-    <tr>
-    <th>Mouse Ensembl ID</th>
-    <th>{res_gene_info[0][0]}</th>
-    <th>Mouse NCBI ID</th>
-    <th>{res_gene_info[0][1]}</th>
-    </tr>
-    <tr>
-    <th>Mouse Gene Desc</th>
-    <th colspan=\"3\">{res_gene_info[0][2]}</th>
-    </tr>
-    <tr>
-    <th>Human Ensembl ID</th>
-    <th>{res_gene_info[1][0]}</th>
-    <th>Human NCBI ID</th>
-    <th>{res_gene_info[1][1]}</th>
-    </tr>
-    <tr>
-    <th>Human Gene Desc</th>
-    <th colspan=\"3\">{res_gene_info[1][2]}</th>
-    </tr>
-    </table>
-    <br>
+        .HolyGrail-body {
+          display: flex;
+          flex: 1;
+        }
 
-    <p>Open results as <a href=\"{report}\">PDF file</a>.</p>
-    <br>
-    """
+        .HolyGrail-content {
+          flex: 1;
+        }
 
-    for organism in comparisons:
-        for model in comparisons[organism]:
-            barplot_FC_model = FCPlot.replace('Mouse_models', model)
-            table_FC_models = FCTable.replace('Mouse_models', model)
-            counts_plot = countsPlot.replace('Mouse_models', model)
+        .HolyGrail-nav, .HolyGrail-ads {
+          /* 12em is the width of the columns */
+          flex: 0 0 12em;
+        }
 
-            # Start adding the titles, texts and plots for fold change
-            html_result += f"""<div class=\"header\">
-            <br>
-            <!-- Insert a line separator. Style in css on top -->
-            <hr class="solid">
-            <br>
-            <p>
-            {genename} in {model} ({organism})
-            </p>
-            </div>
-            <br>
+        .HolyGrail-nav {
+          /* put the nav on the left */
+          order: -1;
+        }
+        """,
+        media='screen')
 
-            <div class=\"subtitle\">
-            <p>Behaviour of gene {genename} in differential expression assays. Bar chart with the fold change over the different differential expression analysis performed in the experiment and table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Model-Control</b>.</p>
-            </div>
-            <br>
-            <br>
+    # Write the body
 
-            <div>
-            <img src=\"{barplot_FC_model}\" alt=\"Fold change\" width=\"500\" height=\"450\">
-            </div>
+    with doc.body:
+        # Change the class attribute to Holy Grail
+        attr(cls='HolyGrail')
 
-            <div class=\"header\">
-            <p>Fold Change</p>
-            </div>
+        # Add the header and its contents
+        with header().add(div(cls='header')):
+            p(f"IBD models query for {genename}")
+            br()
+            hr(cls='solid')
+            br()
 
-            <table>
-            <tr>
-            <th>model</th>
-            <th>log2FoldChange</th>
-            <th>pvalue</th>
-            <th>padj</th>
-            </tr>"""
+        # Insert the central body of the webpage
+        with div(cls='HolyGrail-body'):
+            # Add the content
+            with main(cls='HolyGrail-content'):
+                # Retrieve annotation for the table
+                res_gene_info = gene_info(genename)
 
-            # Read table
-            table_FC_models_df = pd.read_csv(table_FC_models, sep='\t', index_col=None)
+                # Create the table with the general annotation
+                table(
+                    tr(
+                        th("Mouse Ensembl ID"),
+                        th(f"{res_gene_info[0][0]}"),
+                        th("Mouse NCBI ID"),
+                        th(f"{res_gene_info[0][1]}")
+                    ),
+                    tr(
+                        th("Mouse Gene Desc"),
+                        th(f"{res_gene_info[0][2]}", colspan=3)
+                    ),
+                    tr(
+                        th("Human Ensembl ID"),
+                        th(f"{res_gene_info[1][0]}"),
+                        th("Human NCBI ID"),
+                        th(f"{res_gene_info[1][1]}")
+                    ),
+                    tr(
+                        th("Human Gene Desc"),
+                        th(f"{res_gene_info[1][2]}", colspan=3)
+                    )
+                )
+                br()
 
-            # loop through the pandas to include the data in the table
-            for index, row in table_FC_models_df.iterrows():
-                html_result += f"<tr>\n<th>{row['model']}</th>\n<th>{row['log2FoldChange']:.2f}</th>\n<th>{row['pvalue']:.2f}</th>\n<th>{row['padj']:.2f}</th>\n</tr>\n"
+                # Add link to PDF file
+                p(f"Open results as ", a("PDF file", href=f"{report}"))
 
-            # add next stage of page, the counts plots.
-            if comparisons[organism][model]['type'] == 'timecourse':
-                subtitle_text = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
-            else:
-                subtitle_text = f'Normalized counts of {genename} in different samples where available.'
+                # Add button to go back to main page
+                form(input_(type="submit", value="Go Back"), action="../Gene_query/")
+                br()
 
-            # Add to the html file
-            html_result += f"""</table>
+                # Write each part for the models
+                for organism in comparisons:
+                    for model in comparisons[organism]:
+                        # Select the filenames of the data files
+                        barplot_FC_model = FCPlot.replace('MouseModelsInflammation', model)
+                        table_FC_models = FCTable.replace('MouseModelsInflammation', model)
+                        counts_plot = countsPlot.replace('MouseModelsInflammation', model)
 
-            <br>
-            <br>
-            <br>
-            <br>
+                        # Create division for title
+                        with div(cls="header"):
+                            br()
+                            hr(cls='solid')
+                            br()
+                            p(f"{genename} in {model} ({organism})")
 
-            <div class=\"subtitle\">
-            <p>{subtitle_text}</p>
-            </div>
+                        br()
 
-            <br>
+                        # Include description
+                        div(p(
+                            f"Behaviour of gene {genename} in differential expression assays. Bar chart with the fold change over the different differential expression analysis performed in the experiment and\
+                             table containing the result parameters of the differential expression analysis. The nomenclature of the models is always ",
+                             b("Model-Control"), "."
+                        ), cls="subtitle")
+                        br()
+                        br()
 
-            <img src=\"{counts_plot}\" alt=\"Counts\" width=\"500\" height=\"450\">
+                        # Insert the barplot Image
+                        div(img(src=f"{barplot_FC_model}", alt='Fold Change', width='500', heigth='450'))
 
-            <br>
-            """
+                        # Insert the header for the table
+                        div(p('Fold change'), cls='header')
 
-            # Fix the legend table
-            # Iter and add samples to the list
-            sampleList = []
-            for sample in comparisons[organism][model]['samples']:
-                sampleList.append(f"- {sample}: {comparisons[organism][model]['samples'][sample]}")
+                        # Add the table with the fold change
+                        with table():
+                            # Write header
+                            tr(
+                                th("model"),
+                                th("log2FoldChange"),
+                                th("pvalue"),
+                                th("padj")
+                            )
+                            # Read table
+                            table_FC_models_df = pd.read_csv(table_FC_models, sep='\t', index_col=None)
 
-            # Split in groups of 2
-            sampleList_split = [sampleList[x:x+2] for x in range(0, len(sampleList), 2)]
+                            # loop through the pandas to include the data in the table
+                            for index, row in table_FC_models_df.iterrows():
+                                tr(
+                                    th(f"{row['model']}"),
+                                    th(f"{row['log2FoldChange']:.2f}"),
+                                    th(f"{row['pvalue']:.2f}"),
+                                    th(f"{row['padj']:.2f}")
+                                )
+                        br()
+                        br()
+                        br()
+                        br()
 
-            #Transform into dataframe
-            table_legend = pd.DataFrame(sampleList_split)
+                        # Write the text for the counts plots
+                        if comparisons[organism][model]['type'] == 'timecourse':
+                            subtitle_text = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
+                        else:
+                            subtitle_text = f'Normalized counts of {genename} in different samples where available.'
 
-            # Add the legend after each model
-            html_result += f"""<br>
+                        div(p(f"{subtitle_text}"), cls='subtitle')
 
-            <div class=\"header\">
-            <p>Samples meaning</p>
-            </div>
+                        br()
 
-            <table>"""
+                        # Insert the counts Image
+                        div(img(src=f"{counts_plot}", alt='Counts', width='500', heigth='450'))
 
-            for index, row in table_legend.iterrows():
-                if row[1] == None:
-                    html_result += f"<tr>\n<th>{row[0]}</th>\n<th> </th>\n</tr>\n"
-                else:
-                    html_result += f"<tr>\n<th>{row[0]}</th>\n<th>{row[1]}</th>\n</tr>\n"
+                        br()
 
-            html_result += f"""</table>
+                        # Fix the legend table
+                        # Iter and add samples to the list
+                        sampleList = []
+                        for sample in comparisons[organism][model]['samples']:
+                            sampleList.append(f"- {sample}: {comparisons[organism][model]['samples'][sample]}")
 
-            <br>
-            <br>
-            <br>
-            """
-    # End the html file
-    html_result += """
-    </body>
-    </html>
-    """
+                        # Split in groups of 2
+                        sampleList_split = [sampleList[x:x+2] for x in range(0, len(sampleList), 2)]
 
+                        #Transform into dataframe
+                        table_legend = pd.DataFrame(sampleList_split)
+
+                        # Header for the table
+                        div(p("Samples legend"), cls='header')
+
+                        # Generate the table in the html
+                        with table():
+                            for index, row in table_legend.iterrows():
+                                if row[1] == None:
+                                    tr(
+                                        th(f"{row[0]}"),
+                                        th()
+                                    )
+                                else:
+                                    tr(
+                                        th(f"{row[0]}"),
+                                        th(f"{row[1]}")
+                                    )
+                        br()
+                        br()
+                        br()
+
+
+            # Add nav side bar
+            nav(a("TRR241 homepage", href="https://www.transregio241.de/"),
+                hr(cls='solid'),
+                cls='HolyGrail-nav')
+
+            # Add aside side bar
+            aside(cls='HolyGrail-ads')
+
+        # Add footer
+        # TODO: change to a -with- once we have something to add here
+        footer()
+
+    # Write the html to file
     html_file = open(html_path, 'w')
-
-    html_file.write(html_result)
-
+    html_file.write(doc.render())
     html_file.close()
 
 def get_arguments():
@@ -403,7 +412,7 @@ def get_arguments():
 
     return args
 
-def main():
+def main_():
     """
     Main function of the script. Launches the rest of the process
     """
@@ -426,4 +435,4 @@ def main():
     logging.info(f'Finished gene_consult')
 
 if __name__ == "__main__":
-    main()
+    main_()
