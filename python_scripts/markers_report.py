@@ -474,12 +474,12 @@ def report(config, tool_name):
 
                     # Reset heigth, width and counter
                     y = 500
-                else:
+                elif l != len(samples):
                     # Add space exept if its the first one
                     y -= 170
 
             # Decrease heigth and reset width for the next iteration
-            y -= 80
+            y -= 70
             k +=1
 
             # Check if a new page has to be made

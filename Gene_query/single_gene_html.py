@@ -1,4 +1,6 @@
 import pandas as pd
+import dominate
+from dominate.tags import *
 from biomart import BiomartServer
 
 def consultBiomart(mouse_genename, human_genename):
@@ -165,231 +167,227 @@ def single_html(config, tool_name):
         }
     }
 
-    # Start with constant stuff
-    html_result = f"""<!DOCTYPE html>
-    <html lang=\"en\" dir=\"ltr\">
-    <head>
-    <meta charset=\"utf-8\">
-    <title>{genename} Result</title>
-    <!-- Set table style (I thing this is css, but im not so sure, need to re read on html) -->
-    <style media=\"screen\">
-    hr.solid {{
-        border-top: 3px solid #bbb;
-    }}
-    table, th, td {{
-        border: 2px solid black;
-        border-collapse: collapse;
-        padding: 5px;
-    }}
-    .textTable {{
-    text-align: left;
-    }}
+    # Start the html object
+    doc = dominate.document(title=f'{genename} Result')
 
-    .HolyGrail {{
-      display: flex;
-      min-height: 100vh;
-      flex-direction: column;
-    }}
+    # Write the head element
+    with doc.head:
+        # Set charset
+        meta(charset='utf-8')
 
-    .HolyGrail-body {{
-      display: flex;
-      flex: 1;
-    }}
+        # Set CSS style
+        style("""
+        hr.solid {
+            border-top: 3px solid #bbb;
+        }
+        table, th, td {
+            border: 2px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+        .textTable {
+        text-align: left;
+        }
 
-    .HolyGrail-content {{
-      flex: 1;
-    }}
+        .HolyGrail {
+          display: flex;
+          min-height: 100vh;
+          flex-direction: column;
+        }
 
-    .HolyGrail-nav, .HolyGrail-ads {{
-      /* 12em is the width of the columns */
-      flex: 0 0 12em;
-    }}
+        .HolyGrail-body {
+          display: flex;
+          flex: 1;
+        }
 
-    .HolyGrail-nav {{
-      /* put the nav on the left */
-      order: -1;
-    }}
+        .HolyGrail-content {
+          flex: 1;
+        }
 
-    </style>
+        .HolyGrail-nav, .HolyGrail-ads {
+          /* 12em is the width of the columns */
+          flex: 0 0 12em;
+        }
 
-    </head>
-    <body class="HolyGrail">
-    <header>
-    <!-- Put the title in its own division -->
-    <div class=\"header\">
-    <p>
-    IBD models query for {genename}
-    </p>
-    <br>
-    <hr class="solid">
-    <br>
-    </div>
-    </header>
-    <div class="HolyGrail-body">
-    <main class="HolyGrail-content">
-    """
+        .HolyGrail-nav {
+          /* put the nav on the left */
+          order: -1;
+        }
+        """,
+        media='screen')
 
-    # Get data for info table
-    res_gene_info = gene_info(genename)
+    # Write the body
 
-    # include table in html scheme
-    html_result += f"""<!-- Create a table for the gene information. Remember, tr opens a row, th opens a cell in the row and all is subjected to the format set in styles at the beginning of the page -->
-    <table>
-    <tr>
-    <th>Mouse Ensembl ID</th>
-    <th>{res_gene_info[0][0]}</th>
-    <th>Mouse NCBI ID</th>
-    <th>{res_gene_info[0][1]}</th>
-    </tr>
-    <tr>
-    <th>Mouse Gene Desc</th>
-    <th colspan=\"3\">{res_gene_info[0][2]}</th>
-    </tr>
-    <tr>
-    <th>Human Ensembl ID</th>
-    <th>{res_gene_info[1][0]}</th>
-    <th>Human NCBI ID</th>
-    <th>{res_gene_info[1][1]}</th>
-    </tr>
-    <tr>
-    <th>Human Gene Desc</th>
-    <th colspan=\"3\">{res_gene_info[1][2]}</th>
-    </tr>
-    </table>
-    <br>
+    with doc.body:
+        # Change the class attribute to Holy Grail
+        attr(cls='HolyGrail')
 
-    <p>Open results as <a href=\"{report}\">PDF file</a>.</p>
-    <br>
-    <!-- Insert a button for going back to the form -->
-    <form action="../Gene_query/">
-    <input type="submit" value="Go Back" />
-    </form>
-    <br>
-    """
+        # Add the header and its contents
+        with header().add(div(cls='header')):
+            p(f"IBD models query for {genename}")
+            br()
+            hr(cls='solid')
+            br()
 
-    for organism in comparisons:
-        for model in comparisons[organism]:
-            barplot_FC_model = FCPlot.replace('MouseModelsInflammation', model)
-            table_FC_models = FCTable.replace('MouseModelsInflammation', model)
-            counts_plot = countsPlot.replace('MouseModelsInflammation', model)
+        # Insert the central body of the webpage
+        with div(cls='HolyGrail-body'):
+            # Add the content
+            with main(cls='HolyGrail-content'):
+                # Retrieve annotation for the table
+                res_gene_info = gene_info(genename)
 
-            # Start adding the titles, texts and plots for fold change
-            html_result += f"""<div class=\"header\">
-            <br>
-            <!-- Insert a line separator. Style in css on top -->
-            <hr class="solid">
-            <br>
-            <p>
-            {genename} in {model} ({organism})
-            </p>
-            </div>
-            <br>
+                # Create the table with the general annotation
+                table(
+                    tr(
+                        th("Mouse Ensembl ID"),
+                        th(f"{res_gene_info[0][0]}"),
+                        th("Mouse NCBI ID"),
+                        th(f"{res_gene_info[0][1]}")
+                    ),
+                    tr(
+                        th("Mouse Gene Desc"),
+                        th(f"{res_gene_info[0][2]}", colspan=3)
+                    ),
+                    tr(
+                        th("Human Ensembl ID"),
+                        th(f"{res_gene_info[1][0]}"),
+                        th("Human NCBI ID"),
+                        th(f"{res_gene_info[1][1]}")
+                    ),
+                    tr(
+                        th("Human Gene Desc"),
+                        th(f"{res_gene_info[1][2]}", colspan=3)
+                    )
+                )
+                br()
 
-            <div class=\"subtitle\">
-            <p>Behaviour of gene {genename} in differential expression assays. Bar chart with the fold change over the different differential expression analysis performed in the experiment and table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Model-Control</b>.</p>
-            </div>
-            <br>
-            <br>
+                # Add link to PDF file
+                p(f"Open results as ", a("PDF file", href=f"{report}"))
 
-            <div>
-            <img src=\"{barplot_FC_model}\" alt=\"Fold change\" width=\"500\" height=\"450\">
-            </div>
+                # Add button to go back to main page
+                form(input_(type="submit", value="Go Back"), action="../Gene_query/")
+                br()
 
-            <div class=\"header\">
-            <p>Fold Change</p>
-            </div>
+                # Write each part for the models
+                for organism in comparisons:
+                    for model in comparisons[organism]:
+                        # Select the filenames of the data files
+                        barplot_FC_model = FCPlot.replace('MouseModelsInflammation', model)
+                        table_FC_models = FCTable.replace('MouseModelsInflammation', model)
+                        counts_plot = countsPlot.replace('MouseModelsInflammation', model)
 
-            <table>
-            <tr>
-            <th>model</th>
-            <th>log2FoldChange</th>
-            <th>pvalue</th>
-            <th>padj</th>
-            </tr>"""
+                        # Create division for title
+                        with div(cls="header"):
+                            br()
+                            hr(cls='solid')
+                            br()
+                            p(f"{genename} in {model} ({organism})")
 
-            # Read table
-            table_FC_models_df = pd.read_csv(table_FC_models, sep='\t', index_col=None)
+                        br()
 
-            # loop through the pandas to include the data in the table
-            for index, row in table_FC_models_df.iterrows():
-                html_result += f"<tr>\n<th>{row['model']}</th>\n<th>{row['log2FoldChange']:.2f}</th>\n<th>{row['pvalue']:.2f}</th>\n<th>{row['padj']:.2f}</th>\n</tr>\n"
+                        # Include description
+                        div(p(
+                            f"Behaviour of gene {genename} in differential expression assays. Bar chart with the fold change over the different differential expression analysis performed in the experiment and\
+                             table containing the result parameters of the differential expression analysis. The nomenclature of the models is always ",
+                             b("Model-Control"), "."
+                        ), cls="subtitle")
+                        br()
+                        br()
 
-            # add next stage of page, the counts plots.
-            if comparisons[organism][model]['type'] == 'timecourse':
-                subtitle_text = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
-            else:
-                subtitle_text = f'Normalized counts of {genename} in different samples where available.'
+                        # Insert the barplot Image
+                        div(img(src=f"{barplot_FC_model}", alt='Fold Change', width='500', heigth='450'))
 
-            # Add to the html file
-            html_result += f"""</table>
+                        # Insert the header for the table
+                        div(p('Fold change'), cls='header')
 
-            <br>
-            <br>
-            <br>
-            <br>
+                        # Add the table with the fold change
+                        with table():
+                            # Write header
+                            tr(
+                                th("model"),
+                                th("log2FoldChange"),
+                                th("pvalue"),
+                                th("padj")
+                            )
+                            # Read table
+                            table_FC_models_df = pd.read_csv(table_FC_models, sep='\t', index_col=None)
 
-            <div class=\"subtitle\">
-            <p>{subtitle_text}</p>
-            </div>
+                            # loop through the pandas to include the data in the table
+                            for index, row in table_FC_models_df.iterrows():
+                                tr(
+                                    th(f"{row['model']}"),
+                                    th(f"{row['log2FoldChange']:.2f}"),
+                                    th(f"{row['pvalue']:.2f}"),
+                                    th(f"{row['padj']:.2f}")
+                                )
+                        br()
+                        br()
+                        br()
+                        br()
 
-            <br>
+                        # Write the text for the counts plots
+                        if comparisons[organism][model]['type'] == 'timecourse':
+                            subtitle_text = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
+                        else:
+                            subtitle_text = f'Normalized counts of {genename} in different samples where available.'
 
-            <img src=\"{counts_plot}\" alt=\"Counts\" width=\"500\" height=\"450\">
+                        div(p(f"{subtitle_text}"), cls='subtitle')
 
-            <br>
-            """
+                        br()
 
-            # Fix the legend table
-            # Iter and add samples to the list
-            sampleList = []
-            for sample in comparisons[organism][model]['samples']:
-                sampleList.append(f"- {sample}: {comparisons[organism][model]['samples'][sample]}")
+                        # Insert the counts Image
+                        div(img(src=f"{counts_plot}", alt='Counts', width='500', heigth='450'))
 
-            # Split in groups of 2
-            sampleList_split = [sampleList[x:x+2] for x in range(0, len(sampleList), 2)]
+                        br()
 
-            #Transform into dataframe
-            table_legend = pd.DataFrame(sampleList_split)
+                        # Fix the legend table
+                        # Iter and add samples to the list
+                        sampleList = []
+                        for sample in comparisons[organism][model]['samples']:
+                            sampleList.append(f"- {sample}: {comparisons[organism][model]['samples'][sample]}")
 
-            # Add the legend after each model
-            html_result += f"""<br>
+                        # Split in groups of 2
+                        sampleList_split = [sampleList[x:x+2] for x in range(0, len(sampleList), 2)]
 
-            <div class=\"header\">
-            <p>Samples meaning</p>
-            </div>
+                        #Transform into dataframe
+                        table_legend = pd.DataFrame(sampleList_split)
 
-            <table>"""
+                        # Header for the table
+                        div(p("Samples legend"), cls='header')
 
-            for index, row in table_legend.iterrows():
-                if row[1] == None:
-                    html_result += f"<tr>\n<th>{row[0]}</th>\n<th> </th>\n</tr>\n"
-                else:
-                    html_result += f"<tr>\n<th>{row[0]}</th>\n<th>{row[1]}</th>\n</tr>\n"
+                        # Generate the table in the html
+                        with table():
+                            for index, row in table_legend.iterrows():
+                                if row[1] == None:
+                                    tr(
+                                        th(f"{row[0]}"),
+                                        th()
+                                    )
+                                else:
+                                    tr(
+                                        th(f"{row[0]}"),
+                                        th(f"{row[1]}")
+                                    )
+                        br()
+                        br()
+                        br()
 
-            html_result += f"""</table>
 
-            <br>
-            <br>
-            <br>
-            """
-    # End the html file
-    html_result += """
-    </main>
-    <nav class="HolyGrail-nav">
-    <a href="https://www.transregio241.de/">TRR241 homepage</a>
-    <hr class="solid">
-    </nav>
-    <aside class="HolyGrail-ads"></aside>
-    </div>
-    <footer></footer>
-    </body>
-    </html>
-    """
+            # Add nav side bar
+            nav(a("TRR241 homepage", href="https://www.transregio241.de/"),
+                hr(cls='solid'),
+                cls='HolyGrail-nav')
 
+            # Add aside side bar
+            aside(cls='HolyGrail-ads')
+
+        # Add footer
+        # TODO: change to a -with- once we have something to add here
+        footer()
+
+    # Write the html to file
     html_file = open(html_path, 'w')
-
-    html_file.write(html_result)
-
+    html_file.write(doc.render())
     html_file.close()
 
 def get_arguments():
@@ -414,7 +412,7 @@ def get_arguments():
 
     return args
 
-def main():
+def main_():
     """
     Main function of the script. Launches the rest of the process
     """
@@ -437,4 +435,4 @@ def main():
     logging.info(f'Finished gene_consult')
 
 if __name__ == "__main__":
-    main()
+    main_()
