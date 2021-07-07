@@ -355,6 +355,46 @@ def report(config, tool_name):
     header(c, d, styles)
     footer(c, styles)
 
+    # Create the page for the GSVA analysis
+
+    # Write the title
+    titleInfo = draw_paragraph("GSVA analysis", styles['bigSubtitle'])
+
+    # Fill the frame for the title
+    titleInfoFrame = Frame(1.5*cm, 650, 500, 80, showBoundary=0)
+    fillFrame(titleInfoFrame, titleInfo, c)
+
+    # Get path to heatmap file
+    GSVAhmapPath = config['tools_conf'][tool_name]['input']['GSVAhmap']
+
+    # Draw the heatmap
+    GSVAheatmapInfo = draw_image(GSVAhmapPath, 8.5, 8.5)
+
+    # Put the damn thing into the pdf
+    GSVAheatmapInfoFrame = Frame(1.5*cm, 390, 300, 300, showBoundary=0)
+    fillFrame(GSVAheatmapInfoFrame, GSVAheatmapInfo, c)
+
+    # Repeat for the FC heatmap
+    GSVAhmapFCPath = config['tools_conf'][tool_name]['input']['GSVAhmapFC']
+    GSVAheatmapFCInfo = draw_image(GSVAhmapFCPath, 8.5, 8.5)
+
+    GSVAheatmapFCInfoFrame = Frame(10.5*cm, 390, 300, 300, showBoundary=0)
+    fillFrame(GSVAheatmapFCInfoFrame, GSVAheatmapFCInfo, c)
+
+    # Write explanation for GSVA
+    GSVAsubt = 'GSVA (Gene Set Variation Analysis) is a non-parametric, unsupervised method that calculates sample-wise gene set enrichment scores as a function of genes inside and outside the gene set, analogously to a competitive gene set test (PMC3618321). The heatmap on the left represents said scores in a color scale, being able to appreciate the differences between the control samples and the problem samples of the study. These differences can be tested by performing differential expression, done with the limma R package, and are represented in the heatmap on the right, with the p value of each test written inside each cell. In this last heatmap, the nomenclature for each test is always <b>Problem-Control</b>. Any of the cell types that could be found significant, has been subjected to other empirical and statistical tests in the pages below.'
+
+    # Add into paragraph
+    GSVAInfo = draw_paragraph(GSVAsubt, styles['normal'])
+
+    GSVAInfoFrame = Frame(2*cm, 290, 500, 100, showBoundary=0)
+    fillFrame(GSVAInfoFrame, GSVAInfo, c)
+
+    # Increase page, create theader
+    c.showPage()
+    header(c, d, styles)
+    footer(c, styles)
+
     # Start counter to manage iteration matters
     i = 0
 

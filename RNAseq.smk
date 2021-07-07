@@ -170,6 +170,23 @@ rule deseq2:
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
 
+rule GSVA:
+    input:
+        norm_counts = rules.deseq2.output.norm_counts,
+        design = design
+    output:
+        heatmap = f"{outfolder}/GSVA/{project}_GSVA_heatmap.png",
+        heatmapFC = f"{outfolder}/GSVA/{project}_GSVA_heatmap_FC.png"
+    run:
+        tool_name = 'GSVA'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input.allitems()},
+            'output': {i[0]: i[1] for i in output.allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.GSVA.GSVA(config_dict, tool_name)
+
 rule clustering_heatmap:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
@@ -297,7 +314,9 @@ rule report:
     input:
         markerstouched = rules.clustering_markers.output.markerstouched,
         MVtouched = rules.volcano_markers.output.MVtouched,
-        GSEAMtouched = rules.GSEA_markers.output.GSEAMtouched
+        GSEAMtouched = rules.GSEA_markers.output.GSEAMtouched,
+        GSVAhmap = rules.GSVA.output.heatmap,
+        GSVAhmapFC = rules.GSVA.output.heatmapFC
     output:
         report = f"{outfolder}/report.pdf"
     run:
