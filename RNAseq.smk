@@ -175,8 +175,7 @@ rule GSVA:
         norm_counts = rules.deseq2.output.norm_counts,
         design = design
     output:
-        heatmap = f"{outfolder}/GSVA/{project}_GSVA_heatmap.png",
-        heatmapFC = f"{outfolder}/GSVA/{project}_GSVA_heatmap_FC.png"
+        heatmap = f"{outfolder}/GSVA/{project}_GSVA_heatmap.png"
     run:
         tool_name = 'GSVA'
         config_dict['tools_conf'][tool_name] = {
@@ -315,8 +314,7 @@ rule report:
         markerstouched = rules.clustering_markers.output.markerstouched,
         MVtouched = rules.volcano_markers.output.MVtouched,
         GSEAMtouched = rules.GSEA_markers.output.GSEAMtouched,
-        GSVAhmap = rules.GSVA.output.heatmap,
-        GSVAhmapFC = rules.GSVA.output.heatmapFC
+        GSVAhmap = rules.GSVA.output.heatmap
     output:
         report = f"{outfolder}/report.pdf"
     run:

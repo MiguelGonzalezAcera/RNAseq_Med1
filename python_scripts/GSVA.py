@@ -21,7 +21,7 @@ def GSVA(config, tool_name):
 
     # Define the rest of the output parameters
     heatmap = config['tools_conf'][tool_name]['output']['heatmap']
-    heatmap_FC = config['tools_conf'][tool_name]['output']['heatmapFC']
+    heatmap_FC = config['tools_conf'][tool_name]['output']['heatmap'].replace(".png", "_FC.png")
 
     # Get options
     organism = config['options']['organism']
@@ -54,7 +54,8 @@ def GSVA(config, tool_name):
     names_str = ",".join(names_list)
 
     # Add the command
-    command += f"Rscript Rscripts/GSVA_plot_FC.r --Rdata {res_str} --colnames {names_str} --heatmap {heatmap_FC} --organism {organism}; "
+    if len(names_list) > 1:
+        command += f"Rscript Rscripts/GSVA_plot_FC.r --Rdata {res_str} --colnames {names_str} --heatmap {heatmap_FC} --organism {organism}; "
 
     # Run the command and log it
     logging.info(f'Running command: {command}')

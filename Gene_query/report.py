@@ -71,7 +71,7 @@ def getStyles():
         'title',
         parent=styles['default'],
         # fontName='Geogrotesque_Md',
-        fontSize=20,
+        fontSize=17,
         leading=32,
         alignment=TA_CENTER,
         spaceBefore=18,
@@ -519,7 +519,7 @@ def report(config, tool_name):
                     "CD_F_NMiMaInf_NDUlcer": "Not macro/microinflammation, Non deep ulcer Crohn female"
                 },
                 "type": "normal",
-                "description": "Ileal biopsies of under 17 years old patients with simptoms of IBD. 359 samples segregated by sex, disease and size and depth of the ulcers"
+                "description": "Ileal biopsies of under 17 years old patients with simptoms of IBD. 359 samples segregated by sex, disease and size and depth of the ulcers."
             },
             "PSC_EMTAB7915": {
                 "design": "/VAULT/Human_data/E_MTAB_7915_PSC_cohort/design.txt",
@@ -529,7 +529,7 @@ def report(config, tool_name):
                     "ulcerative_colitis": "Ulcerative colitis patient"
                 },
                 "type": "normal",
-                "description": "Colonic biopsies of Ulcerative Colitis and Primary Scleroting Cholangitis. 30 samples"
+                "description": "Colonic biopsies of Ulcerative Colitis and Primary Scleroting Cholangitis. 30 samples."
             },
             "RISK_GSE117993": {
                 "design": "/VAULT/Human_data/GSE117993_IBD_RISK_cohort_Rectum/design.txt",
@@ -594,14 +594,15 @@ def report(config, tool_name):
             title = f"Behaviour of {genename} in {experiment}"
             sectTitle = draw_paragraph(title, styles["title"])
 
-            sectTitleFrame = Frame(2*cm, 650, 500, 80, showBoundary=0)
+            sectTitleFrame = Frame(2*cm, 655, 500, 80, showBoundary=0)
             fillFrame(sectTitleFrame, sectTitle, c)
 
             # Add explanation for the following plots
-            subtitle = f'Behaviour of gene {genename} in differential expression assays. Left: Bar chart with the fold change over different differential expression analysis. Right: Table containing the result parameters of the differential expression analysis. The nomenclature of the models is always <b>Sample-Control</b>.'
+            descripcion = comparisons[organism][experiment]['description']
+            subtitle = f'Behaviour of gene {genename} in {experiment}. {descripcion} <b>Left</b>: Bar chart with the fold change over different differential expression analysis. <b>Right</b>: Table containing the result parameters of the differential expression analysis. The nomenclature of the model is always <b>Sample-Control</b>. A description of the samples is found at the end of the page.'
             FCsubt = draw_paragraph(subtitle, styles["normal"])
 
-            FCSubtFrame = Frame(2*cm, 635, 500, 50, showBoundary=0)
+            FCSubtFrame = Frame(2*cm, 635, 500, 60, showBoundary=0)
             fillFrame(FCSubtFrame, FCsubt, c)
 
             # Include fold change plot and table
@@ -616,9 +617,9 @@ def report(config, tool_name):
 
             # Add counts plot description
             if comparisons[organism][experiment]['type'] == 'timecourse':
-                subtitle = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
+                subtitle = f'Detailed view of the normalized counts on each stage of the {experiment} time course. Timepoint of each condition is included in the description of the samples.'
             else:
-                subtitle = f'Normalized counts of {genename} in different samples where available.'
+                subtitle = f'Normalized counts of {genename} in the samples of {experiment}'
 
             FCsubt = draw_paragraph(subtitle, styles["normal"])
             FCSubtFrame = Frame(2*cm, 370, 500, 50, showBoundary=0)

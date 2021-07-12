@@ -375,11 +375,12 @@ def report(config, tool_name):
     fillFrame(GSVAheatmapInfoFrame, GSVAheatmapInfo, c)
 
     # Repeat for the FC heatmap
-    GSVAhmapFCPath = config['tools_conf'][tool_name]['input']['GSVAhmapFC']
-    GSVAheatmapFCInfo = draw_image(GSVAhmapFCPath, 8.5, 8.5)
+    GSVAhmapFCPath = config['tools_conf'][tool_name]['input']['GSVAhmap'].replace(".png", "_FC.png")
+    if os.path.isfile(GSVAhmapFCPath):
+        GSVAheatmapFCInfo = draw_image(GSVAhmapFCPath, 8.5, 8.5)
 
-    GSVAheatmapFCInfoFrame = Frame(10.5*cm, 390, 300, 300, showBoundary=0)
-    fillFrame(GSVAheatmapFCInfoFrame, GSVAheatmapFCInfo, c)
+        GSVAheatmapFCInfoFrame = Frame(10.5*cm, 390, 300, 300, showBoundary=0)
+        fillFrame(GSVAheatmapFCInfoFrame, GSVAheatmapFCInfo, c)
 
     # Write explanation for GSVA
     GSVAsubt = 'GSVA (Gene Set Variation Analysis) is a non-parametric, unsupervised method that calculates sample-wise gene set enrichment scores as a function of genes inside and outside the gene set, analogously to a competitive gene set test (PMC3618321). The heatmap on the left represents said scores in a color scale, being able to appreciate the differences between the control samples and the problem samples of the study. These differences can be tested by performing differential expression, done with the limma R package, and are represented in the heatmap on the right, with the p value of each test written inside each cell. In this last heatmap, the nomenclature for each test is always <b>Problem-Control</b>. Any of the cell types that could be found significant, has been subjected to other empirical and statistical tests in the pages below.'
@@ -387,8 +388,63 @@ def report(config, tool_name):
     # Add into paragraph
     GSVAInfo = draw_paragraph(GSVAsubt, styles['normal'])
 
-    GSVAInfoFrame = Frame(2*cm, 290, 500, 100, showBoundary=0)
+    GSVAInfoFrame = Frame(2*cm, 340, 500, 100, showBoundary=0)
     fillFrame(GSVAInfoFrame, GSVAInfo, c)
+
+    # Increase page, create theader
+    c.showPage()
+    header(c, d, styles)
+    footer(c, styles)
+
+    # Insert legend for the rest of the tests
+    # Object with the title
+    titleInfo = draw_paragraph('Legend', styles['bigSubtitle'])
+
+    # Fill the frame for the title
+    titleInfoFrame = Frame(1.5*cm, 650, 500, 80, showBoundary=0)
+    fillFrame(titleInfoFrame, titleInfo, c)
+
+    # Object with the heatmap
+    hmapPath = "/DATA/RNAseq_test/Scripts/Legend/Legend_clustering_marker.png"
+    heatmapInfo = draw_image(hmapPath, 9, 9)
+
+    # Draw in canvas
+    heatmapInfoFrame = Frame(1.5*cm, 390, 300, 300, showBoundary=0)
+    fillFrame(heatmapInfoFrame, heatmapInfo, c)
+
+    # Write title of section
+    controlInfo = draw_paragraph("DE with control: Control samples", styles['leftSubtitle'])
+
+    controlInfoFrame = Frame(2*cm, 350, 500, 60, showBoundary=0)
+    fillFrame(controlInfoFrame, controlInfo, c)
+
+    # Draw the example scatterplot
+    scplot = "/DATA/RNAseq_test/Scripts/Legend/Legend_scattermarkers.png"
+    scplotInfo = draw_image(scplot, 6, 6)
+
+    scplotInfoFrame = Frame(2*cm, 180, 200, 200, showBoundary=0)
+    fillFrame(scplotInfoFrame, scplotInfo, c)
+
+    # Object with the GSEA plot:
+    GSEAplot = "/DATA/RNAseq_test/Scripts/Legend/Legend_GSEA.png"
+    GSEAplotInfo = draw_image(GSEAplot, 6, 6)
+
+    GSEAplotInfoFrame = Frame(9*cm, 180, 200, 200, showBoundary=0)
+    fillFrame(GSEAplotInfoFrame, GSEAplotInfo, c)
+
+    # Object with the GSEA plot:
+    GSEAtab = "/DATA/RNAseq_test/Scripts/Legend/Legend_GSEA.tsv"
+    GSEAtabInfo = draw_GSEA_table(GSEAtab)
+
+    GSEAtabInfoFrame = Frame(15*cm, 180, 160, 130, showBoundary=0)
+    fillFrame(GSEAtabInfoFrame, GSEAtabInfo, c)
+
+    # Write the legend texts
+    legendData = "Plots for a marker analysis over the complete study.<br/><br/><br/><b>Left</b>: Heatmap representing the normalized counts of each gene in the samples of your study. Counts are relativized per row.<br/><br/><b>Bottom Left</b>: Volcano plot displaying the marker genes. X axis shows the lof2FolChange, as obtained by DESeq2. Y axis shows the -log10 of the p-value. Colored boxes are delimited by a p-value of 0.05 and a log2FoldChange of +- 1.<br/><br/><b>Bottom Middle</b>: Gene Set Enrichment Analysis (GSEA) of the marker set. Upregulated genes are placed left to the plot by the algorithm, and downregulated genes are right.<br/><br/><b>Bottom Right</b>: Table containing the enrichment score of the GSEA, as well as the p-value associated to the test."
+    legendInfo = draw_paragraph(legendData, styles['normal'])
+
+    legendInfoFrame = Frame(12*cm, 390, 200, 300, showBoundary=0)
+    fillFrame(legendInfoFrame, legendInfo, c)
 
     # Increase page, create theader
     c.showPage()

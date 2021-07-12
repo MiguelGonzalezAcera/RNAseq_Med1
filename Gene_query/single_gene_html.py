@@ -126,7 +126,7 @@ def single_html(config, tool_name):
                     "CD_F_NMiMaInf_NDUlcer": "Not macro/microinflammation, Non deep ulcer Crohn female"
                 },
                 "type": "normal",
-                "description": "Ileal biopsies of under 17 years old patients with simptoms of IBD. 359 samples segregated by sex, disease and size and depth of the ulcers"
+                "description": "Ileal biopsies of under 17 years old patients with simptoms of IBD. 359 samples segregated by sex, disease and size and depth of the ulcers."
             },
             "PSC_EMTAB7915": {
                 "design": "/VAULT/Human_data/E_MTAB_7915_PSC_cohort/design.txt",
@@ -136,7 +136,7 @@ def single_html(config, tool_name):
                     "ulcerative_colitis": "Ulcerative colitis patient"
                 },
                 "type": "normal",
-                "description": "Colonic biopsies of Ulcerative Colitis and Primary Scleroting Cholangitis. 30 samples"
+                "description": "Colonic biopsies of Ulcerative Colitis and Primary Scleroting Cholangitis. 30 samples."
             },
             "RISK_GSE117993": {
                 "design": "/VAULT/Human_data/GSE117993_IBD_RISK_cohort_Rectum/design.txt",
@@ -286,10 +286,10 @@ def single_html(config, tool_name):
                         br()
 
                         # Include description
+                        descripcion = comparisons[organism][model]['description']
                         div(p(
-                            f"Behaviour of gene {genename} in differential expression assays. Bar chart with the fold change over the different differential expression analysis performed in the experiment and\
-                             table containing the result parameters of the differential expression analysis. The nomenclature of the models is always ",
-                             b("Model-Control"), "."
+                            f"Behaviour of gene {genename} in {model}. {descripcion} Bar chart with the fold change over different differential expression analysis. Next is the able containing the result parameters of the differential expression analysis. The nomenclature of the model is always ",
+                             b("Model-Control"), ". A description of the samples is found at the end of the page."
                         ), cls="subtitle")
                         br()
                         br()
@@ -327,9 +327,9 @@ def single_html(config, tool_name):
 
                         # Write the text for the counts plots
                         if comparisons[organism][model]['type'] == 'timecourse':
-                            subtitle_text = 'Detailed view of the counts on each stage of the time course. Timepoint of each condition is included in the description of the samples'
+                            subtitle_text = f'Detailed view of the counts on each stage of the {model} time course. Timepoint of each condition is included in the description of the samples.'
                         else:
-                            subtitle_text = f'Normalized counts of {genename} in different samples where available.'
+                            subtitle_text = f'Normalized counts of {genename} in the samples of {model}.'
 
                         div(p(f"{subtitle_text}"), cls='subtitle')
 
