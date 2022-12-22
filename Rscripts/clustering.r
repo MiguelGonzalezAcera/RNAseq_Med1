@@ -36,6 +36,7 @@ database <- select.organism(opt$organism)
 # Load the r object containing the data.
 load(opt$counts)
 #df_norm <- subset(df_norm, select=c("Mock_1", "Mock_2", "Mock_3", "IL13_1", "IL13_2", "IL13_3"))
+ls()
 
 if (opt$design != "") {
         sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
@@ -49,7 +50,9 @@ genes = readLines(opt$genelist)
 df_norm$Genename <- rownames(df_norm)
 
 # Get rows in the list of genes
-clust_df <- df_norm[df_norm$Genename %in% genes, ,drop=FALSE]
+m <- match(df_norm$Genename, genes)
+clust_df <- df_norm[!is.na(m),][order(na.omit(m)),]
+#clust_df <- df_norm[df_norm$Genename %in% genes, ,drop=FALSE]
 clust_df$Genename = NULL
 
 if (dim(clust_df)[1] <= 1) {
@@ -70,23 +73,26 @@ rownames(clust_df) <- rows_hm
 cdf = sapply(clust_df, as.numeric.factor)
 rownames(cdf) <- rows_hm
 
-# Quick fix for column clustering in case seome values are equal
+# Quick fix for column clustering in case some values are equal
 a <- cor(log(cdf + 1), method='pearson')
 a[is.na(a)] = 0
 
+# Quick fix for the row clustering in case some values are equal
+b <- cor(log(t(cdf)), method='pearson')
+b[is.na(b)] = 0
+
 # Perform the clustering analysis over the table
 # Tree construction (rows and columns)
-hr <- hclust(as.dist(1-cor(t(cdf),
-                           method="pearson")), method="complete")
+hr <- hclust(as.dist(1-b), method="complete")
 hc <- hclust(as.dist(1-a), method="complete")
 
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 2000, height = 2000, res = 300)
+png(file=opt$heatmap, width = 2000, height = 3000, res = 300)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
-Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = as.dendrogram(hr),
+Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = FALSE,
         cluster_columns = FALSE,
         col=color, column_dend_height = unit(5, "cm"),
         row_names_gp = gpar(fontsize = (90/length(genes)+5)),

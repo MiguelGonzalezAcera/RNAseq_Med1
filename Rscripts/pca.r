@@ -17,6 +17,7 @@ opt = parse_args(opt_parser)
 
 # Load functions
 source("Rscripts/Rfunctions.R")
+#source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Read the table with the metadata
 sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
@@ -34,6 +35,7 @@ Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 
 # Select the 1000 most highly expressed genes.
 select = order(rowMeans(Counts_tab), decreasing = TRUE)[1:1000]
+select = order(rowMeans(Counts_tab), decreasing = TRUE)
 highexprgenes_counts <- Counts_tab[select,]
 
 # Get all treatment columns into one:
@@ -86,7 +88,7 @@ if (eig_pc[3] < dimthr) {
 
   # Do the 3d graph
   # Shapes of the points by treatment
-  shapes = c(1:length(levels(factor(mdsdf$Treatment)))) + 15
+  shapes = rep_len(c(1:14), length.out = length(levels(factor(mdsdf$Treatment))))
   shape <- shapes[as.numeric(factor(mdsdf$Treatment))]
 
   # Colors of the points by treatment
@@ -97,6 +99,7 @@ if (eig_pc[3] < dimthr) {
   for (ang in c(seq(1, 180))){
     # Create the plot
     png(file=paste(opt$out_dir, sprintf("pca_3d_%03d.png",ang), sep = "/"))
+    #png(file=sprintf("/DATA/Thesis_proj/SEPIA_The_Paper/FullPCA/pca_FC_full_3d_%03d.png",ang), width = 1200, height = 1200, res = 150)
     s3d <- scatterplot3d(mdsdf[,1], mdsdf[,2], mdsdf[,3], pch=shape, color=colore,
                          cex.symbols=1.5, angle=ang, label.tick.marks = FALSE,
                          xlab = sprintf("Dimension 1 (%s %%)",eig_pc[1]),
@@ -104,7 +107,7 @@ if (eig_pc[3] < dimthr) {
                          zlab = sprintf("Dimension 3 (%s %%)",eig_pc[3]))
     # Add the legend
     legend("bottomright", legend=levels(factor(mdsdf$Treatment)),
-           col = color,pch=shapes, inset = -0.1, xpd=TRUE)
+           col = color,pch=shapes, inset = -0.1, xpd=TRUE, pt.cex = 1, cex = 0.5)
     dev.off()
   }
 }
