@@ -97,7 +97,7 @@ def main():
     # Startup the logger format
     logger = pf.create_logger(config['log_files'][0])
 
-    pca(config, 'pca')
+    update_design(config, 'pca')
 
 
 if __name__ == "__main__":

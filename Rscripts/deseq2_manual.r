@@ -2,23 +2,28 @@
 library(DESeq2)
 
 # Load R scripts
-source("Rscripts/Rfunctions.R")
+source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Select organism
-database <- select.organism("mouse")
+database <- select.organism("human")
 
 # Read the table with the metadata
-sampleTableSingle = read.table("/VAULT/20191216_Marta_Request/design.txt", fileEncoding = "UTF8")
+sampleTableSingle = read.table("/VAULT/20220126_GSE90830_CancerCellLines/design.txt", fileEncoding = "UTF8")
 
 # Read the table containing the counts
-Counts_tab = read.table("/VAULT/20191216_Marta_Request/counts.tsv", fileEncoding = "UTF8", header=TRUE)
+Counts_tab = read.table("/VAULT/20220126_GSE90830_CancerCellLines/counts.tsv", fileEncoding = "UTF8", header=TRUE)
 row.names(Counts_tab) <- Counts_tab$Geneid
 Counts_tab$Geneid = NULL
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 Counts_tab <- Counts_tab[order(row.names(Counts_tab)),]
 
-# Design model matrix (STILL MANUAL)
-Tr1 = relevel(sampleTableSingle[,1],"Control")
+# Add row names as column and subset control samples
+sampleTableSingle$rn <- row.names(sampleTableSingle)
+control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == 'CACO2',][['rn']]
+
+# Design model matrix
+#design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
+Tr1 = relevel(sampleTableSingle[,1], 'CACO2')
 design <- model.matrix( ~ Tr1)
 
 # Create the experiment from a SummarizedExperiment object
@@ -30,9 +35,13 @@ dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
 save(dss,file="/VAULT/20191216_Marta_Request/universe.rda")
 
 # Get the genomic ranges
-Grang_tab = read.table("/DATA/DSS_rec_evolution/DSS_rec_evol.counts.ranges.tsv", fileEncoding = "UTF8", header=TRUE)
+Grang_tab = read.table("/VAULT/20220126_GSE90830_CancerCellLines/counts.ranges.fix.tsv", fileEncoding = "UTF8", header=TRUE)
 Grlist <- makeGRangesListFromDataFrame(Grang_tab, split.field = "Geneid")
 Grlist_filt <- Grlist[names(Grlist) %in% rownames(assay(dss))]
+
+keep <- rownames(assay(dss)) %in% names(Grlist)
+dss <- dss[keep,]
+
 rowRanges(dss) <- Grlist_filt
 
 # filter the counts
@@ -41,7 +50,13 @@ dss <- dss[keep,]
 
 # Get and save the fpkm
 fpkm_df <- as.data.frame(fpkm(dss))
-save(fpkm_df, file="/DATA/DSS_rec_evolution/DSS_rec_evol.fpkm.Rda")
+
+fpkm_df_colnames <- colnames(fpkm_df)
+fpkm_df <- cbind(fpkm_df, as.character(mapIds(database, as.character(rownames(fpkm_df)), 'SYMBOL', 'ENSEMBL')))
+colnames(fpkm_df) <- c(fpkm_df_colnames, "Genename")
+
+save(fpkm_df, file="/VAULT/20220126_GSE90830_CancerCellLines/detables/norm_counts.fpkm.Rda")
+write.table(fpkm_df, file='/VAULT/20220126_GSE90830_CancerCellLines/detables/norm_counts.fpkm.tsv',sep="\t")
 
 # Run the analysis
 dds <- DESeq(dss)

@@ -70,6 +70,12 @@ png(file=gsub(".tsv","_barplot.png",opt$out_tab, fixed = TRUE), width = 8000, he
 barplot(x, showCategory=16)
 dev.off()
 
+# dotplot
+png(file=sprintf("%s_dotplot.png",
+                 gsub(".rda","",opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
+dotplot(x, x='Count',showCategory=50)
+dev.off()
+
 # Enrichment map
 png(file=gsub(".tsv","_emap.png",opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
 emapplot(x)

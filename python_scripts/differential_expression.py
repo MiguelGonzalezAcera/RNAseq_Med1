@@ -37,7 +37,7 @@ def deseq2(config, tool_name):
     mydb = mysql.connector.connect(
       host="localhost",
       user="root",
-      passwd="Plater1a",
+      passwd="Pl4ter!a",
       database="RNAseq",
       allow_local_infile=True
     )
@@ -75,6 +75,12 @@ def deseq2(config, tool_name):
                             create_command += 'EnsGenes VARCHAR(255) NOT NULL, '
                         elif field == 'Genes':
                             create_command += 'Genes VARCHAR(255), '
+                        elif field == 'FLAG':
+                            create_command += 'FLAG VARCHAR(255), '
+                        elif field == 'pvalue':
+                            create_command += 'pvalue DECIMAL(30,30), '
+                        elif field == 'padj':
+                            create_command += 'padj DECIMAL(30,30), '
                         else:
                             create_command += f'{field} FLOAT(10,5), '
 

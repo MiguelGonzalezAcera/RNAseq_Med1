@@ -5,6 +5,8 @@ suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(gsubfn))
 
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+
 option_list = list(
   make_option("--counts", type="character",
               help="Table that contains the counts"),
@@ -45,7 +47,7 @@ control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn
 
 # Design model matrix
 #design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
-Tr1 = relevel(sampleTableSingle[,1], opt$control)
+Tr1 = relevel(factor(sampleTableSingle[,1]), opt$control)
 design <- model.matrix( ~ Tr1)
 
 # Create the experiment from a SummarizedExperiment object
@@ -53,11 +55,14 @@ dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
                               colData = sampleTableSingle,
                               design = design)
 
+# Avoid normalization
+#sizeFactors(dss) <- 1
+
 # Save the universe (of genes)
 save(dss,file=gsub(".Rda","_universe.Rda",opt$out_obj, fixed = TRUE))
 
 # filter the counts
-keep <- rowSums(counts(dss)) >= 25
+keep <- rowSums(counts(dss)) >= 15
 dss <- dss[keep,]
 
 # Run the analysis
@@ -129,7 +134,12 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
 
   # Merge res table with the counts of its samples
   resdf_wcounts <- merge(resdf, df_norm[,c("EnsGenes", control_samples, sample_samples)], by='EnsGenes', all.x=TRUE)
-
+  
+  # filter by normalized counts in order to remove false positives
+  # Oder of stuff: Select samples or control columns, transform to numeric wuth the function up,
+  # transform to a data matrix, get the medians, boolean on who's under 25, select rows
+  resdf_wcounts$FLAG <- ifelse((rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric.factor))) > 25)|(rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric.factor))) > 25), 'OK', 'WARN: Inconsinstent Counts')
+  
   #Save new table
   res_exp_tab_name = paste(paste("", sample, opt$control, sep='_'),"expanded.tsv", sep="_")
   write.table(resdf_wcounts, file=gsub(".Rda",res_exp_tab_name,opt$out_obj, fixed = TRUE),

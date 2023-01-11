@@ -36,6 +36,12 @@ png(file=sprintf("%s_barplot.png",
 barplot(x, showCategory=16)
 dev.off()
 
+# dotplot
+png(file=sprintf("%s_dotplot.png",
+                 gsub(".rda","",opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
+dotplot(x, showCategory=16)
+dev.off()
+
 # Enrichment map
 png(file=sprintf("%s_emap.png",
                  gsub(".rda","", opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)

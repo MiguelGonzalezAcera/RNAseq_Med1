@@ -1,0 +1,2 @@
+"ID"	"Description"	"setSize"	"enrichmentScore"	"NES"	"pvalue"	"p.adjust"	"qvalues"	"rank"	"leading_edge"	"core_enrichment"
+"Paneth"	"Paneth"	12	0.827323647874026	1.79939899202782	0.00200400801603206	0.00200400801603206	NA	2918	"tags=92%, list=14%, signal=79%"	"219033/382059/66298/13237/17110/634825/100038927/23855/382000/503491/16429"

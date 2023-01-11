@@ -62,8 +62,8 @@ if config_dict['options']['reads'] == 'single':
         run:
             tool_name = 'mapping'
             config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input.allitems()},
-                'output': {i[0]: i[1] for i in output.allitems()},
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
                 'software': {},
                 'tool_conf': {
                     "threads": "2"
@@ -78,10 +78,11 @@ else:
         output:
             mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
         run:
+            print(input)
             tool_name = 'mapping'
             config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input.allitems()},
-                'output': {i[0]: i[1] for i in output.allitems()},
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
                 'software': {},
                 'tool_conf': {
                     "threads": "2"
@@ -103,8 +104,8 @@ rule GenerateRegions:
     run:
         tool_name = 'generate_regions'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -119,8 +120,8 @@ rule Counts:
     run:
         tool_name = 'get_counts'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -145,8 +146,8 @@ rule PCA:
     run:
         tool_name = 'pca'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -163,12 +164,28 @@ rule deseq2:
     run:
         tool_name = 'differential_expression'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
+
+rule GSVA:
+    input:
+        norm_counts = rules.deseq2.output.norm_counts,
+        design = design
+    output:
+        heatmap = f"{outfolder}/GSVA/{project}_GSVA_heatmap.png"
+    run:
+        tool_name = 'GSVA'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.GSVA.GSVA(config_dict, tool_name)
 
 rule clustering_heatmap:
     input:
@@ -179,8 +196,8 @@ rule clustering_heatmap:
     run:
         tool_name = 'clustering_heatmap'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -194,8 +211,8 @@ rule clustering_markers:
     run:
         tool_name = 'clustering_markers'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -209,8 +226,8 @@ rule volcano_markers:
     run:
         tool_name = 'volcano_markers'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -224,8 +241,8 @@ rule GSEA_markers:
     run:
         tool_name = 'GSEA_markers'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -241,8 +258,8 @@ rule volcano_plot:
     run:
         tool_name = 'volcano_plot'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -250,14 +267,15 @@ rule volcano_plot:
 
 rule load_project:
     input:
-        design_tab = rules.volcano_plot.output.design_tab
+        design_tab = rules.volcano_plot.output.design_tab,
+        design = design
     output:
         prloadtouched = f"{outfolder}/detables/loadedtouched.txt"
     run:
         tool_name = 'load_project_table'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -271,8 +289,8 @@ rule KEGG:
     run:
         tool_name = 'KEGG_enrichment'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -286,8 +304,8 @@ rule GO:
     run:
         tool_name = 'GO_enrichment'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -297,14 +315,15 @@ rule report:
     input:
         markerstouched = rules.clustering_markers.output.markerstouched,
         MVtouched = rules.volcano_markers.output.MVtouched,
-        GSEAMtouched = rules.GSEA_markers.output.GSEAMtouched
+        GSEAMtouched = rules.GSEA_markers.output.GSEAMtouched,
+        GSVAhmap = rules.GSVA.output.heatmap
     output:
         report = f"{outfolder}/report.pdf"
     run:
         tool_name = 'report'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
@@ -326,8 +345,8 @@ rule all:
     run:
         tool_name = 'all'
         config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input.allitems()},
-            'output': {i[0]: i[1] for i in output.allitems()},
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {}
         }
