@@ -22,7 +22,7 @@ def load_design(config, tool_name):
     mydb = mysql.connector.connect(
       host="localhost",
       user="root",
-      passwd="Plater1a",
+      passwd="Pl4ter!a",
       database="Projects",
       allow_local_infile=True
     )
@@ -58,7 +58,7 @@ def load_design(config, tool_name):
     mydb = mysql.connector.connect(
       host="localhost",
       user="root",
-      passwd="Plater1a",
+      passwd="Pl4ter!a",
       database="Designs",
       allow_local_infile=True
     )
@@ -148,7 +148,7 @@ def main():
     # Startup the logger format
     logger = pf.create_logger(config['log_files'][0])
 
-    pca(config, 'pca')
+    load_design(config, 'pca')
 
 
 if __name__ == "__main__":

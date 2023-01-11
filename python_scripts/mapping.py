@@ -105,7 +105,7 @@ def main():
           "input": {
             "fastq_r1": args.fastq_r1.split(','),
             "fastq_r2": args.fastq_r2.split(','),
-            "samplelist": a
+            "samplelist": 'a'
             },
           "output": {
             "bam_dir": args.bamdir

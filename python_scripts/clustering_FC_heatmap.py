@@ -14,7 +14,7 @@ def query_database(genelist, tab_name, outfile):
     mydb = mysql.connector.connect(
       host="localhost",
       user="root",
-      passwd="Plater1a",
+      passwd="Pl4ter!a",
       database="RNAseq"
     )
 
@@ -69,7 +69,7 @@ def clustering_FC_heatmap(config, tool_name):
     mydb = mysql.connector.connect(
       host="localhost",
       user="root",
-      passwd="Plater1a",
+      passwd="Pl4ter!a",
       database="Projects"
     )
 

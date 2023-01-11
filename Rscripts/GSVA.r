@@ -87,8 +87,14 @@ if (opt$organism == 'mouse'){
   genes[['Tuft']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Tuft_human_ensembl.txt")
 }
 
+# transform the data to numeric matrix
+options(digits=20)
+numwdf_norm <- matrix(as.numeric(as.matrix(wdf_norm)),  ncol = ncol(as.matrix(wdf_norm)))
+rownames(numwdf_norm) <- rownames(wdf_norm)
+colnames(numwdf_norm) <- colnames(wdf_norm)
+
 # Run the gsva ove the set of counts
-gsva.es <- gsva(as.matrix(wdf_norm), genes, verbose=FALSE)
+gsva.es <- gsva(numwdf_norm, genes, verbose=FALSE)
 
 # Save the GSVA table as R object and table
 save(gsva.es, file=opt$out_obj)
@@ -109,7 +115,7 @@ sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
 
 # Design model matrix
 #design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
-Tr1 = relevel(sampleTableSingle[,1], opt$control)
+Tr1 = relevel(factor(sampleTableSingle[,1]), opt$control)
 design <- model.matrix( ~ Tr1)
 
 # Run limma

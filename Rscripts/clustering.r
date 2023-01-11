@@ -70,7 +70,7 @@ rows_hm[is.na(rows_hm)|duplicated(rows_hm)] <- rownames(clust_df)[is.na(rows_hm)
 rownames(clust_df) <- rows_hm
 
 # Transform matrix to numeric
-cdf = sapply(clust_df, as.numeric.factor)
+cdf = sapply(clust_df, as.numeric)
 rownames(cdf) <- rows_hm
 
 # Quick fix for column clustering in case some values are equal
@@ -89,7 +89,7 @@ hc <- hclust(as.dist(1-a), method="complete")
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 2000, height = 3000, res = 300)
+png(file=opt$heatmap, width = 2000, height = 2000, res = 300)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = FALSE,

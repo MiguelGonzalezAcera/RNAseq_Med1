@@ -146,7 +146,7 @@ def main():
     config = {'tools_conf': {'clustering_heatmap': config_dict}}
     config['options'] = config['tools_conf']['clustering_heatmap']['options']
 
-    clustering_heatmap(config, 'clustering_heatmap')
+    clustering_markers(config, 'clustering_heatmap')
 
     logging.info(f'Finished clustering')
 

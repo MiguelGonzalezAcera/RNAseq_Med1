@@ -47,7 +47,7 @@ control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn
 
 # Design model matrix
 #design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
-Tr1 = relevel(sampleTableSingle[,1], opt$control)
+Tr1 = relevel(factor(sampleTableSingle[,1]), opt$control)
 design <- model.matrix( ~ Tr1)
 
 # Create the experiment from a SummarizedExperiment object

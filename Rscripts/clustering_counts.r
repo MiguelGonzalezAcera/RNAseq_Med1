@@ -66,9 +66,10 @@ hc <- hclust(as.dist(1-cor(log(data.matrix(clust_df) + 1 ),
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 3500, height = 7000, res = 600)
+png(file=opt$heatmap, width = 3500, height = 3500, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
+print(data.matrix(clust_df))
 Heatmap(t(scale(t(log(data.matrix(clust_df) + 1)))), cluster_rows = as.dendrogram(hr),
         cluster_columns = FALSE,
         row_names_gp = gpar(fontsize = (90/length(genes)+5)),

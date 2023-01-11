@@ -37,7 +37,7 @@ def deseq2(config, tool_name):
     mydb = mysql.connector.connect(
       host="localhost",
       user="root",
-      passwd="Plater1a",
+      passwd="Pl4ter!a",
       database="RNAseq",
       allow_local_infile=True
     )

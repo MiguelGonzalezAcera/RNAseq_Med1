@@ -199,7 +199,7 @@ def main():
     config = {'tools_conf': {'GSEA': config_dict}}
     config['options'] = config['tools_conf']['GSEA']['options']
 
-    GSEA(config, 'GSEA')
+    GSEA_markers(config, 'GSEA')
 
     logging.info(f'Finished GSEA')
 
