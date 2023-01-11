@@ -15,16 +15,7 @@ app = Flask(__name__)
 def get_script_names():
     data = {
         'RNAseq': {'path': 'RNAseq.smk'},
-        'RNAseq_update': {'path': 'RNAseq_update.smk'},
         'Gene_query': {'path': 'Check_gene.smk'},
-        'Markers_analysis': {'path': 'Check_markers.smk'},
-        'clustering_heatmap': {'path': 'python_scripts/clustering_heatmap.py'},
-        'clustering_FC_exst': {'path': 'python_scripts/clustering_FC_heatmap.py'},
-        'clustering_FC_mt': {'path': 'python_scripts/clustering_FC_heatmap.py'},
-        'KEGG_enrichment': {'path': 'python_scripts/KEGG.py'},
-        'GO_enrichment': {'path': 'python_scripts/GO.py'},
-        'GSEA': {'path': 'python_scripts/GSEA.py'},
-        'volcano': {'path': 'python_scripts/volcano_plot.py'}
     }
 
     return data
@@ -65,26 +56,7 @@ def generate_configuration(postdata, pipeline):
     # Serialize class attributes into a configuration fileW
     config_json['pipeline'] = pipeline
 
-    # If pipeline is Gene consult, dump in the actual result folder
-    if pipeline == "Gene_query":
-        jobid = config_json['jobid']
-        genename = config_json['genename']
-
-        # Create outfolder if it doesnt exist
-        if not os.path.exists(config_json['outfolder'] + f'/static/{jobid}/'):
-            os.system(f"mkdir {config_json['outfolder']}/static/{jobid};")
-
-        config_json_path = config_json['outfolder'] + f'/static/{jobid}/{genename}_config_{pipeline}.json'
-    elif pipeline == "Markers_analysis":
-        jobid = config_json['jobid']
-
-        # Create outfolder if it doesnt exist
-        if not os.path.exists(config_json['outfolder'] + f'/static/{jobid}/'):
-            os.system(f"mkdir {config_json['outfolder']}/static/{jobid};")
-
-        config_json_path = config_json['outfolder'] + f'/static/{jobid}/counts_config_{pipeline}.json'
-    else:
-        config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
+    config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
 
     # Dump json configuration into file
     with open(config_json_path, 'w') as outfile:
@@ -162,99 +134,11 @@ def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
 
     return True, dag
 
-def launch_script(postdata, config_json_path, pipeline, mode='RUN'):
-    dag = {}
-
-    # Get path to the needed scripts
-    config_names = get_script_names()
-
-    cmd = f'python {config_names[pipeline]["path"]} --config {config_json_path}'
-
-    subprocess.Popen(cmd, shell=True, executable='/bin/bash')
-
-    return True, dag
-
-def fix_postdata(postdata_list):
-    # TODO: This uses API as outfolder all the time, therefore messing up simultaneous runs I THINK, fix the parameter outfolder after the reading of pootdata
-    postdata = {
-        "outfolder": "API",
-    	"log_files": ["/tmp/full.log"],
-    	"options": {
-    		"organism": "mouse"
-    	}
-    }
-
-    for field in postdata_list:
-        field_list = field.replace("\r","").split('=')
-
-        if field_list[0] in ["reads","organism","sql_load","splicing","qc"]:
-            postdata['options'][field_list[0]] = field_list[1]
-        else:
-            postdata[field_list[0]] = field_list[1]
-
-    return postdata
-
-def fix_postdata_tabs(postdata_list):
-    # Step 1: Replace /rs in list and remove first and replace last element
-    postdata_list = [sub.replace('\r', '') for sub in postdata_list]
-    split_ID = postdata_list[0]
-
-    # Step 2: split by the initial ID
-    size = len(postdata_list)
-    idx_list = [idx for idx, val in enumerate(postdata_list) if val == split_ID]
-
-    postdata_list = [postdata_list[i: j] for i, j in zip([0] + idx_list, idx_list + ([size] if idx_list[-1] != size else []))]
-    postdata_list = list(filter(None, postdata_list))
-
-    # Step 3, isolate each element and dump the necessary data into respective files
-
-    postdata = {
-        "outfolder": "API",
-    	"log_files": ["/tmp/full.log"],
-    	"options": {
-    		"organism": "mouse"
-    	}
-    }
-
-    for element in postdata_list:
-        if not element[2]:
-            # Get job ID
-            identifier = element[1].split(";")[1].split("=")[1].replace("\"","")
-            data = element[3]
-
-            postdata[identifier] = data
-        else:
-            # Get name of the field, path and data
-            identifier = element[1].split(";")[1].split("=")[1].replace("\"","")
-            file_ext = element[1].split(";")[2].split("=")[1].replace("\"","").split(".")[1]
-            filepath = f"{postdata['outfolder']}/static/{postdata['jobid']}/{identifier}.{file_ext}"
-
-            data = element[4:-2]
-
-            postdata[identifier] = filepath
-
-            # Dump data into known file
-            with open(filepath, 'w') as f:
-                for item in data:
-                    f.write(f"{item}\n")
-
-    # Return the now full Dictionary
-    return(postdata)
 
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({'Description': f"There is no pipeline in that direction",
                                   "Raw_data": f"{error}"}), 404)
-
-@app.route('/Gene_query/')
-@cross_origin(origin="*")
-def launch_Gene_query():
-    return render_template("gene_query.html")
-
-@app.route('/Markers_query/')
-@cross_origin(origin="*")
-def launch_Markers_query():
-    return render_template("markers_query.html")
 
 @app.route('/test/', methods=['POST'])
 @cross_origin(origin="*")
@@ -277,166 +161,6 @@ def launch_RNAseq():
 
     # Initialize job
     status_job, dag = launch_job(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/RNAseq_update/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_RNAseq_update():
-    postdata = request.get_json()
-    pipeline = 'RNAseq_update'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_job(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-
-@app.route('/Gene_query_app/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_Gene_query_app():
-    postdata_list = request.get_data(as_text=True).rstrip().split('\n')
-    postdata = fix_postdata(postdata_list)
-
-    #postdata = request.get_json()
-    pipeline = 'Gene_query'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    genename = postdata['genename']
-    jobid = postdata['jobid']
-
-    # Initialize job
-    launch_process(config_json_path, postdata, pipeline, mode='RUN')
-    #status_job, dag = launch_job(postdata, config_json_path, pipeline)
-
-    #return generate_response(postdata, dag)
-    return render_template(f"/{jobid}/{genename}_report.html")
-
-@app.route('/Markers_analysis_app/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_Markers_analysis_app():
-    postdata_list = request.get_data(as_text=True).rstrip().split('\n')
-    print(postdata_list)
-    postdata = fix_postdata_tabs(postdata_list)
-    print(postdata)
-
-    #postdata = request.get_json()
-    pipeline = 'Markers_analysis'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    counts = postdata['counts'].replace(".tsv", "")
-    design = postdata['design']
-    jobid = postdata['jobid']
-
-    # Initialize job
-    launch_process(config_json_path, postdata, pipeline, mode='RUN')
-    #status_job, dag = launch_job(postdata, config_json_path, pipeline)
-
-    #return generate_response(postdata, dag)
-    return render_template(f"/{jobid}/{counts}_report.html")
-
-@app.route('/clustering/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_clustering():
-    postdata = request.get_json()
-    pipeline = 'clustering_heatmap'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/clustering_FC_exst/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_clustering_FC_exst():
-    postdata = request.get_json()
-    pipeline = 'clustering_FC_exst'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/clustering_FC_mt/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_clustering_FC_mt():
-    postdata = request.get_json()
-    pipeline = 'clustering_FC_mt'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/KEGG_enrichment/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_KEGG_enrichment():
-    postdata = request.get_json()
-    pipeline = 'KEGG_enrichment'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/GO_enrichment/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_GO_enrichment():
-    postdata = request.get_json()
-    pipeline = 'GO_enrichment'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/GSEA/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_GSEA():
-    postdata = request.get_json()
-    pipeline = 'GSEA'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
-
-    return generate_response(postdata, dag)
-
-@app.route('/volcano_plot/', methods=['POST'])
-@cross_origin(origin="*")
-def launch_volcano():
-    postdata = request.get_json()
-    pipeline = 'volcano'
-
-    # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
-
-    # Initialize job
-    status_job, dag = launch_script(postdata, config_json_path, pipeline)
 
     return generate_response(postdata, dag)
 

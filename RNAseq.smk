@@ -96,21 +96,6 @@ if config_dict['options']['splicing'] == 'True':
 else:
     splicetouched = config['param']
 
-rule GenerateRegions:
-    input:
-        bedfile = bedfile_path
-    output:
-        list = list_path
-    run:
-        tool_name = 'generate_regions'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.generate_regions.regions(config_dict, tool_name)
-
 rule Counts:
     input:
         bamdir = rules.Mapping.output.mappingtouched,
@@ -126,16 +111,6 @@ rule Counts:
             'tool_conf': {}
         }
         python_scripts.get_counts.counts(config_dict, tool_name)
-
-if config_dict['options']['qc'] == 'True':
-    include: './subworkflows/qc.smk'
-    cpbtouched = rules.CoveragePerBase.output.cpbtouched
-    fastqceval = rules.Fastqc.output.fastqceval
-    bamqceval = rules.BamqcEval.output.evaloutfile
-else:
-    cpbtouched = config['param']
-    fastqceval = config['param']
-    bamqceval = config['param']
 
 rule PCA:
     input:
