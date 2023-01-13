@@ -134,7 +134,6 @@ rule deseq2:
         design = design
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
-        design_tab = f"{outfolder}/detables/{project}_design.tmp",
         norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda"
     run:
         tool_name = 'differential_expression'

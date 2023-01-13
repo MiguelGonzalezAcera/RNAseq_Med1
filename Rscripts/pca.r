@@ -2,6 +2,7 @@
 
 library(scatterplot3d)
 library(optparse)
+library(ggplot2)
 
 option_list = list(
   make_option("--counts", type="character",
@@ -15,9 +16,8 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 
-# Load functions
+# Load R scripts
 source("Rscripts/Rfunctions.R")
-#source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
 
 # Read the table with the metadata
 sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
@@ -26,7 +26,6 @@ sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
 Counts_tab = read.table(opt$counts, fileEncoding = "UTF8", header=TRUE)
 row.names(Counts_tab) <- Counts_tab$Geneid
 Counts_tab$Geneid = NULL
-print(head(Counts_tab))
 Counts_tab <- Counts_tab[,row.names(sampleTableSingle)]
 
 # do principal components analyses
@@ -60,29 +59,41 @@ eig_pc <- mds$eig * 100 / sum(mds$eig)
 #<TO_DO>: Subsitute for an if 2d/3d using a threshold (ex. 10%)
 # barplot(eig_pc, las=1, xlab="Dimensions", ylab="prop of explained value", y.axis=NULL)
 
+# Create 2d plotting function
+pca2d <- function(tab,d1,d2,perc,out){
+  # Takes a table and its columns and does a plot
+  # Opt 1: Regular graph engine
+  # png(file=paste(out,sprintf("pca_2d_d%s_d%s.png",d1,d2), sep = "/"))
+  # plot(tab[,d1], tab[,d2], type="n",
+  #      xlab=sprintf("Dimension %s (%s %%)",d1,perc[d1]),
+  #      ylab=sprintf("Dimension %s (%s %%)",d2,perc[d2]), main="")
+  # text(tab[,d1], tab[,d2], rownames(tab), cex=0.8)
+  # dev.off()
+  
+  # Opt 2: ggplot
+  tab_plot <- ggplot(tab, aes(x=get(sprintf("V%s", d1)), y=get(sprintf("V%s", d2)), color=Treatment, size=20)) + 
+    geom_point() + 
+    xlab(sprintf("V%s", d1)) + ylab(sprintf("V%s", d2))
+    theme_minimal()
+  ggsave(file=paste(out,sprintf("pca_2d_d%s_d%s.png",d1,d2), sep = "/"), tab_plot, device = 'png', bg = "white")
+}
+
 # Translate this into parameter
 dimthr <- 10
-if (eig_pc[3] < dimthr) {
-  # Do 2d plot only
-  mds <- cmdscale(dist(data_for_PCA), k=2)
 
-  # Transform the data to a data frame and keep the row names
-  mdsdf = as.data.frame(mds)
-  mdsdf$Treatment <- rownames(mds)
+# Do main 2d plot
+mds <- cmdscale(dist(data_for_PCA), k=3)
 
-  # Do the 2d graph
-  pca2d(mdsdf,1,2,eig_pc,opt$out_dir)
+# Transform the data to a data frame and keep the row names
+mdsdf = as.data.frame(mds)
+mdsdf$Treatment <- rownames(mds)
 
-} else if (eig_pc[3] >= dimthr) {
-  # Do 2d plots for each dimension
-  mds <- cmdscale(dist(data_for_PCA), k=3)
+# Do the 2d graph
+pca2d(mdsdf,1,2,eig_pc,opt$out_dir)
 
-  # Transform the data to a data frame and keep the row names
-  mdsdf = as.data.frame(mds)
-  mdsdf$Treatment <- rownames(mds)
-
-  # Do the 2d graphs
-  pca2d(mdsdf,1,2,eig_pc,opt$out_dir)
+# If 3rd eigenvalue is higher than 10, produce the dimension combination and the gif
+if (eig_pc[3] >= dimthr) {
+  # Do the rest of the 2d graphs
   pca2d(mdsdf,2,3,eig_pc,opt$out_dir)
   pca2d(mdsdf,1,3,eig_pc,opt$out_dir)
 
@@ -111,6 +122,9 @@ if (eig_pc[3] < dimthr) {
     dev.off()
   }
 }
+
+# Save the table with the eigenvalues for alternative displays
+write.table(mdsdf, file=paste(opt$out_dir, "pca_eigenvalues.tsv", sep = '/'), sep="\t")
 
 # Save environment
 save.image(file=paste(opt$out_dir, "pca.RData", sep = '/'))

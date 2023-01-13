@@ -32,29 +32,22 @@ def mapping(config, tool_name):
     genomePath = config['tools_conf']['genome']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
-    # Select STAR version for organism
-    #<TO_DO>: Replace this in the configuration file, as a software manager. Also, index the human genome.
-    if config['options']['organism'] == 'human':
-        star_version = "STAR_old"
-    else:
-        star_version = "STAR"
-
     ## Possible Command style
     # STAR --genomeLoad LoadAndExit --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/; for file in $(cat fastq.test.txt); do echo $file STAR --runThreadN 10 --readFilesCommand gzip -cd --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/ --readFilesIn $file ${file%_1.fastq.gz}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > ${file%_1.fastq.gz}.bam; samtools-1.9 index ${file%_1.fastq.gz}.bam; mv ${file%_1.fastq.gz}.bam* BAM/; done; STAR --genomeLoad Remove --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/
     command = ""
 
-    command += f"{star_version} --genomeLoad LoadAndExit --genomeDir {genomePath}; "
+    command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}; "
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
     for filer1 in R1_FILES:
         if R2_FILES:
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
             filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
-            command += f'{star_version} --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
         else:
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
-            command += f'{star_version} --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
-    command += f"{star_version} --genomeLoad Remove --genomeDir {genomePath}; "
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
+    command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
     command += f"touch {mappingtouched}"
 
     pf.run_command(command)
@@ -70,11 +63,12 @@ def get_arguments():
 
     # Mandatory variables
     parser.add_argument('--fastq_r1', '-f1', nargs='*', required=True, help='fastq_r1 file/s')
-    parser.add_argument('--fastq_r2', '-f2', nargs='*', required=True, help='fastq_r2 file/s')
+    parser.add_argument('--fastq_r2', '-f2', nargs='*', help='fastq_r2 file/s. Only when paired end')
     parser.add_argument('--bamdir', required=True, help='Folder for bam files')
 
     # Default parameters
-    parser.add_argument('--genome', default='/DATA/references/star_genomes/mmu38/star_indices_overhang150/', help='Genome folder for STAR mapping')
+    parser.add_argument('--genome', default='/DATA/references/star_genomes/mmu39/star_indices_overhang150/', help='Genome folder for STAR mapping')
+    parser.add_argument('--run_type', default='paired', choices = ['paired', 'single'], help='Specify if the run is done with single end or paired end reads. Defaults to paired.')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -95,6 +89,17 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
+    # Select if the run is going to have two sets of fastq or one
+    if args.run_type == 'single':
+      fastq_dict = {
+        "fastq_r1": args.fastq_r1.split(',')
+      }
+    else:
+      fastq_dict = {
+        "fastq_r1": args.fastq_r1.split(','),
+        "fastq_r2": args.fastq_r2.split(',')
+      }
+
     config = {
       "DEBUG": args.debug,
       "TESTING": args.test,
@@ -102,20 +107,19 @@ def main():
       "log_files": ["/tmp/full.log"],
       "tools_conf": {
         "mapping": {
-          "input": {
-            "fastq_r1": args.fastq_r1.split(','),
-            "fastq_r2": args.fastq_r2.split(','),
-            "samplelist": 'a'
-            },
+          "input": fastq_dict,
           "output": {
-            "bam_dir": args.bamdir
+            "mappingtouched": args.bamdir + "/mappingtouched.txt"
             },
           "tool_conf": {
-            "genome": args.genome,
             "threads": "2"
             }
-          }
-        }
+          },
+        'genome': args.genome,
+        },
+      'options': {
+        'reads': args.run_type
+      }
       }
 
     # Startup the logger format

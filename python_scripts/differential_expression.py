@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-import glob
 import mysql.connector
 import pandas as pd
 import python_scripts.python_functions as pf
@@ -19,7 +18,6 @@ def deseq2(config, tool_name):
     out_obj = out_dir + "/" + config['project'] +".Rda"
     organism = config['options']['organism']
     DEtouched = config['tools_conf'][tool_name]['output']['DEtouched']
-    design_name = config['tools_conf'][tool_name]['output']['design_tab']
 
     # Create the command to run the deseq2 R script
     command = ""
@@ -96,10 +94,6 @@ def deseq2(config, tool_name):
             line = [f"{project}_{sample}_{control}",f"{control}",f"{sample}",table_name,table_name.replace("_expanded.tsv",".Rda")]
             design_list.append(line)
 
-    # Transform the project into table and save it
-    df = pd.DataFrame(design_list, columns=['Comparison','Control','Sample','Table_path','Robj_path'])
-    df.to_csv(design_name, sep='\t', index=False)
-
     mydb.commit()
 
     mycursor.close()
@@ -116,11 +110,13 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--counts', required=True, help='Table with the counts of the assay, straight from featurecounts (so far)')
+    parser.add_argument('--counts', required=True, help='Table with the counts of the assay')
     parser.add_argument('--design', required=True, help='Table with the design of the experiment')
     parser.add_argument('--project', required=True, help='Project name')
     parser.add_argument('--out_dir', required=True, help='Directory for all of the tables)')
     parser.add_argument('--organism', required=True, help='Organism')
+    parser.add_argument('--control', required=True, help='Category in the design table to serve as control in the differential expression')
+    parser.add_argument('--samples', required=True, help='Samples to be compared against the control, comma separated, no spaces')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -141,23 +137,18 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    out_dir = "/".join(args.out_dir.split('/')[0:-1])
-    project = args.project
-
     config = {
       "DEBUG": args.debug,
       "TESTING": args.test,
       "DRY_RUN": args.dry_run,
       "log_files": ["/tmp/full.log"],
-      "project": project,
+      "project": args.project,
       "options": {
         "organism": args.organism,
         "sql_load": "True"
       },
       "comparisons": {
-		"fl_mock":"fl_AA,ko_mock",
-        "fl_AA":"ko_AA",
-        "ko_mock":"ko_AA"
+        args.control:args.samples
 	  },
       "tools_conf": {
         "differential_expression": {
@@ -167,8 +158,7 @@ def main():
             },
           "output": {
             "DEtouched": args.out_dir,
-            "design_tab": f"{out_dir}/{project}_design.tmp",
-            "norm_counts": f"{out_dir}/{project}_norm_counts.Rda"
+            "norm_counts": f"{args.out_dir}/{args.project}_norm_counts.Rda"
             },
           "tool_conf": {
             }

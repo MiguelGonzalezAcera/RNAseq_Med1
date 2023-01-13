@@ -61,7 +61,7 @@ dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
 # Save the universe (of genes)
 save(dss,file=gsub(".Rda","_universe.Rda",opt$out_obj, fixed = TRUE))
 
-# filter the counts
+# filter the counts by number
 keep <- rowSums(counts(dss)) >= 15
 dss <- dss[keep,]
 
@@ -88,7 +88,7 @@ save(df_norm, file=gsub(".Rda","_norm_counts.Rda",opt$out_obj, fixed = TRUE))
 df_norm$EnsGenes <- rownames(df_norm)
 
 #<TO_DO>: Now, this is doubtful, because now would be time to do the contrasts.
-# To do these accuratelz, we have to consider, number of factors, levels of each factor,
+# To do these accurately, we have to consider, number of factors, levels of each factor,
 #  interaction of the factors, and which factors interact.
 # Maybe define the design via input? (Galaxy does it like this)
 
@@ -110,7 +110,7 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
 
   # A simple helper function that makes a so-called "MA-plot", i.e. a scatter plot of
   # log2 fold changes (on the y-axis) versus the mean of normalized counts (on the x-axis).
-  png(file=gsub(".Rda","_MA.png",opt$out_obj, fixed = TRUE))
+  png(file=gsub(".Rda",sprintf("_%s_%s_MA.png", sample, opt$control),opt$out_obj, fixed = TRUE))
   plotMA(res)
   dev.off()
 
@@ -136,8 +136,8 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   resdf_wcounts <- merge(resdf, df_norm[,c("EnsGenes", control_samples, sample_samples)], by='EnsGenes', all.x=TRUE)
   
   # filter by normalized counts in order to remove false positives
-  # Oder of stuff: Select samples or control columns, transform to numeric wuth the function up,
-  # transform to a data matrix, get the medians, boolean on who's under 25, select rows
+  # Oder of stuff: Select samples or control columns, transform to numeric with the function up,
+  # transform to a data matrix, get the medians, Boolean on who's under 25, select rows
   resdf_wcounts$FLAG <- ifelse((rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric.factor))) > 25)|(rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric.factor))) > 25), 'OK', 'WARN: Inconsinstent Counts')
   
   #Save new table
