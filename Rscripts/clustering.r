@@ -20,6 +20,8 @@ option_list = list(
                     help='List of genes to analyze. Ensembl coding'),
         make_option("--organism", type="character", default= "mouse",
                     help="Organism analyzed. Available = human, mouse. Default = mouse"),
+        make_option("--dims", type="character", default= "2000,2000",
+                    help="Dimensions of the plot in pixels. Default = 2000,2000"),
         make_option("--design", type="character", default = "",
                     help="Organism analyzed. Available = human, mouse. Default = mouse")
 )
@@ -35,15 +37,15 @@ database <- select.organism(opt$organism)
 
 # Load the r object containing the data.
 load(opt$counts)
-#df_norm <- subset(df_norm, select=c("Mock_1", "Mock_2", "Mock_3", "IL13_1", "IL13_2", "IL13_3"))
-ls()
 
+# Select the columns for the design if there were any
 if (opt$design != "") {
         sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
 
         df_norm <- df_norm[c(rownames(sampleTableSingle) ,'Genename')]
 }
 
+# Read the gene file
 genes = readLines(opt$genelist)
 
 # Transform the ensembl names into gene symbol.
@@ -89,7 +91,7 @@ hc <- hclust(as.dist(1-a), method="complete")
 # Establish colors
 color <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 2000, height = 2000, res = 300)
+png(file=opt$heatmap, width = int(strsplit(opt$dims, ',')[0]), height = int(strsplit(opt$dims, ',')[1]), res = 300)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = FALSE,

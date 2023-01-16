@@ -5,12 +5,14 @@ import glob
 import json
 import subprocess
 import pandas as pd
+import python_scripts.python_functions as pf
 
 
-def markers_plots(norm_counts, heatmap, organism, command):
+def markers_plots(norm_counts, heatmap, organism, command, design, dims):
     """
     Do plots for markers
     """
+    #<TODO>: Establish sets of markers for specific tissues
     gene_markers = {
         "mouse": {
             "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mitochondrial_ensembl.txt",
@@ -37,6 +39,7 @@ def markers_plots(norm_counts, heatmap, organism, command):
             "EntericNeuron": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EntericNeuron_ensembl.txt"
         },
         "human": {
+            "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Mitochondrial_human_ensembl.txt",
             "EnterocyteDist": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteDist_human_ensembl.txt",
             "EnterocyteProx": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteProx_human_ensembl.txt",
             "Enteroendocrine": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Enteroendocrine_human_ensembl.txt",
@@ -64,13 +67,13 @@ def markers_plots(norm_counts, heatmap, organism, command):
     for marker in gene_markers[organism]:
         marker_path = gene_markers[organism][marker]
         heatmap_mark = heatmap.replace(".png",f"_{marker}_marker.png")
-        command += f'Rscript Rscripts/clustering.r --heatmap {heatmap_mark} --counts {norm_counts} --genelist {marker_path} --organism {organism}; '
+        command += f'Rscript Rscripts/clustering.r --heatmap {heatmap_mark} --counts {norm_counts} --genelist {marker_path} --organism {organism} --dims {dims} --design {design}; '
 
     return(command)
 
 
 def clustering_markers(config, tool_name):
-    """Get the
+    """Get each clustering plot for the established markers
     """
     logging.info(f'Starting {tool_name} process')
 
@@ -80,6 +83,8 @@ def clustering_markers(config, tool_name):
     norm_counts = config['tools_conf'][tool_name]['input']['norm_counts']
     heatmap = config['tools_conf'][tool_name]['output']['markerstouched'].replace("markerstouched.txt",f"{project}_clustering_markers.png")
     organism = config['options']['organism']
+    design = config['tools_conf'][tool_name]['input']['design']
+    dims = config['tools_conf'][tool_name]['tool_conf']['dimensions']
 
     # Create the command to run the pca R script
     command = ""
@@ -88,22 +93,12 @@ def clustering_markers(config, tool_name):
 
     # Check if this is a marker run
     if config['pipeline'] == 'RNAseq':
-        command = markers_plots(norm_counts, heatmap, organism, command)
+        command = markers_plots(norm_counts, heatmap, organism, command, design, dims)
 
     command += f"touch {config['tools_conf'][tool_name]['output']['markerstouched']}; "
 
     logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-            raise OSError(f'Error in command: {cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
-
+    pf.run_command(command)
 
 def get_arguments():
     """
@@ -115,7 +110,12 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--config', required=True, help='Configuration file in json format')
+    parser.add_argument('--counts', required=True, help='Table with the counts of the assay')
+    parser.add_argument('--design', required=True, help='Table with the design of the experiment')
+    parser.add_argument('--heatmap', required=True, help='PNG with the heatmap result')
+    parser.add_argument('--project', required=True, help='Project name')
+    parser.add_argument('--organism', required=True, help='Organism')
+    parser.add_argument('--dims', default="2000,2000", help='Dimensions for the plot')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -136,17 +136,36 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    with open(args.config, 'r') as f:
-        config_dict = json.load(f)
+    config = {
+      "DEBUG": args.debug,
+      "TESTING": args.test,
+      "DRY_RUN": args.dry_run,
+      "log_files": ["/tmp/full.log"],
+      "project": args.project,
+      "options": {
+        "organism": args.organism,
+        "sql_load": "True"
+      },
+      "tools_conf": {
+        "clustering_markers": {
+          "input": {
+            "norm_counts": args.counts,
+            "design": args.design
+            },
+          "output": {
+            "heatmap": args.heatmap
+            },
+          "tool_conf": {
+            "dimensions": args.dims
+            }
+          }
+        }
+      }
 
-    logfile = config_dict["output"]["heatmap"].replace('.png','') + '_clustering.log'
-    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
-    logging.info(f'Starting clustering')
+    # Startup the logger format
+    logger = pf.create_logger(config['log_files'][0])
 
-    config = {'tools_conf': {'clustering_heatmap': config_dict}}
-    config['options'] = config['tools_conf']['clustering_heatmap']['options']
-
-    clustering_markers(config, 'clustering_heatmap')
+    clustering_markers(config, 'clustering_markers')
 
     logging.info(f'Finished clustering')
 

@@ -5,6 +5,7 @@ import glob
 import json
 import subprocess
 import pandas as pd
+import python_scripts.python_functions as pf
 
 
 def clustering_heatmap(config, tool_name):
@@ -19,6 +20,8 @@ def clustering_heatmap(config, tool_name):
     heatmap = config['tools_conf'][tool_name]['output']['heatmap']
     norm_counts_res = heatmap.replace('_heatmap.png','_NormCounts.tsv')
     organism = config['options']['organism']
+    design = config['tools_conf'][tool_name]['input']['design']
+    dimensions = config['tools_conf'][tool_name]['tool_conf']['dimensions']
 
     # Create the command to run the pca R script
     command = ""
@@ -51,27 +54,12 @@ def clustering_heatmap(config, tool_name):
             gene_file.write(f"{gene}\n")
         gene_file.close()
 
-    if 'design' in config['tools_conf'][tool_name]['input']:
-        design = config['tools_conf'][tool_name]['input']['design']
-
-        command += f'Rscript Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism} --design {design}; '
-    else:
-        command += f'Rscript Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism}; '
+    command += f'Rscript Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism} --design {design} --dims {dimensions}; '
 
     command += f'head -n +1 {norm_counts_tab} | awk \'{{print \"EnsemblID\\t\" $0}}\' > {norm_counts_res}; grep -f {genelist_path} {norm_counts_tab} >> {norm_counts_res}; '
 
     logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-            raise OSError(f'Error in command: {cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
-
+    pf.run_command(command)
 
 def get_arguments():
     """
@@ -83,7 +71,13 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--config', required=True, help='Configuration file in json format')
+    parser.add_argument('--genelist', required=True, help='List of genes to represent in the heatmap')
+    parser.add_argument('--counts', required=True, help='Table with the counts of the assay')
+    parser.add_argument('--design', required=True, help='Table with the design of the experiment')
+    parser.add_argument('--heatmap', required=True, help='PNG with the heatmap result')
+    parser.add_argument('--project', required=True, help='Project name')
+    parser.add_argument('--organism', required=True, help='Organism')
+    parser.add_argument('--dims', default="2000,2000", help='Dimensions for the plot')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -104,15 +98,35 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    with open(args.config, 'r') as f:
-        config_dict = json.load(f)
+    config = {
+      "DEBUG": args.debug,
+      "TESTING": args.test,
+      "DRY_RUN": args.dry_run,
+      "log_files": ["/tmp/full.log"],
+      "project": args.project,
+      "options": {
+        "organism": args.organism,
+        "sql_load": "True"
+      },
+      "tools_conf": {
+        "clustering_heatmap": {
+          "input": {
+            "genelist": args.genelist,
+            "norm_counts": args.counts,
+            "design": args.design
+            },
+          "output": {
+            "heatmap": args.heatmap
+            },
+          "tool_conf": {
+            "dimensions": args.dims
+            }
+          }
+        }
+      }
 
-    logfile = config_dict["output"]["heatmap"].replace('.png','') + '_clustering.log'
-    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
-    logging.info(f'Starting clustering')
-
-    config = {'tools_conf': {'clustering_heatmap': config_dict}}
-    config['options'] = config['tools_conf']['clustering_heatmap']['options']
+    # Startup the logger format
+    logger = pf.create_logger(config['log_files'][0])
 
     clustering_heatmap(config, 'clustering_heatmap')
 

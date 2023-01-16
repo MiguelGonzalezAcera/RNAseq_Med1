@@ -4,6 +4,7 @@ import os
 import json
 import subprocess
 import pandas as pd
+import python_scripts.python_functions as pf
 
 
 def GSVA(config, tool_name):
@@ -81,7 +82,13 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--config', required=True, help='Configuration file in json format')
+    parser.add_argument('--counts', required=True, help='Table with the counts of the assay')
+    parser.add_argument('--design', required=True, help='Table with the design of the experiment')
+    parser.add_argument('--project', required=True, help='Project name')
+    parser.add_argument('--heatmap', required=True, help='Heatmap to save')
+    parser.add_argument('--organism', required=True, help='Organism')
+    parser.add_argument('--control', required=True, help='Category in the design table to serve as control in the differential expression')
+    parser.add_argument('--samples', required=True, help='Samples to be compared against the control, comma separated, no spaces')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -102,20 +109,37 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    with open(args.config, 'r') as f:
-        config_dict = json.load(f)
+    config = {
+      "DEBUG": args.debug,
+      "TESTING": args.test,
+      "DRY_RUN": args.dry_run,
+      "log_files": ["/tmp/full.log"],
+      "project": args.project,
+      "options": {
+        "organism": args.organism
+      },
+      "comparisons": {
+        args.control:args.samples
+	  },
+      "tools_conf": {
+        "GSVA": {
+          "input": {
+            "counts": args.counts,
+            "design": args.design
+            },
+          "output": {
+            "heatmap": args.heatmap
+            },
+          "tool_conf": {
+            }
+          }
+        }
+      }
 
-
-    logfile = config_dict["output"]["heatmap"].replace('.png','') + '_GSVA.log'
-    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
-    logging.info(f'Starting GSVA')
-
-    config = {'tools_conf': {'GSVA': config_dict}}
-    config['options'] = config['tools_conf']['GSVA']['options']
+    # Startup the logger format
+    logger = pf.create_logger(config['log_files'][0])
 
     GSVA(config, 'GSVA')
-
-    logging.info(f'Finished GSVA')
 
 if __name__ == "__main__":
     main()

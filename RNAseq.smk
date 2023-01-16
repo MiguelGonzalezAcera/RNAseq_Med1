@@ -164,7 +164,8 @@ rule GSVA:
 rule clustering_heatmap:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
-        norm_counts = rules.deseq2.output.norm_counts
+        norm_counts = rules.deseq2.output.norm_counts,
+        design = design
     output:
         heatmap = f"{outfolder}/plots/{project}_clustering_heatmap.png"
     run:
@@ -173,7 +174,9 @@ rule clustering_heatmap:
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {}
+            'tool_conf': {
+                "dimensions": "2000,2000"
+            }
         }
         python_scripts.clustering_heatmap.clustering_heatmap(config_dict, tool_name)
 
@@ -188,7 +191,9 @@ rule clustering_markers:
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {}
+            'tool_conf': {
+                "dimensions": "2000,2000"
+            }
         }
         python_scripts.clustering_markers.clustering_markers(config_dict, tool_name)
 

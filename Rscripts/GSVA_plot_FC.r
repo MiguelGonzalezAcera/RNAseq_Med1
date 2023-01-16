@@ -4,7 +4,6 @@ suppressPackageStartupMessages(library(cluster))
 suppressPackageStartupMessages(library(gplots))
 suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(optparse))
-suppressPackageStartupMessages(library(RMariaDB))
 
 
 option_list = list(
