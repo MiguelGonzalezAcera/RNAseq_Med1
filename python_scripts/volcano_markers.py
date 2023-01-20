@@ -14,8 +14,8 @@ import python_scripts.python_functions as pf
 # Disable warning
 pd.options.mode.chained_assignment = None  # default='warn'
 
-
 def get_gene_markers(organism):
+    #<TODO>: This could be read from the mysql db (here it makes sense)
     gene_markers = {
         "mouse": {
             "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mitochondrial_ensembl.txt",
@@ -42,6 +42,7 @@ def get_gene_markers(organism):
             "EntericNeuron": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EntericNeuron_ensembl.txt"
         },
         "human": {
+            "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Mitochondrial_human_ensembl.txt",
             "EnterocyteDist": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteDist_human_ensembl.txt",
             "EnterocyteProx": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteProx_human_ensembl.txt",
             "Enteroendocrine": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Enteroendocrine_human_ensembl.txt",
@@ -68,6 +69,93 @@ def get_gene_markers(organism):
 
     return(gene_markers[organism])
 
+def volcano_marker_plot(tab_name, gene_markers, out_path, title):
+    """ Function to produce the plot
+    """
+    # Read the provided table
+    df = pd.read_csv(tab_name, sep='\t')
+
+    # Iterate throug the genelists
+    for glist in gene_markers:
+        # Read the gene list into a list
+        with open(gene_markers[glist]) as f:
+            genelist = f.read().splitlines()
+
+        # Filter dataframe by the genelist
+        wdf = df[df['EnsGenes'].isin(genelist)]
+
+        if wdf.empty:
+            logging.info(f'Could not find genes expressed for marker {glist}')
+            continue
+
+        # Modify the pvalue column
+        wdf['Mod_pvalue'] = [-math.log10(i+1e-148) for i in wdf['pvalue'].tolist()]
+
+        # Create the figure
+        fig, ax = plt.subplots(figsize=(7,7))
+
+        # Establish the limits for the plot
+        ## Y top limit
+        if max(wdf['Mod_pvalue'].tolist()) < 10:
+            ytoplim = 10
+        else:
+            ytoplim = max(wdf['Mod_pvalue'].tolist())
+
+        ## X left limit
+        if min(wdf['log2FoldChange'].tolist()) > -5:
+            xleftlim = -5
+        else:
+            xleftlim = min(wdf['log2FoldChange'].tolist())*1.1
+
+        ## Y left limit
+        if max(wdf['log2FoldChange'].tolist()) < 5:
+            xrightlim = 5
+        else:
+            xrightlim = max(wdf['log2FoldChange'].tolist())*1.1
+
+        # Plot the rectangles
+        boxDR = plt.Rectangle(((xleftlim*1.1)-0.5, -math.log10(0.05)),
+                                abs(xleftlim*1.1), ytoplim*2, color="blue", alpha=0.2)
+        ax.add_patch(boxDR)
+
+        boxUR = plt.Rectangle((0.5, -math.log10(0.05)),
+                                xrightlim*2, ytoplim*2, color="red", alpha=0.2)
+        ax.add_patch(boxUR)
+
+        # Add the initial scatterplot
+        ax.scatter(wdf['log2FoldChange'].tolist(), wdf['Mod_pvalue'].tolist(), s=100, c="grey", alpha=0.5)
+
+        # Add the up and down regulated scatters
+        wdf_filt1 = wdf[(wdf['log2FoldChange'] < -0.5) & (wdf['pvalue'] < 0.05)]
+        ax.scatter(wdf_filt1['log2FoldChange'].tolist(), wdf_filt1['Mod_pvalue'].tolist(),
+                    s=200, c="blue")
+
+        wdf_filt2 = wdf[(wdf['log2FoldChange'] > 0.5) & (wdf['pvalue'] < 0.05)]
+        ax.scatter(wdf_filt2['log2FoldChange'].tolist(), wdf_filt2['Mod_pvalue'].tolist(),
+                    s=200, c="red")
+
+        # With the subsets, calculate and plot percentages of genes up/down
+        perc_down = (len(wdf_filt1)/len(wdf))*100
+        ax.text(xleftlim*0.9, ytoplim*1.35, f"{perc_down:.1f}%", fontsize=30, c="blue")
+
+        perc_up = (len(wdf_filt2)/len(wdf))*100
+        ax.text(xrightlim*0.4, ytoplim*1.35, f"{perc_up:.1f}%", fontsize=30, c="red")
+
+        # Set axis limits
+        ax.set_ylim(bottom=0, top=ytoplim*1.5)
+        ax.set_xlim(xleftlim, xrightlim)
+
+        # Set axis labels
+        ax.set_xlabel("Fold Change (log2FoldChange)", {'fontsize': 20})
+        ax.set_ylabel("P value (-log10(pvalue))", {'fontsize': 20})
+
+        # Set plot title
+        ax.set_title(title.replace('GENEMARKER', glist), {'fontsize': 25})
+
+        fig.savefig(out_path.replace('GENEMARKER', glist))
+        plt.close()
+
+
 
 def volcano_markers(config, tool_name):
     """Get the scatter plots for the markers
@@ -82,123 +170,60 @@ def volcano_markers(config, tool_name):
     # Select the list of markers
     gene_markers = get_gene_markers(organism)
 
-    # Extract the comparisons
-    comparisons = config['comparisons']
+    if 'MVtouched' in config['tools_conf'][tool_name]['output']:
+        # Extract the comparisons
+        comparisons = config['comparisons']
 
-    # Extract the infiles and the project name
-    in_path = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
-    project = config['project']
+        # Extract the infiles and the project name
+        in_path = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
+        project = config['project']
 
-    # Extract the out path and out markerfile
-    out_path = "/".join(config['tools_conf'][tool_name]['output']['MVtouched'].split('/')[0:-1])
-    outmarker = config['tools_conf'][tool_name]['output']['MVtouched']
+        # Extract the out path and out markerfile
+        out_path = "/".join(config['tools_conf'][tool_name]['output']['MVtouched'].split('/')[0:-1])
+        outmarker = config['tools_conf'][tool_name]['output']['MVtouched']
 
-    # Create out folder and marker
-    command = ""
-    if not os.path.exists(out_path):
-        command += f"mkdir {out_path};"
+        # Create out folder and marker
+        command = ""
+        if not os.path.exists(out_path):
+            command += f"mkdir {out_path};"
 
-    command += f"touch {outmarker}; "
+        command += f"touch {outmarker}; "
 
-    logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-            raise OSError(f'Error in command: {cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
+        pf.run_command(command)
 
-    # Loop through the samples and controls
-    for control in comparisons:
-        samples = comparisons[control].split(",")
-        for sample in samples:
-            # Read the table with the whole data
-            tab_name = f"{in_path}/{project}_{sample}_{control}.tsv"
-            df = pd.read_csv(tab_name, sep='\t')
+        # Loop through the samples and controls
+        for control in comparisons:
+            samples = comparisons[control].split(",")
+            for sample in samples:
+                # Get the paths for in table, out plot format. Use wildcard /GENENAME/ in the name of the plot
+                tab_name = f"{in_path}/{project}_{sample}_{control}.tsv"
+                out_path = f'{out_path}/GENEMARKER_{sample}_{control}_scattermarkers.png'
 
-            # Iterate throug the genelists
-            for glist in gene_markers:
-                # Read the gene list into a list
-                with open(gene_markers[glist]) as f:
-                    genelist = f.read().splitlines()
+                # Establish the plot title
+                plot_title = f"GENEMARKER - {sample} - {control}"
 
-                # Filter dataframe by the genelist
-                wdf = df[df['EnsGenes'].isin(genelist)]
+                # Run the plots
+                volcano_marker_plot(tab_name, gene_markers, out_path, plot_title)
+    
+    else:
+        # get the path for the table
+        in_path = config['tools_conf'][tool_name]['input']['RData']
 
-                if wdf.empty:
-                    logging.info(f'Could not find genes expressed for marker {glist}')
-                    continue
+        # get the path for the folder that's going to contain the plots.
+        out_dir = config['tools_conf'][tool_name]['output']['out_dir']
 
-                # Modify the pvalue column
-                wdf['Mod_pvalue'] = [-math.log10(i+1e-148) for i in wdf['pvalue'].tolist()]
+        #  Make it if it doesn't exist
+        if not os.path.exists(out_dir):
+            pf.run_command(f"mkdir {out_dir};")
 
-                # Create the figure
-                fig, ax = plt.subplots(figsize=(7,7))
+        # Make out a path with a wildcard for the plots
+        out_path = f'{out_dir}/GENEMARKER_scattermarkers.png'
 
-                # Establish the limits for the plot
-                ## Y top limit
-                if max(wdf['Mod_pvalue'].tolist()) < 10:
-                    ytoplim = 10
-                else:
-                    ytoplim = max(wdf['Mod_pvalue'].tolist())
+        # Make out a title with the wildcard for the same purpose
+        plot_title = f"Marker genes for GENEMARKER"
 
-                ## X left limit
-                if min(wdf['log2FoldChange'].tolist()) > -5:
-                    xleftlim = -5
-                else:
-                    xleftlim = min(wdf['log2FoldChange'].tolist())*1.1
-
-                ## Y left limit
-                if max(wdf['log2FoldChange'].tolist()) < 5:
-                    xrightlim = 5
-                else:
-                    xrightlim = max(wdf['log2FoldChange'].tolist())*1.1
-
-                # Plot the rectangles
-                boxDR = plt.Rectangle(((xleftlim*1.1)-0.5, -math.log10(0.05)),
-                                     abs(xleftlim*1.1), ytoplim*2, color="blue", alpha=0.2)
-                ax.add_patch(boxDR)
-
-                boxUR = plt.Rectangle((0.5, -math.log10(0.05)),
-                                     xrightlim*2, ytoplim*2, color="red", alpha=0.2)
-                ax.add_patch(boxUR)
-
-                # Add the initial scatterplot
-                ax.scatter(wdf['log2FoldChange'].tolist(), wdf['Mod_pvalue'].tolist(), s=100, c="grey", alpha=0.5)
-
-                # Add the up and down regulated scatters
-                wdf_filt1 = wdf[(wdf['log2FoldChange'] < -0.5) & (wdf['pvalue'] < 0.05)]
-                ax.scatter(wdf_filt1['log2FoldChange'].tolist(), wdf_filt1['Mod_pvalue'].tolist(),
-                           s=200, c="blue")
-
-                wdf_filt2 = wdf[(wdf['log2FoldChange'] > 0.5) & (wdf['pvalue'] < 0.05)]
-                ax.scatter(wdf_filt2['log2FoldChange'].tolist(), wdf_filt2['Mod_pvalue'].tolist(),
-                           s=200, c="red")
-
-                # With the subsets, calculate and plot percentages of genes up/down
-                perc_down = (len(wdf_filt1)/len(wdf))*100
-                ax.text(xleftlim*0.9, ytoplim*1.35, f"{perc_down:.1f}%", fontsize=30, c="blue")
-
-                perc_up = (len(wdf_filt2)/len(wdf))*100
-                ax.text(xrightlim*0.4, ytoplim*1.35, f"{perc_up:.1f}%", fontsize=30, c="red")
-
-                # Set axis limits
-                ax.set_ylim(bottom=0, top=ytoplim*1.5)
-                ax.set_xlim(xleftlim, xrightlim)
-
-                # Set axis labels
-                ax.set_xlabel("Fold Change (log2FoldChange)", {'fontsize': 20})
-                ax.set_ylabel("P value (-log10(pvalue))", {'fontsize': 20})
-
-                # Set plot title
-                ax.set_title(f"{glist} - {sample} - {control}", {'fontsize': 25})
-
-                fig.savefig(f'{out_path}/{glist}_{sample}_{control}_scattermarkers.png')
-                plt.close()
+        volcano_marker_plot(tab_name, gene_markers, out_path, plot_title)
+          
 
 def get_arguments():
     """
@@ -210,10 +235,9 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--DEtouched', required=True, help='Marker file for the differential expression')
-    parser.add_argument('--MVtouched', required=True, help='Marker file for the end of the process')
-    parser.add_argument('--project', required=True, help='Project name')
-    parser.add_argument('--organism', required=True, help='Organism')
+    parser.add_argument('--RData', required=True, help='R object with the result of the differential expression')
+    parser.add_argument('--out_dir', required=True, help="Folder that will contain the plots. Will create it if it doesn't exist")
+    parser.add_argument('--organism', required=True, help='organism of the input data')
 
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
@@ -234,36 +258,23 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    out_dir = "/".join(args.DEtouched.split('/')[0:-1])
-    project = args.project
-
     config = {
-      "DEBUG": args.debug,
-      "TESTING": args.test,
-      "DRY_RUN": args.dry_run,
-      "log_files": ["/tmp/full.log"],
-      "project": project,
-      "options": {
-        "organism": args.organism,
-        "sql_load": "True"
-      },
-      "comparisons": {
-		"KO_H2O": "KO_IL22,KO_IL_A",
-        "WT_H2O": "WT_IL22,WT_IL_A,KO_H2O",
-        "WT_IL22": "WT_IL_A,KO_IL22",
-        "WT_IL_A": "KO_IL_A",
-        "KO_IL22": "KO_IL_A"
-	  },
-      "tools_conf": {
-        "volcano_markers": {
-          "input": {
-            "DEtouched": args.DEtouched
-            },
-          "output": {
-            "MVtouched": args.MVtouched
-            },
-          "tool_conf": {
-            }
+        "DEBUG": args.debug,
+        "TESTING": args.test,
+        "DRY_RUN": args.dry_run,
+        "log_files": ["/tmp/full.log"],
+        "options" : {
+            "organism": args.organism
+        },
+        "tools_conf": {
+            "volcano_plot": {
+            "input": {
+                "RData": args.RData
+                },
+            "output": {
+                "out_dir": args.out_dir,
+                },
+            "tool_conf": {}
           }
         }
       }

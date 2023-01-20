@@ -197,6 +197,23 @@ rule clustering_markers:
         }
         python_scripts.clustering_markers.clustering_markers(config_dict, tool_name)
 
+rule volcano_plot:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched
+    output:
+        volcanotouched = f"{outfolder}/plots/volcanotouched.txt"
+    run:
+        tool_name = 'volcano_plot'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {
+                "dimensions": "2000,2000"
+            }
+        }
+        python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)
+
 rule volcano_markers:
     input:
         DEtouched = rules.deseq2.output.DEtouched
@@ -208,7 +225,9 @@ rule volcano_markers:
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {}
+            'tool_conf': {
+                "dimensions": "2000,2000"
+            }
         }
         python_scripts.volcano_markers.volcano_markers(config_dict, tool_name)
 
@@ -226,23 +245,6 @@ rule GSEA_markers:
             'tool_conf': {}
         }
         python_scripts.GSEA_markers.GSEA_markers(config_dict, tool_name)
-
-rule volcano_plot:
-    input:
-        DEtouched = rules.deseq2.output.DEtouched,
-        design_tab = rules.deseq2.output.design_tab
-    output:
-        volcanotouched = f"{outfolder}/plots/volcanotouched.txt",
-        design_tab = f"{outfolder}/detables/{project}_design.txt"
-    run:
-        tool_name = 'volcano_plot'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)
 
 rule load_project:
     input:
