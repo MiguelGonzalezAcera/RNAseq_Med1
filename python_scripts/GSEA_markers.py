@@ -5,10 +5,12 @@ import glob
 import json
 import subprocess
 import pandas as pd
+import python_scripts.python_functions as pf
 
 def fix_genelists(genelist, outpath, organism):
     """"""
     # Get gene reference table
+    #<TODO>: get the data from the refs database, not the file
     all_genes = pd.read_csv(f"/DATA/{organism}_genes.tsv", sep='\t', index_col=None, header=None)
     all_genes.columns = ['ensembl','entrez','genename']
 
@@ -70,6 +72,7 @@ def GSEA_markers_plots(in_obj, outpath, organism, command):
             "EntericNeuron": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EntericNeuron_ensembl.txt"
         },
         "human": {
+            "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Mitochondrial_human_ensembl.txt",
             "EnterocyteDist": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteDist_human_ensembl.txt",
             "EnterocyteProx": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteProx_human_ensembl.txt",
             "Enteroendocrine": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Enteroendocrine_human_ensembl.txt",
@@ -115,48 +118,57 @@ def GSEA_markers(config, tool_name):
     """
     logging.info(f'Starting {tool_name} process')
 
-    # Extract the organism
-    organism = config['options']['organism']
+    # Run in a different mode if this is the pipeline
+    if 'GSEAMtouched' in config['tools_conf'][tool_name]['output']:
+        # Extract the organism
+        organism = config['options']['organism']
 
-    # Extract the comparisons
-    comparisons = config['comparisons']
+        # Extract the comparisons
+        comparisons = config['comparisons']
 
-    # Extract the infiles and the project name
-    in_path = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
-    project = config['project']
+        # Extract the infiles and the project name
+        in_path = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
+        project = config['project']
 
-    # Extract the out path and out markerfile
-    out_path = "/".join(config['tools_conf'][tool_name]['output']['GSEAMtouched'].split('/')[0:-1])
-    outmarker = config['tools_conf'][tool_name]['output']['GSEAMtouched']
+        # Extract the out path and out markerfile
+        out_path = "/".join(config['tools_conf'][tool_name]['output']['GSEAMtouched'].split('/')[0:-1])
+        outmarker = config['tools_conf'][tool_name]['output']['GSEAMtouched']
 
-    # Create the command to run the pca R script
-    command = ""
+        # Create the command to run the pca R script
+        command = ""
 
-    # Create outfolder if it doesnt exist
-    if not os.path.exists(out_path):
-        command += f"mkdir {out_path};"
+        # Create outfolder if it doesnt exist
+        if not os.path.exists(out_path):
+            command += f"mkdir {out_path};"
 
-    # Loop through the samples and controls
-    for control in comparisons:
-        samples = comparisons[control].split(",")
-        for sample in samples:
-            # Read the table with the whole data
-            in_obj = f"{in_path}/{project}_{sample}_{control}.Rda"
+        # Loop through the samples and controls
+        for control in comparisons:
+            samples = comparisons[control].split(",")
+            for sample in samples:
+                # Read the table with the whole data
+                in_obj = f"{in_path}/{project}_{sample}_{control}.Rda"
 
-            command = GSEA_markers_plots(in_obj, out_path, organism, command)
+                # Create the corresponding command
+                command = GSEA_markers_plots(in_obj, out_path, organism, command)
 
-    command += f"touch {outmarker}; "
+        command += f"touch {outmarker}; "
+    else:
+        # get the path for the table
+        in_path = config['tools_conf'][tool_name]['input']['RData']
 
-    logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
+        # get the path for the folder that's going to contain the plots.
+        out_dir = config['tools_conf'][tool_name]['output']['out_dir']
+
+        #  Make it if it doesn't exist
+        if not os.path.exists(out_dir):
+            command += f"mkdir {out_dir};"
+
+        # Create the corresponding command
+        command = GSEA_markers_plots(in_obj, out_dir, organism, command)
+
+    # Run the finished command
+    pf.run_command(command)
+
 
 def get_arguments():
     """
@@ -168,8 +180,10 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--config', required=True, help='Configuration file in json format')
-
+    parser.add_argument('--RData', required=True, help='R object with the result of the differential expression')
+    parser.add_argument('--out_dir', required=True, help="Folder that will contain the plots. Will create it if it doesn't exist")
+    parser.add_argument('--organism', required=True, help='organism of the input data')
+    
     # Test and debug variables
     parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
     parser.add_argument('--debug', '-d', action='store_true', default=False, help='dry_run')
@@ -189,15 +203,31 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    with open(args.config, 'r') as f:
-        config_dict = json.load(f)
+    config = {
+        "DEBUG": args.debug,
+        "TESTING": args.test,
+        "DRY_RUN": args.dry_run,
+        "log_files": ["/tmp/full.log"],
+        "options" : {
+            "organism": args.organism
+        },
+        "tools_conf": {
+            "GSEA": {
+                "input": {
+                    "RData": args.RData
+                    },
+                "output": {
+                    "out_dir": args.out_dir,
+                    },
+                "tool_conf": {
+            
+                }
+            }
+        }
+    }
 
-    logfile = config_dict["output"]["out_plot"].replace('.png','') + '_GSEA.log'
-    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
-    logging.info(f'Starting GSEA')
-
-    config = {'tools_conf': {'GSEA': config_dict}}
-    config['options'] = config['tools_conf']['GSEA']['options']
+    # Startup the logger format
+    logger = pf.create_logger(config['log_files'][0])
 
     GSEA_markers(config, 'GSEA')
 

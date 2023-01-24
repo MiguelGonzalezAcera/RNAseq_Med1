@@ -48,16 +48,7 @@ if (length(rownames(as.data.frame(z))) >= 10){
 # Save enrichment table
 write.table(as.data.frame(z), file=gsub(".png",".tsv",opt$gseaplot, fixed = TRUE),sep="\t",row.names = FALSE)
 
+# Make and save the plot
 png(file=opt$gseaplot, width = 2000, height = 2000, res = 200)
 gseaplot2(z, geneSetID = 1, color="red", pvalue_table = FALSE, base_size = 24)
 dev.off()
-
-# Barplot
-# png(file=gsub(".png","_barplot.png",opt$gseaplot, fixed = TRUE), width = 8000, height = 8000, res = 600)
-# barplot(z)
-# dev.off()
-
-# Enrichment map
-# png(file=gsub(".png","_emapplot.png",opt$gseaplot, fixed = TRUE), width = 8000, height = 8000, res = 600)
-# emapplot(z)
-# dev.off()

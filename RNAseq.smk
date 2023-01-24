@@ -246,10 +246,12 @@ rule GSEA_markers:
         }
         python_scripts.GSEA_markers.GSEA_markers(config_dict, tool_name)
 
+# NOTE: this one does not load the tables with the results or the counts.
+# The DEtouched thing is only there in case there is an error in the naming and the DE fails, so it does not load something mistaken
 rule load_project:
     input:
-        design_tab = rules.volcano_plot.output.design_tab,
-        design = design
+        design = design,
+        DEtouched = rules.deseq2.output.DEtouched
     output:
         prloadtouched = f"{outfolder}/detables/loadedtouched.txt"
     run:
