@@ -74,7 +74,7 @@ for (filename in treats){
   # Read each file
   load(filename)
   full_df <- as.data.frame(res)
-  print(head(full_df))
+  # print(head(full_df))
 
   # Sort the names by rowname (ENSEMBLID)
   full_df <- full_df[order(row.names(full_df)),]
@@ -148,14 +148,14 @@ mycolhc <- mycolhc[as.vector(mycl)]
 # Establish colors
 color <- colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
 
-png(file=opt$heatmap, width = 1500, height = 1500, res = 150)
+png(file=opt$heatmap, width = 4500, height = 9000, res = 600)
 # Mount the heatmap
 #<TO_DO>: Add the title of the plot, according to whatever
 row_den = color_branches(hr, h = max(hr$height)/1.5)
 Heatmap(data.matrix(clust_df), cluster_rows = as.dendrogram(hr),
         #as.dendrogram(row_den),
-        cluster_columns = FALSE,
-        col=color, column_dend_height = unit(5, "cm"),
+        cluster_columns = as.dendrogram(hc),
+        col=color, column_dend_height = unit(2, "cm"),
         #row_dend_width = unit(3, "cm"),
         row_names_gp = gpar(fontsize = (90/length(genelist)+5)),
         column_names_gp = gpar(fontsize = (90/length(genelist)+5)),

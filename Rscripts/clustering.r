@@ -72,12 +72,17 @@ rows_hm[is.na(rows_hm)|duplicated(rows_hm)] <- rownames(clust_df)[is.na(rows_hm)
 rownames(clust_df) <- rows_hm
 
 # Transform matrix to numeric
-cdf = sapply(clust_df, as.numeric)
+cdf = clust_df
+
+# Solution from: https://stackoverflow.com/questions/27528907/how-to-convert-data-frame-column-from-factor-to-numeric
+indx <- sapply(cdf, is.factor)
+cdf[indx] <- lapply(cdf[indx], function(x) as.numeric(as.character(x)))
+
 rownames(cdf) <- rows_hm
 
 # Quick fix for column clustering in case some values are equal
 a <- cor(log(cdf + 1), method='pearson')
-a[is.na(a)] = 0
+rownames(cdf) <- rows_hma[is.na(a)] = 0
 
 # Quick fix for the row clustering in case some values are equal
 b <- cor(log(t(cdf)), method='pearson')

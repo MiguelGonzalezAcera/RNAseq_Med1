@@ -6,22 +6,22 @@ suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(enrichplot))
 
-option_list = list(
-  make_option("--out_tab", type="character",
-              help="Table with the result of the analysis. TSV extension"),
-  make_option("--in_obj", type="character",
-              help="Robject with the DE analysis. Rda extension"),
-  make_option("--id", type="character",
-              help="Sample or group name for the output. STR"),
-  make_option("--genelist", type="character", default = "",
-              help="A genelist of genes with the gene group
+option_list <- list(
+  make_option("--out_tab", type = "character",
+              help = "Table with the result of the analysis. TSV extension"),
+  make_option("--in_obj", type = "character",
+              help = "Robject with the DE analysis. Rda extension"),
+  make_option("--id", type = "character",
+              help = "Sample or group name for the output. STR"),
+  make_option("--genelist", type = "character", default = "",
+              help = "A genelist of genes with the gene group
               to use for the enrichment. TXT extension. Default = None"),
-  make_option("--organism", type="character", default= "mouse",
+  make_option("--organism", type = "character", default = "mouse",
               help="Organism analyzed. STR. Available = human, mouse. Default = Mouse")
 )
 
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
+opt_parser <- OptionParser(option_list=option_list)
+opt <- parse_args(opt_parser)
 
 # Load R object
 load(opt$in_obj)
@@ -32,9 +32,9 @@ source("Rscripts/Rfunctions.R")
 # Select organism
 database <- select.organism(opt$organism)
 if (opt$organism == "human") {
-  org_db = "hsa"
+  org_db <- "hsa"
 } else if (opt$organism == "mouse") {
-  org_db = "mmu"
+  org_db <- "mmu"
 }
 
 # Generate named list of FC
@@ -62,7 +62,7 @@ x <- enrichKEGG(entrezgeneids, organism=org_db, pvalueCutoff=hgCutoff, pAdjustMe
 KEGGtable <- as.data.frame(x)
 
 # Save the data frame
-write.table(KEGGtable, file=opt$out_tab, sep="\t", row.names = FALSE)
+write.table(KEGGtable, file = opt$out_tab, sep = "\t", row.names = FALSE)
 
 # Obtain plots
 # barplot
@@ -78,18 +78,21 @@ dev.off()
 
 # Enrichment map
 png(file=gsub(".tsv","_emap.png",opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
-emapplot(x)
+x2 <- pairwise_termsim(x)
+emapplot(x2)
 dev.off()
 
 # Get final path
-pathlist <- unlist(strsplit(opt$out_tab,"/"))
-path = paste(pathlist[1:length(pathlist)-1], collapse = "/")
+pathlist <- unlist(strsplit(opt$out_tab, "/"))
+pathlength <- length(pathlist) - 1
+path <- paste(pathlist[1:pathlength], collapse = "/")
 
 # Show the main pathways
-if (length(rownames(KEGGtable)) >= 50){
+if (length(rownames(KEGGtable)) >= 50) {
   top_pathways <- rownames(KEGGtable)[1:50]
 } else {
-  top_pathways <- rownames(KEGGtable)[1:length(rownames(KEGGtable))]
+  maxlength <- length(rownames(KEGGtable))
+  top_pathways <- rownames(KEGGtable)[1:maxlength]
   }
 
 for (pway in top_pathways) {

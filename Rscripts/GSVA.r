@@ -52,7 +52,7 @@ if (opt$organism == 'mouse'){
   genes[['Fibroblasts']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Fibroblasts_ensembl.txt")
   genes[['Goblet']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Goblet_ensembl.txt")
   genes[['Mast_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mast_cells_ensembl.txt")
-  genes[['Mitochondrial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mitochondrial_cells_ensembl.txt")
+  genes[['Mitochondrial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mitochondrial_ensembl.txt")
   genes[['M_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/M_cells_ensembl.txt")
   genes[['MO_DC']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/MO_DC_ensembl.txt")
   genes[['Neutrophils']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Neutrophils_ensembl.txt")
