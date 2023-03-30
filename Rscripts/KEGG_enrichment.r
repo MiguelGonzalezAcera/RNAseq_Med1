@@ -53,7 +53,6 @@ if (opt$genelist == ""){
 }
 
 # Do the GSEA
-#<TO_DO>: Change parameters cutoff and organism.
 hgCutoff <- 0.1
 x <- enrichKEGG(entrezgeneids, organism=org_db, pvalueCutoff=hgCutoff, pAdjustMethod="BH",
                 qvalueCutoff=0.1)
@@ -71,8 +70,7 @@ barplot(x, showCategory=16)
 dev.off()
 
 # dotplot
-png(file=sprintf("%s_dotplot.png",
-                 gsub(".rda","",opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
+png(file=gsub(".tsv","_dotplot.png",opt$out_tab, fixed=TRUE), width = 8000, height = 6000, res = 600)
 dotplot(x, x='Count',showCategory=50)
 dev.off()
 
@@ -95,8 +93,9 @@ if (length(rownames(KEGGtable)) >= 50) {
   top_pathways <- rownames(KEGGtable)[1:maxlength]
   }
 
+# Make the graphs for the selected pathways
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data=geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit=list(gene=2, cpd=0.25))
+  pathway <- pathview(gene.data = geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit = list(gene = 2, cpd = 0.25))
   wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
   print(wd)
 
@@ -105,7 +104,7 @@ for (pway in top_pathways) {
 }
 
 # Save environment
-save.image(file=gsub(".tsv",".RData",opt$out_tab, fixed = TRUE))
+save.image(file=gsub(".tsv", ".RData",opt$out_tab, fixed = TRUE))
 
 # Save versions
-get_versions(gsub(".tsv","_versions.tsv",opt$out_tab, fixed = TRUE))
+get_versions(gsub(".tsv", "_versions.tsv",opt$out_tab, fixed = TRUE))

@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-import glob
 import subprocess
 import json
 import pandas as pd
@@ -62,6 +61,7 @@ def KEGG_enrichment(config, tool_name):
         command += f'touch {keggtouched}'
 
     else:
+        #<TODO>: Also consider removing, if the R script already does its thing by itself and I'm not gonna include this in an API (at least the Rshiny one)
         # Get the name of the out file
         out_tab = config['tools_conf'][tool_name]['output']['out_tab']
 
@@ -82,16 +82,7 @@ def KEGG_enrichment(config, tool_name):
 
         command += f'Rscript Rscripts/KEGG_enrichment.r --out_tab {out_tab} --in_obj {in_obj} --id {id} --organism {organism} --genelist {genelist}; '
 
-    logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
+    pf.run_command(command)
 
 
 def get_arguments():
