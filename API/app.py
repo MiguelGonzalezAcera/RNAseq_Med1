@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-from flask import Flask, jsonify, make_response, request, render_template
+from flask import Flask, jsonify, make_response, request
 from snakemake import snakemake
 import threading
 from flask_cors import cross_origin
 import json
-import os
-import sys
 import subprocess
 import datetime
 from pygit2 import Repository
@@ -13,9 +11,9 @@ from pygit2 import Repository
 app = Flask(__name__)
 
 def get_script_names():
+    # Dictionary with the snakemake scripts included in the pipeline api
     data = {
-        'RNAseq': {'path': 'RNAseq.smk'},
-        'Gene_query': {'path': 'Check_gene.smk'},
+        'RNAseq': {'path': 'RNAseq.smk'}
     }
 
     return data
@@ -59,14 +57,17 @@ def get_references_names():
     return data
 
 def generate_configuration(postdata, pipeline):
-        # Get the configuration of the different pipelines
+    # Get the configuration of the different pipelines
+    # Get the indexed genomes and other files for the mapping
     refs_names = get_references_names()
 
+    # join the data in a single dict filtering the genomes by organism
     config_json = {**postdata, **refs_names[postdata['options']['organism']]}
 
-    # Serialize class attributes into a configuration fileW
+    # ID the pipeline used
     config_json['pipeline'] = pipeline
 
+    # Write the config into a file
     config_json_path = config_json['outfolder'] + f'/config_{pipeline}.json'
 
     # Dump json configuration into file
@@ -74,20 +75,18 @@ def generate_configuration(postdata, pipeline):
         json.dump(config_json, outfile)
 
     # Config path must be return in order to send it to the pipeline
-    return True, config_json_path
-
+    return config_json_path
 
 def generate_response(postdata, dag):
 
     response = jsonify({"date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "dag": str(dag), "status": "ok"}), 200
+                        "dag": str(dag), "status": "ok", "config": postdata}), 200
 
     return make_response(response)
 
-
 def generate_dag(snakemakepath, config_json_path, pipeline):
 
-    # Hago una primera ejecucion en vacio para generar el DAG
+    # Run an empty instance to generate the DAG
     cmd = f"snakemake --snakefile {snakemakepath} " +\
           f'--config param={config_json_path} --dag'
     p = subprocess.Popen(cmd, shell=True, executable='/bin/bash',
@@ -115,20 +114,22 @@ def launch_process(config_json_path, postdata, pipeline, mode='POPEN'):
     # if snk_status is False:
     #     print('#[ERR] - Cancelling job...')
 
+    # create the command for the snakemake pipeline
     cmd = f'snakemake -s {config_names[pipeline]["path"]} all -j 10 ' +\
         f"--config param={config_json_path} --use-conda"
     print(cmd)
 
+    # Run according to mode
     if mode == 'POPEN':
         subprocess.Popen(cmd, shell=True, executable='/bin/bash')
     elif mode == 'RUN':
         subprocess.run(cmd, shell=True, executable='/bin/bash')
 
-
 def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
-    # Get path to the needed scripts
+    # Get path to the needed pipeline scripts
     config_names = get_script_names()
 
+    # Check for running in test mode or other
     if mode == 'TEST':
         dag = {}
         snakemake(config_names[pipeline]['path'],
@@ -136,15 +137,16 @@ def launch_job(postdata, config_json_path, pipeline, mode='RUN'):
                   targets=['all'], cores=8, use_conda=True)
 
     else:
+        # Generate the DAG for the response
         dag = generate_dag(config_names[pipeline]['path'], config_json_path, pipeline)
 
+        # Put the process in a thread and run it
         # Launching as class would block the response until the pipeline has finished.
         # https://stackoverflow.com/questions/21284319/can-i-make-one-method-of-class-run-in-background
         thread = threading.Thread(target=launch_process, args=(config_json_path, postdata, pipeline,))
         thread.start()
 
     return True, dag
-
 
 @app.errorhandler(404)
 def not_found(error):
@@ -168,10 +170,10 @@ def launch_RNAseq():
     pipeline = 'RNAseq'
 
     # Create and save configuration
-    status_config, config_json_path = generate_configuration(postdata, pipeline)
+    config_json_path = generate_configuration(postdata, pipeline)
 
     # Initialize job
-    status_job, dag = launch_job(postdata, config_json_path, pipeline)
+    dag = launch_job(postdata, config_json_path, pipeline)
 
     return generate_response(postdata, dag)
 
