@@ -1,8 +1,6 @@
 import argparse
 import logging
 import os
-import json
-import subprocess
 import pandas as pd
 import python_scripts.python_functions as pf
 
@@ -22,7 +20,6 @@ def GSVA(config, tool_name):
 
     # Define the rest of the output parameters
     heatmap = config['tools_conf'][tool_name]['output']['heatmap']
-    heatmap_FC = config['tools_conf'][tool_name]['output']['heatmap'].replace(".png", "_FC.png")
 
     # Get options
     organism = config['options']['organism']
@@ -41,35 +38,8 @@ def GSVA(config, tool_name):
         # Add the main command
         command += f'Rscript Rscripts/GSVA.r --heatmap {heatmap} --counts {norm_counts} --design {design} --organism {organism} --out_obj {out_dir}/{project}_GSVA.Rda --control {control} --comparisons {samples[control]}; '
 
-    # Create the heatmap with the Fold Changes by limma
-    res_list = []
-    names_list = []
-    for control in samples:
-        for sample in samples[control].split(","):
-            # Add result to list
-            res_list.append(f"{out_dir}/{project}_GSVA_{sample}_{control}.Rda")
-            names_list.append(f"{sample}_{control}")
-
-    # Merge results in a single string
-    res_str = ",".join(res_list)
-    names_str = ",".join(names_list)
-
-    # Add the command
-    if len(names_list) > 1:
-        command += f"Rscript Rscripts/GSVA_plot_FC.r --Rdata {res_str} --colnames {names_str} --heatmap {heatmap_FC} --organism {organism}; "
-
     # Run the command and log it
-    logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-            raise OSError(f'Error in command: {cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
+    pf.run_command(command)
 
 
 def get_arguments():

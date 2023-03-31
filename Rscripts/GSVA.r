@@ -4,30 +4,38 @@ suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ComplexHeatmap))
 suppressPackageStartupMessages(library(gplots))
 suppressPackageStartupMessages(library(circlize))
+suppressPackageStartupMessages(library(dendextend))
+suppressPackageStartupMessages(library(cluster))
 
 # Create options
-option_list = list(
-  make_option("--heatmap", type="character",
-              help="Heatmap of the coverage of the genes over the samples"),
-  make_option("--counts", type="character",
-              help="An r object with the normalized counts. Produced in the DE script."),
-  make_option("--design", type="character",
-              help="File with the design of the experiment."),
-  make_option("--out_obj", type="character",
-              help="DESeq2 object with the result of the analysis."),
-  make_option("--organism", type="character", default= "mouse",
-              help="Organism analyzed. Available = human, mouse. Default = mouse"),
-  make_option("--control", type="character",
-              help="Value from the designs to use as control"),
-  make_option("--comparisons", type="character",
-              help="Values from the designs, comma separated, to compare against control.")
+option_list <- list(
+  make_option("--heatmap", type = "character",
+              help = "Heatmap of the coverage of the genes over the samples"),
+  make_option("--counts", type = "character",
+              help = "An r object with the normalized counts. Produced in the DE script."),
+  make_option("--design", type = "character",
+              help = "File with the design of the experiment."),
+  make_option("--out_obj", type = "character",
+              help = "DESeq2 object with the result of the analysis."),
+  make_option("--organism", type = "character", default = "mouse",
+              help = "Organism analyzed. Available = human, mouse. Default = mouse"),
+  make_option("--control", type = "character",
+              help = "Value from the designs to use as control"),
+  make_option("--comparisons", type = "character",
+              help = "Values from the designs, comma separated, to compare against control."),
+  make_option("--dims", type = "character", default = "3500,3500",
+              help = "Dimensions of the plot in pixels. Default = 3500,3500"),
+  make_option("--colors", type = "character", default = "blue,white,red",
+              help = "Colors for the heatmap, from lower to higher. Default = blue,white,red"),
+  make_option("--limits", type = "character", default = "-1,0,1",
+              help = "Limits and center for the color scale. Default = -1,0,1"),
 )
 
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
+opt_parser <- OptionParser(option_list = option_list)
+opt <- parse_args(opt_parser)
 
 # Load R scripts
-source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
+source("Rscripts/Rfunctions.R")
 
 # Select organism
 database <- select.organism(opt$organism)
@@ -36,113 +44,173 @@ database <- select.organism(opt$organism)
 load(opt$counts)
 
 # Remove the genename column
-wdf_norm <- df_norm[ , !names(df_norm) %in% c("Genename")]
+wdf_norm <- df_norm[, !names(df_norm) %in% c("Genename")]
 
 # Create the lists of genes
 genes <- list()
 
-if (opt$organism == 'mouse'){
-  genes[['B_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/B_cells_ensembl.txt")
-  genes[['Endothelial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Endothelial_ensembl.txt")
-  genes[['EntericGlial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EntericGlial_ensembl.txt")
-  genes[['EntericNeuron']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EntericNeuron_ensembl.txt")
-  genes[['EnterocyteDist']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EnterocyteDist_ensembl.txt")
-  genes[['EnterocyteProx']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EnterocyteProx_ensembl.txt")
-  genes[['Enteroendocrine']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Enteroendocrine_ensembl.txt")
-  genes[['Fibroblasts']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Fibroblasts_ensembl.txt")
-  genes[['Goblet']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Goblet_ensembl.txt")
-  genes[['Mast_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mast_cells_ensembl.txt")
-  genes[['Mitochondrial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mitochondrial_ensembl.txt")
-  genes[['M_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/M_cells_ensembl.txt")
-  genes[['MO_DC']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/MO_DC_ensembl.txt")
-  genes[['Neutrophils']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Neutrophils_ensembl.txt")
-  genes[['NK_ILC1']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/NK_ILC1_ensembl.txt")
-  genes[['Paneth']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Paneth_ensembl.txt")
-  genes[['Plasma_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Plasma_cells_ensembl.txt")
-  genes[['Smooth_muscle']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Smooth_muscle_ensembl.txt")
-  genes[['StemProg']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/StemProg_ensembl.txt")
-  genes[['TAProg']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/TAProg_ensembl.txt")
-  genes[['T_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/T_cells_ensembl.txt")
-  genes[['Tuft']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Tuft_ensembl.txt")
-} else if (opt$organism == 'human'){
-  genes[['B_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/B_cells_human_ensembl.txt")
-  genes[['Endothelial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Endothelial_human_ensembl.txt")
-  genes[['EntericGlial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EntericGlial_human_ensembl.txt")
-  genes[['EntericNeuron']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EntericNeuron_human_ensembl.txt")
-  genes[['EnterocyteDist']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteDist_human_ensembl.txt")
-  genes[['EnterocyteProx']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteProx_human_ensembl.txt")
-  genes[['Enteroendocrine']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Enteroendocrine_human_ensembl.txt")
-  genes[['Fibroblasts']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Fibroblasts_human_ensembl.txt")
-  genes[['Goblet']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Goblet_human_ensembl.txt")
-  genes[['Mast_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Mast_cells_human_ensembl.txt")
-  genes[['M_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/M_cells_human_ensembl.txt")
-  genes[['Mitochondrial']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Mitochondrial_human_ensembl.txt")
-  genes[['MO_DC']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/MO_DC_human_ensembl.txt")
-  genes[['Neutrophils']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Neutrophils_human_ensembl.txt")
-  genes[['NK_ILC1']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/NK_ILC1_human_ensembl.txt")
-  genes[['Paneth']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Paneth_human_ensembl.txt")
-  genes[['Plasma_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Plasma_cells_human_ensembl.txt")
-  genes[['Smooth_muscle']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Smooth_muscle_human_ensembl.txt")
-  genes[['StemProg']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/StemProg_human_ensembl.txt")
-  genes[['TAProg']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/TAProg_human_ensembl.txt")
-  genes[['T_cells']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/T_cells_human_ensembl.txt")
-  genes[['Tuft']] <- readLines("/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Tuft_human_ensembl.txt")
+# load the respective set of gene markers according to organism
+if (opt$organism == "mouse") {
+  source("Static/Mouse_genemarkers_ensembl.Rda")
+} else if (opt$organism == "human") {
+  source("Static/Human_genemarkers_ensembl.Rda")
 }
 
 # transform the data to numeric matrix
-options(digits=20)
-numwdf_norm <- matrix(as.numeric(as.matrix(wdf_norm)),  ncol = ncol(as.matrix(wdf_norm)))
+options(digits = 20)
+numwdf_norm <- matrix(as.numeric(as.matrix(wdf_norm)), ncol = ncol(as.matrix(wdf_norm)))
 rownames(numwdf_norm) <- rownames(wdf_norm)
 colnames(numwdf_norm) <- colnames(wdf_norm)
 
 # Run the gsva ove the set of counts
-gsva.es <- gsva(numwdf_norm, genes, verbose=FALSE)
+gsva.es <- gsva(numwdf_norm, genes, verbose = FALSE)
 
 # Save the GSVA table as R object and table
-save(gsva.es, file=opt$out_obj)
-write.table(gsva.es, file=gsub(".Rda",".tsv",opt$out_obj, fixed = TRUE),sep="\t")
+save(gsva.es, file = opt$out_obj)
+write.table(gsva.es, file = gsub(".Rda",".tsv", opt$out_obj, fixed = TRUE), sep = "\t")
 
 # Establish colors
-color <- colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+color <- colorRamp2(
+  c(
+    int(strsplit(opt$limits, ", ")[0]),
+    int(strsplit(opt$limits, ", ")[1]),
+    int(strsplit(opt$limits, ", ")[2])
+  ),
+  c(
+    strsplit(opt$colors, ", ")[0],
+    strsplit(opt$colors, ", ")[1],
+    strsplit(opt$colors, ", ")[2]
+  )
+)
 
 # Create a heatmap of the values
-png(file=opt$heatmap, width = 3500, height = 3500, res = 600)
-Heatmap(gsva.es,cluster_columns = FALSE,
-        col=color, column_dend_height = unit(5, "cm"),
+png(
+  file = opt$heatmap,
+  width = int(strsplit(opt$dims, ",")[0]),
+  height = int(strsplit(opt$dims, ",")[1]),
+  res = 600
+)
+Heatmap(gsva.es, cluster_columns = FALSE,
+        col = color, column_dend_height = unit(5, "cm"),
         row_dend_width = unit(2, "cm"))
 dev.off()
 
+# ----------------------------------------------------------------
+
 # diff expression with limma
-sampleTableSingle = read.table(opt$design, fileEncoding = "UTF8")
+sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 
 # Design model matrix
-#design <- model.matrix( ~ as.character(sampleTableSingle[,1]) + as.character(sampleTableSingle[,2]))
-Tr1 = relevel(factor(sampleTableSingle[,1]), opt$control)
-design <- model.matrix( ~ Tr1)
+Tr1 <- relevel(factor(sampleTableSingle[, 1]), opt$control)
+design <- model.matrix(~ Tr1)
 
 # Run limma
 fit <- lmFit(gsva.es, design)
 fit <- eBayes(fit)
-res <- decideTests(fit, p.value=0.1)
+res <- decideTests(fit, p.value = 0.1)
+
+# Get a dataframe with the columns of the fold change of all the samples
+clust_df <- NULL
+pval_df <- NULL
+filenames <- c()
 
 # Save each of the results by sample
 for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # Get result of the diff expression
-  restab <- topTable(fit, coef=paste("Tr1",sample,sep=""), number = 100)
-  
-  # Save the full result object
-  # Contrast name will be replaced by the sample and controls
-  res_name = paste(paste("", sample, opt$control, sep='_'),"Rda", sep=".")
-  save(restab,file=gsub(".Rda",res_name,opt$out_obj, fixed = TRUE))
-  
+  restab <- topTable(fit, coef = paste("Tr1", sample, sep = ""), number = 100)
+
   # Save the table
-  restab_name = paste(paste("", sample, opt$control, sep='_'),"tsv", sep=".")
-  write.table(restab, file=gsub(".Rda",restab_name,opt$out_obj, fixed = TRUE),
-              sep="\t")
+  restab_name <- paste(paste("", sample, opt$control, sep= " "), "tsv", sep = ".")
+  write.table(restab, file = gsub(".Rda", restab_name, opt$out_obj, fixed = TRUE),
+              sep = "\t")
+
+  # Transform into dataframe
+  full_df <- as.data.frame(restab)
+
+  # Get the fold change and the pvalue column
+  FC_df <- full_df["logFC"]
+  pv_df <- full_df["P.Value"]
+
+  # Make the filename and rename the columns
+  filename <- paste(sample, opt$control, sep = "_")
+  # Name the column as the file and save the name
+  colnames(FC_df) <- c(filename)
+  colnames(pv_df) <- c(filename)
+  filenames <- c(filenames, filename)
+
+  if (is.null(clust_df) == TRUE) {
+    # If the final df is empty, fill it with one column
+    clust_df <- FC_df
+    pval_df <- pv_df
+  } else {
+    # If not, add the column to the df
+    clust_df <- merge(clust_df, FC_df, by = 0, all = TRUE)
+    rownames(clust_df) <- clust_df$Row.names
+    clust_df$Row.names <- NULL
+
+    pval_df <- merge(pval_df, pv_df, by = 0, all = TRUE)
+    rownames(pval_df) <- pval_df$Row.names
+    pval_df$Row.names <- NULL
+  }
+}
+
+# Drop Na values
+clust_df <- clust_df[complete.cases(clust_df), ]
+pval_df <- pval_df[complete.cases(pval_df), ]
+
+# Keep only genes with valid pvalues
+clust_df <- clust_df[rownames(clust_df) %in% rownames(pval_df), drop = FALSE]
+
+# Change column names
+colnames(clust_df) <- filenames
+colnames(pval_df) <- filenames
+
+# Failsafe for clusterings with low instances
+if (length(rownames(clust_df)) < 1) {
+  print("GSVA doesn\'t have the necessary length to do the clustering in this group of samples")
+} else {
+  # Perform the clustering analysis over the table
+  # Tree construction (rows)
+  hr <- hclust(as.dist(1 - cor(t(data.matrix(clust_df)),
+                            method = "pearson")), method = "average")
+
+  # Tree cutting
+  mycl <- cutree(hr, h = max(hr$height) / 1.3)
+
+  # Clustering boxes
+  mycolhc <- rainbow(length(unique(mycl)), start = 0.1, end = 0.9)
+  mycolhc <- mycolhc[as.vector(mycl)]
+
+  # change heatmap filename for the Fc one
+  FC_hmap_path <- gsub(".png", "_FC.png", opt$heatmap, fixed = TRUE)
+
+  png(
+    file = FC_hmap_path,
+    width = int(strsplit(opt$dims, ",")[0]),
+    height = int(strsplit(opt$dims, ",")[1]),
+    res = 600
+  )
+
+  # Mount the heatmap
+  row_den <- color_branches(hr, h = max(hr$height) / 1.5)
+  Heatmap(
+    data.matrix(clust_df), cluster_rows = as.dendrogram(hr),
+    cluster_columns = FALSE, col = color, row_dend_width = unit(3, "cm"),
+    row_names_gp = gpar(fontsize = (90 / length(rownames(clust_df)) + 5)),
+    column_names_gp = gpar(fontsize = (90/length(rownames(clust_df)) + 5) + 2),
+    column_names_max_height = unit(8, "cm"),
+    cell_fun = function(j, i, x, y, width, height, fill) {
+      grid.text(
+        sprintf("%.2f", data.matrix(pval_df)[i, j]), x, y,
+        gp = gpar(fontsize = (80 / length(rownames(clust_df)) + 3))
+      )
+    }
+  )
+  dev.off()
 }
 
 # Save environment
-save.image(file=gsub(".Rda",".RData",opt$out_obj, fixed = TRUE))
+save.image(file = gsub(".Rda", ".RData", opt$out_obj, fixed = TRUE))
 
 # Save versions
-get_versions(gsub(".Rda","_versions.tsv",opt$out_obj, fixed = TRUE))
+get_versions(gsub(".Rda", "_versions.tsv", opt$out_obj, fixed = TRUE))

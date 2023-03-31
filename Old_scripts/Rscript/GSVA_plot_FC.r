@@ -6,19 +6,19 @@ suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(optparse))
 
 
-option_list = list(
-  make_option("--Rdata", type="character", default = "",
-              help="Files with the data. Useful when comparing projects."),
-  make_option("--colnames", type="character", default = "",
-              help="Names of the columns, in the same order as Rdata. Useful when comparing projects."),
-  make_option("--heatmap", type="character",
-              help="Heatmap of the coverage of the genes over the samples"),
-  make_option("--organism", type="character", default= "mouse",
-              help="Organism analyzed. Available = human, mouse. Default = mouse")
+option_list <- list(
+  make_option("--Rdata", type = "character", default = "",
+              help = "Files with the data. Useful when comparing projects."),
+  make_option("--colnames", type = "character", default = "",
+              help = "Names of the columns, in the same order as Rdata. Useful when comparing projects."),
+  make_option("--heatmap", type = "character",
+              help = "Heatmap of the coverage of the genes over the samples"),
+  make_option("--organism", type = "character", default = "mouse",
+              help = "Organism analyzed. Available = human, mouse. Default = mouse")
 )
 
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
+opt_parser <- OptionParser(option_list=option_list)
+opt <- parse_args(opt_parser)
 
 # Load R scripts
 source("/DATA/RNAseq_test/Scripts/Rscripts/Rfunctions.R")
@@ -77,7 +77,7 @@ colnames(pval_df) <- colnames
 
 # Failsafe for clusterings with low instances
 if (length(rownames(clust_df)) < 2) {
-  print('GSVA doesn\'t have the necessary length to do the clustering in this group of samples')
+  print("GSVA doesn\'t have the necessary length to do the clustering in this group of samples")
   quit()
 }
 
