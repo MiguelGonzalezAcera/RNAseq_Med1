@@ -1,11 +1,9 @@
 """
-
 This script functions as a main program to map sequences from a given set of
 fastq files (R1 and R2).
 
 The user can select which the output would be and which one would be the
 reference genome to use (defaults to mm10).
-
 """
 import argparse
 import logging
@@ -19,37 +17,59 @@ def mapping(config, tool_name):
     needed for the process
 
     """
+    # Start the logger
     logging.info(f'Starting {tool_name} process')
 
     # Get the paths to the files that are going to be input/output
+    # Inputs
+    # R1 files
     R1_FILES = config['tools_conf'][tool_name]['input']['fastq_r1']
-    if 'fastq_r2' in config['tools_conf'][tool_name]['input']:
-        R2_FILES = config['tools_conf'][tool_name]['input']['fastq_r2']
-    else:
-        R2_FILES = ''
-    bamdir = "/".join(config['tools_conf'][tool_name]['output']['mappingtouched'].split('/')[0:-1])
+
+    # Outputs
+    # Control file
     mappingtouched = config['tools_conf'][tool_name]['output']['mappingtouched']
+    # Out folder
+    bamdir = "/".join(mappingtouched.split('/')[0:-1])
+
+    # Other information
     genomePath = config['tools_conf']['genome']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
-    ## Possible Command style
-    # STAR --genomeLoad LoadAndExit --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/; for file in $(cat fastq.test.txt); do echo $file STAR --runThreadN 10 --readFilesCommand gzip -cd --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/ --readFilesIn $file ${file%_1.fastq.gz}_2.fastq.gz --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > ${file%_1.fastq.gz}.bam; samtools-1.9 index ${file%_1.fastq.gz}.bam; mv ${file%_1.fastq.gz}.bam* BAM/; done; STAR --genomeLoad Remove --genomeDir /DATA/references/star_genomes/mmu38/star_indices_overhang150/
+    # Init the command
     command = ""
 
+    # Pre-load the genome, as it would save time and processing power for each sample
     command += f"STAR --genomeLoad LoadAndExit --genomeDir {genomePath}; "
+
+    # Make the bam directory if it does not exist
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
+    
+    # Iter through the fastq filenames
     for filer1 in R1_FILES:
-        if R2_FILES:
+        # Make a different command when the run is with paired or single end
+        if config['options']['reads'] == 'paired':
+            # Make the name of the bam file from the fastq file
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
+            # Replace extension for the R2 file
             filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
+
+            # Make the star mapper command, with the samtools indexing of the bam file
             command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
         else:
+            # Make the name of the bam file from the fastq file
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
+
+            # Make the star mapper command, with the samtools indexing of the bam file
             command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
+    
+    # Remove the loaded genome from memory
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
+
+    # Create tracking file
     command += f"touch {mappingtouched}"
 
+    # Run the commands
     pf.run_command(command)
 
 def get_arguments():
@@ -62,8 +82,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
 
     # Mandatory variables
-    parser.add_argument('--fastq_r1', '-f1', nargs='*', required=True, help='fastq_r1 file/s')
-    parser.add_argument('--fastq_r2', '-f2', nargs='*', help='fastq_r2 file/s. Only when paired end')
+    parser.add_argument('--fastq', '-fq', nargs='*', required=True, help='fastq file/s, comma separated, no space. If the run is single end, extension should be .fastq.gz. If the run is paired, only the R1 files should be stated, with extension _1.fastq.gz, and the R2 files should be named the same with extension _2.fastq.gz.')
     parser.add_argument('--bamdir', required=True, help='Folder for bam files')
 
     # Default parameters
@@ -89,17 +108,7 @@ def main():
     # Get arguments from user input
     args = get_arguments()
 
-    # Select if the run is going to have two sets of fastq or one
-    if args.run_type == 'single':
-      fastq_dict = {
-        "fastq_r1": args.fastq_r1.split(',')
-      }
-    else:
-      fastq_dict = {
-        "fastq_r1": args.fastq_r1.split(','),
-        "fastq_r2": args.fastq_r2.split(',')
-      }
-
+    # Make the config dictionary
     config = {
       "DEBUG": args.debug,
       "TESTING": args.test,
@@ -107,7 +116,9 @@ def main():
       "log_files": ["/tmp/full.log"],
       "tools_conf": {
         "mapping": {
-          "input": fastq_dict,
+          "input": {
+            "fastq_r1": args.fastq.split(',')
+          },
           "output": {
             "mappingtouched": args.bamdir + "/mappingtouched.txt"
             },

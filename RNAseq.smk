@@ -29,7 +29,7 @@ design_file.columns = ['sample','tr']
 # Read the fastq files
 fastq_path = config_dict['fastq_path']
 
-# Select between single end and paired end
+# Select file extension naming convention between single end and paired end
 if config_dict['options']['reads'] == 'single':
     fastq_r1 = []
 
@@ -37,12 +37,11 @@ if config_dict['options']['reads'] == 'single':
         fastq_r1.append(glob.glob(f'{fastq_path}/{name}.fastq.gz')[0])
 else:
     fastq_r1 = []
-    fastq_r2 = []
 
     for name in design_file['sample'].tolist():
         fastq_r1.append(glob.glob(f'{fastq_path}/{name}_1.fastq.gz')[0])
-        fastq_r2.append(glob.glob(f'{fastq_path}/{name}_2.fastq.gz')[0])
 
+# raise error when no files are found in the selected path
 if not fastq_r1:
     logger.error(f'FASTQ files not found in {fastq_path}')
     raise ValueError(f'FASTQ files not found in {fastq_path}')
@@ -73,8 +72,7 @@ if config_dict['options']['reads'] == 'single':
 else:
     rule Mapping:
         input:
-            fastq_r1 = fastq_r1,
-            fastq_r2 = fastq_r2
+            fastq_r1 = fastq_r1
         output:
             mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
         run:
