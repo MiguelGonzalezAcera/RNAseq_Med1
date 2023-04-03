@@ -9,27 +9,27 @@ import pandas as pd
 import logging
 
 # Get initial data
-# config = {}
-# config['param'] = '/VAULT/20200325_Cytrobacter_GSE71734/config.json'
-
+# Open the configuration json
 with open(config['param'], 'r') as f:
     config_dict = json.load(f)
 
-# Get the out folder
+# Get the out folder, design path and project name
 outfolder = config_dict['outfolder']
 design = config_dict['design']
 project = config_dict['project']
 
-# Set logger
+# Set and start logger
 logging.basicConfig(filename=f'{outfolder}/RNAseq.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
 logging.info(f'Starting RNAseq {project}')
 
-# Fastq files
+# Get the design into a dataframe
 design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
 design_file.columns = ['sample','tr']
 
+# Read the fastq files
 fastq_path = config_dict['fastq_path']
 
+# Select between single end and paired end
 if config_dict['options']['reads'] == 'single':
     fastq_r1 = []
 
@@ -47,12 +47,12 @@ if not fastq_r1:
     logger.error(f'FASTQ files not found in {fastq_path}')
     raise ValueError(f'FASTQ files not found in {fastq_path}')
 
-bedfile_path = config_dict['tools_conf']['bedfile']
-list_path = bedfile_path.replace('.bed','.list')
+# get the annotation files
 annot_path = config_dict['tools_conf']['annot']
 
-
+# ------------------Snakemake pipeline------------------
 # Rules
+# The mapping has to be different if single or paired
 if config_dict['options']['reads'] == 'single':
     rule Mapping:
         input:
@@ -90,11 +90,12 @@ else:
             }
             python_scripts.mapping.mapping(config_dict, tool_name)
 
-if config_dict['options']['splicing'] == 'True':
-    include: './subworkflows/splicing.smk'
-    splicetouched = rules.Splicing.output.splicetouched
-else:
-    splicetouched = config['param']
+#<TODO>: The splicing pipeline has to be re-done completely, so this chunk of code will stay commented
+# if config_dict['options']['splicing'] == 'True':
+#     include: './subworkflows/splicing.smk'
+#     splicetouched = rules.Splicing.output.splicetouched
+# else:
+#     splicetouched = config['param']
 
 rule Counts:
     input:
@@ -314,11 +315,7 @@ rule report:
 
 rule all:
     input:
-        fastqceval = fastqceval,
-        cpbtouched = cpbtouched,
-        splicetouched = splicetouched,
         pca = rules.PCA.output.pcatouched,
-        bamqceval = bamqceval,
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
@@ -334,15 +331,41 @@ rule all:
             'tool_conf': {}
         }
 
+        # Construct a dictionary with the main results
         config_dict['results'] = {"results": [
-        {
-            "name": "Counts",
-            "value": rules.Counts.output.counts
-        }]
-        }
+            {
+                "name": "Counts",
+                "value": rules.Counts.output.counts
+            },
+            {
+                "name": "PCA",
+                "value": "/".join(rules.PCA.output.pcatouched.split('/')[0:-1])
+            },
+            {
+                "name": "Differential expression",
+                "value": "/".join(rules.deseq2.output.DEtouched.split('/')[0:-1])
+            },
+            {
+                "name": "Plots",
+                "value": "/".join(rules.volcano_plot.output.volcanotouched.split('/')[0:-1])
+            },
+            {
+                "name": "GO",
+                "value": "/".join(rules.GO.output.gotouched.split('/')[0:-1])
+            },
+            {
+                "name": "KEGG",
+                "value": "/".join(rules.KEGG.output.keggtouched.split('/')[0:-1])
+            },
+            {
+                "name": "Markers report",
+                "value": rules.report.output.report
+            }
+        ]}
 
-        print(config_dict['results'])
-
+        # Save the dictionary
+        # NOTE: This dictionary only stores the information added in the 'all' rule.
+        # Other rules do not add or remove anything from the original object
         with open(config['param'], 'w') as f:
             json.dump(config_dict, f)
 
