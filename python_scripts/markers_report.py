@@ -13,7 +13,6 @@ import os
 import json
 import argparse
 import logging
-import time
 import glob
 import pandas as pd
 from datetime import date
@@ -239,29 +238,38 @@ def fillFrame(frame, list, c):
     frame.addFromList(list, c)
 
 def draw_image(FCPlot, h, w):
+    # The element that's drawn is tecnically a list, so we add the elements on it
     story = []
+    # Make the image object and establish the dimensions
     placeholder = Image(FCPlot)
     placeholder.drawHeight = h*cm
     placeholder.drawWidth = w*cm
 
+    # put the image in the story
     story.append(placeholder)
 
     return story
 
 def draw_paragraph(par_text, style):
+    # Create the story list
     story = []
-
+    # Put the text in it with the proper format and style
     story.append(Paragraph(par_text, style))
 
     return story
 
 def draw_GSEA_table(table_path):
+    # Init the story
     story = []
 
+    # Read the table
     df = pd.read_csv(table_path, sep='\t', index_col=None)
 
+    # Init the story for the table with the header
     data = [['Enrichment score','p value']]
 
+    # iter through the rows of the GSEA table to get the color for the enrichment cell if significant
+    # <TODO>: Dows this need to be in a for loop? Is there more than one row?
     for index, row in df.iterrows():
         # Select color for the background
         if row['pvalue'] < 0.05 and row['enrichmentScore'] >= 0:
@@ -271,12 +279,13 @@ def draw_GSEA_table(table_path):
         else:
             color_cell = colors.white
 
-        # Get data in table format
+        # Get data in the table list
         data_row = [round(row['enrichmentScore'], 2),round(row['pvalue'], 2)]
         data.append(data_row)
 
     # Table the data
     t = Table(data)
+    # format the table
     t.setStyle(TableStyle([
          ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
          ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -362,23 +371,26 @@ def report(config, tool_name):
     # Get the comparisons desired
     comparisons = config['comparisons']
 
+    # Get the marker plots path
     markerHeatmapsPath = "/".join(config['tools_conf'][tool_name]['input']['markerstouched'].split('/')[0:-1])
-    markerScatterPath = "/".join(config['tools_conf'][tool_name]['input']['MVtouched'].split('/')[0:-1])
-    markerGSEAPath = "/".join(config['tools_conf'][tool_name]['input']['GSEAMtouched'].split('/')[0:-1])
 
-    # Select the list of markers
+    # Get the descriptions for the markers
     gene_markers = get_gene_markers(organism)
 
     # Get date
     today = date.today()
     d = today.strftime("%Y-%m-%d")
 
+    # ----------Begin building the pdf----------
+
     # Generate the canvas
     c = Canvas(OUTPDF)
 
+    # Input the header and footer for the first page
     header(c, d, styles)
     footer(c, styles)
 
+    # ----------------------------------------------------------
     # Create the page for the GSVA analysis
 
     # Write the title
@@ -398,11 +410,13 @@ def report(config, tool_name):
     GSVAheatmapInfoFrame = Frame(1.5*cm, 390, 300, 300, showBoundary=0)
     fillFrame(GSVAheatmapInfoFrame, GSVAheatmapInfo, c)
 
-    # Repeat for the FC heatmap
-    GSVAhmapFCPath = config['tools_conf'][tool_name]['input']['GSVAhmap'].replace(".png", "_FC.png")
+    # Repeat for the FC heatmap (might not be one for the moment)
+    GSVAhmapFCPath = GSVAhmapPath.replace(".png", "_FC.png")
     if os.path.isfile(GSVAhmapFCPath):
+        # Make the image
         GSVAheatmapFCInfo = draw_image(GSVAhmapFCPath, 8.5, 8.5)
 
+        # Fill the frame
         GSVAheatmapFCInfoFrame = Frame(10.5*cm, 390, 300, 300, showBoundary=0)
         fillFrame(GSVAheatmapFCInfoFrame, GSVAheatmapFCInfo, c)
 
@@ -415,7 +429,9 @@ def report(config, tool_name):
     GSVAInfoFrame = Frame(2*cm, 340, 500, 100, showBoundary=0)
     fillFrame(GSVAInfoFrame, GSVAInfo, c)
 
-    # Increase page, create theader
+    # ----------------------------------------------------------
+    # Make the legend page for the rest of the document
+    # Increase page, create header+footer
     c.showPage()
     header(c, d, styles)
     footer(c, styles)
@@ -429,7 +445,7 @@ def report(config, tool_name):
     fillFrame(titleInfoFrame, titleInfo, c)
 
     # Object with the heatmap
-    hmapPath = "/DATA/RNAseq_test/Scripts/Legend/Legend_clustering_marker.png"
+    hmapPath = "Legend/Legend_clustering_marker.png"
     heatmapInfo = draw_image(hmapPath, 9, 9)
 
     # Draw in canvas
@@ -443,34 +459,36 @@ def report(config, tool_name):
     fillFrame(controlInfoFrame, controlInfo, c)
 
     # Draw the example scatterplot
-    scplot = "/DATA/RNAseq_test/Scripts/Legend/Legend_scattermarkers.png"
+    scplot = "Legend/Legend_scattermarkers.png"
     scplotInfo = draw_image(scplot, 6, 6)
 
     scplotInfoFrame = Frame(2*cm, 180, 200, 200, showBoundary=0)
     fillFrame(scplotInfoFrame, scplotInfo, c)
 
     # Object with the GSEA plot:
-    GSEAplot = "/DATA/RNAseq_test/Scripts/Legend/Legend_GSEA.png"
+    GSEAplot = "Legend/Legend_GSEA.png"
     GSEAplotInfo = draw_image(GSEAplot, 6, 6)
 
     GSEAplotInfoFrame = Frame(9*cm, 180, 200, 200, showBoundary=0)
     fillFrame(GSEAplotInfoFrame, GSEAplotInfo, c)
 
     # Object with the GSEA plot:
-    GSEAtab = "/DATA/RNAseq_test/Scripts/Legend/Legend_GSEA.tsv"
+    GSEAtab = "Legend/Legend_GSEA.tsv"
     GSEAtabInfo = draw_GSEA_table(GSEAtab)
 
     GSEAtabInfoFrame = Frame(15*cm, 180, 160, 130, showBoundary=0)
     fillFrame(GSEAtabInfoFrame, GSEAtabInfo, c)
 
     # Write the legend texts
-    legendData = "Plots for a marker analysis over the complete study.<br/><br/><br/><b>Left</b>: Heatmap representing the normalized counts of each gene in the samples of your study. Counts are relativized per row.<br/><br/><b>Bottom Left</b>: Volcano plot displaying the marker genes. X axis shows the lof2FolChange, as obtained by DESeq2. Y axis shows the -log10 of the p-value. Colored boxes are delimited by a p-value of 0.05 and a log2FoldChange of +- 1.<br/><br/><b>Bottom Middle</b>: Gene Set Enrichment Analysis (GSEA) of the marker set. Upregulated genes are placed left to the plot by the algorithm, and downregulated genes are right.<br/><br/><b>Bottom Right</b>: Table containing the enrichment score of the GSEA, as well as the p-value associated to the test."
+    legendData = "<b>Plots for marker analysis:</b><br/><br/><br/><b>Left</b>: Heatmap representing the normalized counts of each gene in the samples of your study. Counts are relativized per row.<br/><br/><b>Bottom Left</b>: Volcano plot displaying the marker genes. X axis shows the lof2FolChange, as obtained by DESeq2. Y axis shows the -log10 of the p-value. Colored boxes are delimited by a p-value of 0.05 and a log2FoldChange of +- 1.<br/><br/><b>Bottom Middle</b>: Gene Set Enrichment Analysis (GSEA) of the marker set. Upregulated genes are placed left to the plot by the algorithm, and downregulated genes are right.<br/><br/><b>Bottom Right</b>: Table containing the enrichment score of the GSEA, as well as the p-value associated to the test."
     legendInfo = draw_paragraph(legendData, styles['normal'])
 
     legendInfoFrame = Frame(12*cm, 390, 200, 300, showBoundary=0)
     fillFrame(legendInfoFrame, legendInfo, c)
 
-    # Increase page, create theader
+    # ----------------------------------------------------------
+    # Iterate through each marker and comparison
+    # Increase page, create header
     c.showPage()
     header(c, d, styles)
     footer(c, styles)
@@ -533,16 +551,17 @@ def report(config, tool_name):
         # Set a counter for the final pages
         k = 0
 
+        # Start itering through the comparisons
         for control in comparisons:
             samples = comparisons[control].split(",")
 
             # Write title of section
-            controlInfo = draw_paragraph(f"DE with control: {control}", styles['leftSubtitle'])
+            controlInfo = draw_paragraph(f"DE with control: <b>{control}</b>", styles['leftSubtitle'])
 
             controlInfoFrame = Frame(2*cm, y, 500, 60, showBoundary=0)
             fillFrame(controlInfoFrame, controlInfo, c)
 
-            y -= 160
+            y -= 170
 
             # Init counter for last page
             l = 0
@@ -590,8 +609,6 @@ def report(config, tool_name):
 
                 l += 1
 
-                #print(f"{marker}_{sample}_{control}, {y}, {j}, {l}, {len(samples)}")
-
                 # If heigth is less than the threshold, the line is full and there is still plots to add
                 if y < 90  and l != len(samples):
                     # Reset page
@@ -603,7 +620,7 @@ def report(config, tool_name):
                     y = 500
                 elif l != len(samples):
                     # Add space exept if its the first one
-                    y -= 160
+                    y -= 170
 
             # Decrease heigth and reset width for the next iteration
             y -= 50
