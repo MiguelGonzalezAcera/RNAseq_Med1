@@ -89,7 +89,7 @@ def get_arguments():
 
     # Mandatory variables
     parser.add_argument('--bamdir', required=True, help='Folder with bam files')
-    parser.add_argument('--counts', required=True, help='Table with the counts')
+    parser.add_argument('--counts', required=True, help='Table with the counts. Extension .tsv')
     parser.add_argument('--annot', required=True, help='Annotation file (same than used in mapping)')
     parser.add_argument('--organism', required=True, help='Organism', default='mouse')
 

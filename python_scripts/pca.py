@@ -1,15 +1,16 @@
 import argparse
 import logging
 import os
-import glob
 import imageio
 import python_scripts.python_functions as pf
 
 def gif(filelist, out_dir):
     """Create a gif file from a list of images
     """
-
+    # result name
     result = f"{out_dir}/pca_3d.gif"
+
+    # Make the gif using the list of files provided
     with imageio.get_writer(result, mode='I', fps=25) as writer:
         for filename in filelist:
             image = imageio.imread(filename)
@@ -20,21 +21,34 @@ def pca(config, tool_name):
     """
     logging.info(f'Starting {tool_name} process')
 
+    # Get parameters
+    # Inputs
+    # Counts file
     counts = config['tools_conf'][tool_name]['input']['counts']
+    # Design file
     design = config['tools_conf'][tool_name]['input']['design']
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['pcatouched'].split('/')[0:-1])
+
+    # Outputs
+    # Control file
     pcatouched = config['tools_conf'][tool_name]['output']['pcatouched']
+    # Out directory
+    out_dir = "/".join(pcatouched.split('/')[0:-1])
 
     # Create the command to run the pca R script
     command = ""
+    
+    # Make directory if it soes not exist
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
+
+    # Command
     command += f'Rscript Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
     command += f'touch {pcatouched}'
 
+    # Run command
     pf.run_command(command)
 
-    # List files to make gif
+    # List files to make gif if needed
     try:
         filelist = pf.list_files_dir(out_dir, ext = "*3d*")
     except:
