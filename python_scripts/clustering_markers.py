@@ -1,9 +1,5 @@
-import argparse
 import logging
 import os
-import glob
-import json
-import subprocess
 import pandas as pd
 import python_scripts.python_functions as pf
 
@@ -12,6 +8,8 @@ def markers_plots(norm_counts, heatmap, organism, command, design, dims):
     """
     Do plots for markers
     """
+    # Get the paths for the markers
+    #<TODO>: This should NOT be like this. Marker lists should be consulted from literally anywhere else. Probably they should be loaded in the sql db.
     #<TODO>: Establish sets of markers for specific tissues
     gene_markers = {
         "mouse": {
@@ -64,9 +62,13 @@ def markers_plots(norm_counts, heatmap, organism, command, design, dims):
         }
     }
 
+    # Generate a clustering R command for each marker and genelist
     for marker in gene_markers[organism]:
+        # Marker file
         marker_path = gene_markers[organism][marker]
+        # Heatmap path
         heatmap_mark = heatmap.replace(".png",f"_{marker}_marker.png")
+        # R command
         command += f'Rscript Rscripts/clustering.r --heatmap {heatmap_mark} --counts {norm_counts} --genelist {marker_path} --organism {organism} --dims {dims} --design {design}; '
 
     return(command)
@@ -77,13 +79,27 @@ def clustering_markers(config, tool_name):
     """
     logging.info(f'Starting {tool_name} process')
 
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['markerstouched'].split('/')[0:-1])
-
-    project = config['project']
+    # Get the needed parameters
+    # Inputs
+    # Normalized counts file
     norm_counts = config['tools_conf'][tool_name]['input']['norm_counts']
-    heatmap = config['tools_conf'][tool_name]['output']['markerstouched'].replace("markerstouched.txt",f"{project}_clustering_markers.png")
-    organism = config['options']['organism']
+    # Design file
     design = config['tools_conf'][tool_name]['input']['design']
+
+    # Outputs
+    # Marker file
+    markerstouched = config['tools_conf'][tool_name]['output']['markerstouched']
+    # Heatmap file
+    heatmap = markerstouched.replace("markerstouched.txt",f"{project}_clustering_markers.png")
+    # Results directory
+    out_dir = "/".join(markerstouched.split('/')[0:-1])
+    
+    # Other
+    # Project name
+    project = config['project']
+    # Organism
+    organism = config['options']['organism']
+    # Dimensions
     dims = config['tools_conf'][tool_name]['tool_conf']['dimensions']
 
     # Create the command to run the pca R script
@@ -91,83 +107,12 @@ def clustering_markers(config, tool_name):
     if not os.path.exists(out_dir):
         command += f"mkdir {out_dir};"
 
-    # Check if this is a marker run
-    if config['pipeline'] == 'RNAseq':
-        command = markers_plots(norm_counts, heatmap, organism, command, design, dims)
+    # Add the instances for each marker
+    command += markers_plots(norm_counts, heatmap, organism, command, design, dims)
 
-    command += f"touch {config['tools_conf'][tool_name]['output']['markerstouched']}; "
+    # Touch the marker file
+    command += f"touch {markerstouched}; "
 
+    # Run the command
     logging.info(f'Running command: {command}')
     pf.run_command(command)
-
-def get_arguments():
-    """
-    Function that parse arguments given by the user, returning a dictionary
-    that contains all the values.
-    """
-
-    # Create the top-level parser
-    parser = argparse.ArgumentParser()
-
-    # Mandatory variables
-    parser.add_argument('--counts', required=True, help='Table with the counts of the assay')
-    parser.add_argument('--design', required=True, help='Table with the design of the experiment')
-    parser.add_argument('--heatmap', required=True, help='PNG with the heatmap result')
-    parser.add_argument('--project', required=True, help='Project name')
-    parser.add_argument('--organism', required=True, help='Organism')
-    parser.add_argument('--dims', default="2000,2000", help='Dimensions for the plot')
-
-    # Test and debug variables
-    parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
-    parser.add_argument('--debug', '-d', action='store_true', default=False, help='dry_run')
-    parser.add_argument('--test', '-t', action='store_true', default=False, help='test')
-
-    # parse some argument lists
-    args = parser.parse_args()
-
-    return args
-
-
-def main():
-    """
-    Main function of the script. Launches the rest of the process
-    """
-
-    # Get arguments from user input
-    args = get_arguments()
-
-    config = {
-      "DEBUG": args.debug,
-      "TESTING": args.test,
-      "DRY_RUN": args.dry_run,
-      "log_files": ["/tmp/full.log"],
-      "project": args.project,
-      "options": {
-        "organism": args.organism,
-        "sql_load": "True"
-      },
-      "tools_conf": {
-        "clustering_markers": {
-          "input": {
-            "norm_counts": args.counts,
-            "design": args.design
-            },
-          "output": {
-            "heatmap": args.heatmap
-            },
-          "tool_conf": {
-            "dimensions": args.dims
-            }
-          }
-        }
-      }
-
-    # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
-
-    clustering_markers(config, 'clustering_markers')
-
-    logging.info(f'Finished clustering')
-
-if __name__ == "__main__":
-    main()

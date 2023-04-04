@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-import pandas as pd
 import python_scripts.python_functions as pf
 
 
