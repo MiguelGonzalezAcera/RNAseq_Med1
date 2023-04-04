@@ -2,9 +2,6 @@ import argparse
 import logging
 import os
 import math
-import glob
-import json
-import subprocess
 import pandas as pd
 import python_scripts.python_functions as pf
 import matplotlib
@@ -85,11 +82,11 @@ def volcano_plot(config, tool_name):
     # Get the directory of the DE files
     out_dir_DE = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
 
-    # Get the directory for the result plot
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['volcanotouched'].split('/')[0:-1])
-
     # Get the control file
     volcanotouched = config['tools_conf'][tool_name]['output']['volcanotouched']
+
+    # Get the directory for the result plot
+    out_dir = "/".join(volcanotouched.split('/')[0:-1])
 
     # Obtain the dictionary with the comparisons
     samples = config['comparisons']
@@ -127,7 +124,7 @@ def volcano_plot(config, tool_name):
     id_tab = config['tools_conf'][tool_name]['input']['RData']
 
     # Get the out directory
-    out_dir = "/".join(config['tools_conf'][tool_name]['output']['volcano'].split('/')[0:-1])
+    out_dir = "/".join(out_plot.split('/')[0:-1])
 
     # Read the list of genes, if any
     if config['tools_conf'][tool_name]['input']['genelist'] != "":

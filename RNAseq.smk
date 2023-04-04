@@ -225,7 +225,7 @@ rule volcano_markers:
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {
-                "dimensions": "2000,2000"
+                "dimensions": "7,7"
             }
         }
         python_scripts.volcano_markers.volcano_markers(config_dict, tool_name)

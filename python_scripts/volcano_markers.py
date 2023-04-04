@@ -2,11 +2,8 @@ import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-import argparse
 import logging
 import os
-import json
-import subprocess
 import math
 import pandas as pd
 import python_scripts.python_functions as pf
@@ -69,7 +66,7 @@ def get_gene_markers(organism):
 
     return(gene_markers[organism])
 
-def volcano_marker_plot(tab_name, gene_markers, out_path, title):
+def volcano_marker_plot(tab_name, gene_markers, out_path, title, dims=["7","7"]):
     """ Function to produce the plot
     """
     # Read the provided table
@@ -92,7 +89,7 @@ def volcano_marker_plot(tab_name, gene_markers, out_path, title):
         wdf['Mod_pvalue'] = [-math.log10(i+1e-148) for i in wdf['pvalue'].tolist()]
 
         # Create the figure
-        fig, ax = plt.subplots(figsize=(7,7))
+        fig, ax = plt.subplots(figsize=(int(dims[0]),int(dims[1])))
 
         # Establish the limits for the plot
         ## Y top limit
@@ -155,8 +152,6 @@ def volcano_marker_plot(tab_name, gene_markers, out_path, title):
         fig.savefig(out_path.replace('GENEMARKER', glist))
         plt.close()
 
-
-
 def volcano_markers(config, tool_name):
     """Get the scatter plots for the markers
     """
@@ -170,121 +165,40 @@ def volcano_markers(config, tool_name):
     # Select the list of markers
     gene_markers = get_gene_markers(organism)
 
-    if 'MVtouched' in config['tools_conf'][tool_name]['output']:
-        # Extract the comparisons
-        comparisons = config['comparisons']
+    # Extract the comparisons
+    comparisons = config['comparisons']
 
-        # Extract the infiles and the project name
-        in_path = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
-        project = config['project']
+    # Extract the infiles and the project name
+    in_path = "/".join(config['tools_conf'][tool_name]['input']['DEtouched'].split('/')[0:-1])
+    project = config['project']
 
-        # Extract the out path and out markerfile
-        out_path = "/".join(config['tools_conf'][tool_name]['output']['MVtouched'].split('/')[0:-1])
-        outmarker = config['tools_conf'][tool_name]['output']['MVtouched']
+    # Extract the out path and out markerfile
+    outmarker = config['tools_conf'][tool_name]['output']['MVtouched']
+    out_path = "/".join(outmarker.split('/')[0:-1])
 
-        # Create out folder and marker
-        command = ""
-        if not os.path.exists(out_path):
-            command += f"mkdir {out_path};"
+    # Get the dimension char
+    dimensions = config['tools_conf'][tool_name]['tool_conf']['dimensions']
+    dimensions = dimensions.split(',')
 
-        command += f"touch {outmarker}; "
+    # Create out folder and marker
+    command = ""
+    if not os.path.exists(out_path):
+        command += f"mkdir {out_path};"
 
-        pf.run_command(command)
+    command += f"touch {outmarker}; "
 
-        # Loop through the samples and controls
-        for control in comparisons:
-            samples = comparisons[control].split(",")
-            for sample in samples:
-                # Get the paths for in table, out plot format. Use wildcard /GENENAME/ in the name of the plot
-                tab_name = f"{in_path}/{project}_{sample}_{control}.tsv"
-                out_path = f'{out_path}/GENEMARKER_{sample}_{control}_scattermarkers.png'
+    pf.run_command(command)
 
-                # Establish the plot title
-                plot_title = f"GENEMARKER - {sample} - {control}"
+    # Loop through the samples and controls
+    for control in comparisons:
+        samples = comparisons[control].split(",")
+        for sample in samples:
+            # Get the paths for in table, out plot format. Use wildcard /GENENAME/ in the name of the plot
+            tab_name = f"{in_path}/{project}_{sample}_{control}.tsv"
+            out_path = f'{out_path}/GENEMARKER_{sample}_{control}_scattermarkers.png'
 
-                # Run the plots
-                volcano_marker_plot(tab_name, gene_markers, out_path, plot_title)
-    
-    else:
-        # get the path for the table
-        in_path = config['tools_conf'][tool_name]['input']['RData']
+            # Establish the plot title
+            plot_title = f"GENEMARKER - {sample} - {control}"
 
-        # get the path for the folder that's going to contain the plots.
-        out_dir = config['tools_conf'][tool_name]['output']['out_dir']
-
-        #  Make it if it doesn't exist
-        if not os.path.exists(out_dir):
-            pf.run_command(f"mkdir {out_dir};")
-
-        # Make out a path with a wildcard for the plots
-        out_path = f'{out_dir}/GENEMARKER_scattermarkers.png'
-
-        # Make out a title with the wildcard for the same purpose
-        plot_title = f"Marker genes for GENEMARKER"
-
-        volcano_marker_plot(tab_name, gene_markers, out_path, plot_title)
-          
-
-def get_arguments():
-    """
-    Function that parse arguments given by the user, returning a dictionary
-    that contains all the values.
-    """
-
-    # Create the top-level parser
-    parser = argparse.ArgumentParser()
-
-    # Mandatory variables
-    parser.add_argument('--RData', required=True, help='R object with the result of the differential expression')
-    parser.add_argument('--out_dir', required=True, help="Folder that will contain the plots. Will create it if it doesn't exist")
-    parser.add_argument('--organism', required=True, help='organism of the input data')
-
-    # Test and debug variables
-    parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
-    parser.add_argument('--debug', '-d', action='store_true', default=False, help='dry_run')
-    parser.add_argument('--test', '-t', action='store_true', default=False, help='test')
-
-    # parse some argument lists
-    args = parser.parse_args()
-
-    return args
-
-
-def main():
-    """
-    Main function of the script. Launches the rest of the process
-    """
-
-    # Get arguments from user input
-    args = get_arguments()
-
-    config = {
-        "DEBUG": args.debug,
-        "TESTING": args.test,
-        "DRY_RUN": args.dry_run,
-        "log_files": ["/tmp/full.log"],
-        "options" : {
-            "organism": args.organism
-        },
-        "tools_conf": {
-            "volcano_plot": {
-            "input": {
-                "RData": args.RData
-                },
-            "output": {
-                "out_dir": args.out_dir,
-                },
-            "tool_conf": {}
-          }
-        }
-      }
-
-    # Startup the logger format
-    logger = pf.create_logger(config['log_files'][0])
-
-    volcano_markers(config, 'volcano_markers')
-
-    logging.info(f'Finished volcano_markers')
-
-if __name__ == "__main__":
-    main()
+            # Run the plots
+            volcano_marker_plot(tab_name, gene_markers, out_path, plot_title, dimensions)
