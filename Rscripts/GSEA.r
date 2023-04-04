@@ -11,11 +11,13 @@ option_list <- list(
               help = "Robject with the DE analysis. Rda extension"),
   make_option("--gseaplot", type = "character",
               help = "Path for the GSEAplot. png extension"),
+  make_option("--dims", type = "character", default = "2000,2000",
+              help = "Dimensions of the plot in pixels. Default = 2000,2000"),
   make_option("--organism", type = "character", default = "mouse",
               help = "Organism analyzed. STR. Available = human, mouse. Default = Mouse")
 )
 
-opt_parser <- OptionParser(option_list=option_list)
+opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
 # Load the R object with the result
@@ -36,7 +38,7 @@ names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
 groups <- read.table(opt$genegroup, fileEncoding = "UTF8")
 
 # Do the gene set enrichment analysis
-z <- GSEA(sort(geneList,decreasing=T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 5)
+z <- GSEA(sort(geneList, decreasing = T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 5)
 
 # Plot the result of the GSA
 if (length(rownames(as.data.frame(z))) >= 10) {
@@ -46,9 +48,15 @@ if (length(rownames(as.data.frame(z))) >= 10) {
 }
 
 # Save enrichment table
-write.table(as.data.frame(z), file=gsub(".png",".tsv",opt$gseaplot, fixed = TRUE),sep="\t",row.names = FALSE)
+write.table(as.data.frame(z), file = gsub(".png", ".tsv", opt$gseaplot, fixed = TRUE), sep = "\t", row.names = FALSE)
 
 # Make and save the plot
-png(file = opt$gseaplot, width = 2000, height = 2000, res = 200)
+png(
+  file = opt$gseaplot,
+  width = int(strsplit(opt$dims, ",")[0]),
+  height = int(strsplit(opt$dims, ",")[1]),
+  res = 200
+)
+# No variation of the color here. This is way more standard.
 gseaplot2(z, geneSetID = 1, color = "red", pvalue_table = FALSE, base_size = 24)
 dev.off()

@@ -241,7 +241,9 @@ rule GSEA_markers:
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {}
+            'tool_conf': {
+                "dimensions": "2000,2000"
+            }
         }
         python_scripts.GSEA_markers.GSEA_markers(config_dict, tool_name)
 
