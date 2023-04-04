@@ -69,6 +69,9 @@ gsva.es <- gsva(numwdf_norm, genes, verbose = FALSE)
 save(gsva.es, file = opt$out_obj)
 write.table(gsva.es, file = gsub(".Rda",".tsv", opt$out_obj, fixed = TRUE), sep = "\t")
 
+# -------------------------------------------------------------------------
+
+# Make the trnasformed counts heatmap
 # Establish colors
 color <- colorRamp2(
   c(
@@ -97,6 +100,7 @@ dev.off()
 
 # ----------------------------------------------------------------
 
+# Run a differential expression analysis and make a heatmap with it
 # diff expression with limma
 sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 
@@ -166,7 +170,7 @@ colnames(clust_df) <- filenames
 colnames(pval_df) <- filenames
 
 # Failsafe for clusterings with low instances
-if (length(rownames(clust_df)) < 1) {
+if (length(rownames(clust_df)) < 2) {
   print("GSVA doesn\'t have the necessary length to do the clustering in this group of samples")
 } else {
   # Perform the clustering analysis over the table
