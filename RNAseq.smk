@@ -247,8 +247,10 @@ rule GSEA_markers:
         }
         python_scripts.GSEA_markers.GSEA_markers(config_dict, tool_name)
 
-# NOTE: this one does not load the tables with the results or the counts.
-# The DEtouched thing is only there in case there is an error in the naming and the DE fails, so it does not load something mistaken
+# NOTE: this one does not load the tables with the results or the counts, that's done in the DE step.
+# This one just loads the design in a different database.
+# The DEtouched thing is only there in case there is an error in the naming and the DE fails.
+# It would run the DE and this at the same time and I don't want it to load something mistaken if the input's wrong
 rule load_project:
     input:
         design = design,
