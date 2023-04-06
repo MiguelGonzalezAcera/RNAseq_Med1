@@ -40,22 +40,25 @@ if (opt$organism == "human") {
 # Generate named list of FC
 geneList <- res$log2FoldChange
 names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
-                                       'ENTREZID', 'ENSEMBL'))
+                                       "ENTREZID", "ENSEMBL"))
 
 # Obtain genelist
 if (opt$genelist == ""){
-  entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),])), 'ENTREZID', 'ENSEMBL')))
+  geneids <- rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),])
+  entrezgeneids <- (as.character(mapIds(database, as.character(geneids), "ENTREZID", "ENSEMBL")))
 } else {
-  genes <- scan(opt$genelist, character(), quote="")
+  genes <- scan(opt$genelist, character(), quote = "")
 
   # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
-  entrezgeneids <- as.character(mapIds(database, as.character(genes), 'ENTREZID', 'ENSEMBL'))
+  entrezgeneids <- as.character(mapIds(database, as.character(genes), "ENTREZID", "ENSEMBL"))
 }
 
 # Do the GSEA
 hgCutoff <- 0.1
-x <- enrichKEGG(entrezgeneids, organism=org_db, pvalueCutoff=hgCutoff, pAdjustMethod="BH",
-                qvalueCutoff=0.1)
+x <- enrichKEGG(
+  entrezgeneids, organism = org_db,
+  pvalueCutoff = hgCutoff, pAdjustMethod = "BH",
+  qvalueCutoff = 0.1)
 
 # Transform the result into a data frame
 KEGGtable <- as.data.frame(x)
@@ -65,17 +68,17 @@ write.table(KEGGtable, file = opt$out_tab, sep = "\t", row.names = FALSE)
 
 # Obtain plots
 # barplot
-png(file=gsub(".tsv","_barplot.png",opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
-barplot(x, showCategory=16)
+png(file = gsub(".tsv", "_barplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+barplot(x, showCategory = 16)
 dev.off()
 
 # dotplot
-png(file=gsub(".tsv","_dotplot.png",opt$out_tab, fixed=TRUE), width = 8000, height = 6000, res = 600)
-dotplot(x, x='Count',showCategory=50)
+png(file = gsub(".tsv", "_dotplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+dotplot(x, x = "Count", showCategory = 50)
 dev.off()
 
 # Enrichment map
-png(file=gsub(".tsv","_emap.png",opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+png(file = gsub(".tsv", "_emap.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
 x2 <- pairwise_termsim(x)
 emapplot(x2)
 dev.off()
@@ -95,16 +98,19 @@ if (length(rownames(KEGGtable)) >= 50) {
 
 # Make the graphs for the selected pathways
 for (pway in top_pathways) {
-  pathway <- pathview(gene.data = geneList, pathway.id = pway, species = org_db, kegg.dir = "/DATA/tmp/", out.suffix = opt$id, limit = list(gene = 2, cpd = 0.25))
+  pathway <- pathview(
+    gene.data = geneList, pathway.id = pway, species = org_db,
+    kegg.dir = "/DATA/tmp/", out.suffix = opt$id,
+    limit = list(gene = 2, cpd = 0.25)
+  )
   wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
-  print(wd)
 
   file.copy(wd, path)
   file.remove(wd)
 }
 
 # Save environment
-save.image(file=gsub(".tsv", ".RData",opt$out_tab, fixed = TRUE))
+save.image(file = gsub(".tsv", ".RData",opt$out_tab, fixed = TRUE))
 
 # Save versions
 get_versions(gsub(".tsv", "_versions.tsv",opt$out_tab, fixed = TRUE))
