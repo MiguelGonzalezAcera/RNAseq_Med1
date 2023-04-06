@@ -67,8 +67,8 @@ for (ont in ontologies) {
   GOtable <- as.data.frame(x)
 
   # Save the data frame
-  write.table(GOtable, file=sprintf("%s_%s.tsv",
-                                    gsub(".tsv", "", opt$out_tab, fixed=TRUE), ont),
+  write.table(GOtable, file = sprintf("%s_%s.tsv",
+              gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
               sep = "\t", row.names = FALSE)
 
   # Obtain plots
@@ -95,7 +95,8 @@ for (ont in ontologies) {
   dev.off()
 
   # Gene-Concept Network
-  # plot linkages of genes and enriched concepts (e.g. GO categories, KEGG pathways)
+  # plot linkages of genes and enriched concepts
+  # (e.g. GO categories, KEGG pathways)
   png(file = sprintf("%s_%s_cnet.png",
                   gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
                   width = 8000, height = 6000, res = 600)
