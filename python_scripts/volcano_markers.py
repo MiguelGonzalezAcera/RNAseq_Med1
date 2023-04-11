@@ -57,6 +57,12 @@ def get_gene_markers(organism, tmppath):
             for item in df_ens:
                 f.write("%s\n" % item)
 
+    # Commit the changes and close the database
+    mydb.commit()
+
+    mycursor.close()
+    mydb.close()
+
     return(gene_markers)
 
 def volcano_marker_plot(tab_name, gene_markers, out_path, title, dims=["7","7"]):
