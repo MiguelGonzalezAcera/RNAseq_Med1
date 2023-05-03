@@ -3,7 +3,6 @@ import json
 import argparse
 import datetime
 import python_scripts
-import qc
 import glob
 import pandas as pd
 import logging
@@ -76,7 +75,6 @@ else:
         output:
             mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
         run:
-            print(input)
             tool_name = 'mapping'
             config_dict['tools_conf'][tool_name] = {
                 'input': {i[0]: i[1] for i in input._allitems()},

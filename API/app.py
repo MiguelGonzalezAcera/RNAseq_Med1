@@ -49,7 +49,7 @@ def get_references_names():
                 "annot": "/DATA/references/star_genomes/mmu39/annotation/GCF_000001635.27_GRCm39_genomic.gtf",
                 #"annot_gff3": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm38.96.gff3",
                 #"genometxt": "/DATA/references/star_genomes/mmu39/sequence/Mus_musculus.GRCm38.dna.toplevel.txt",
-                "genomefasta": "/DATA/references/star_genomes/mmu39/sequence/GCF_000001635.27_GRCm39_genomic.fna"
+                "genomefasta": "/DATA/references/star_genomes/mmu39/genome/GCF_000001635.27_GRCm39_genomic.fna"
                 }
             }
     }

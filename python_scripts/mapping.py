@@ -55,13 +55,13 @@ def mapping(config, tool_name):
             filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
 
             # Make the star mapper command, with the samtools indexing of the bam file
-            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
         else:
             # Make the name of the bam file from the fastq file
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
 
             # Make the star mapper command, with the samtools indexing of the bam file
-            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
     
     # Remove the loaded genome from memory
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
