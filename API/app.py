@@ -46,10 +46,10 @@ def get_references_names():
                 "genome": "/DATA/references/star_genomes/mmu39/star_indices_overhang150/",
                 #"genomedict": "/DATA/references/star_genomes/mmu39/sequence/Mus_musculus.GRCm38.dna.toplevel.dict",
                 #"bedfile":"/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed",
-                "annot": "/DATA/references/star_genomes/mmu39/annotation/GCF_000001635.27_GRCm39_genomic.gtf",
+                "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
                 #"annot_gff3": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm38.96.gff3",
                 #"genometxt": "/DATA/references/star_genomes/mmu39/sequence/Mus_musculus.GRCm38.dna.toplevel.txt",
-                "genomefasta": "/DATA/references/star_genomes/mmu39/genome/GCF_000001635.27_GRCm39_genomic.fna"
+                "genomefasta": "/DATA/references/star_genomes/mmu39/genome/Mus_musculus.GRCm39.dna.toplevel.fa"
                 }
             }
     }
