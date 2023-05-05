@@ -179,7 +179,8 @@ rule clustering_heatmap:
 
 rule clustering_markers:
     input:
-        norm_counts = rules.deseq2.output.norm_counts
+        norm_counts = rules.deseq2.output.norm_counts,
+        design = design
     output:
         markerstouched = f"{outfolder}/markers/markerstouched.txt"
     run:
