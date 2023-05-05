@@ -206,7 +206,7 @@ rule volcano_plot:
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
             'tool_conf': {
-                "dimensions": "2000,2000"
+                "dimensions": "10,6"
             }
         }
         python_scripts.volcano_plot.volcano_plot(config_dict, tool_name)

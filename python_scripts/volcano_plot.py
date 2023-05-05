@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 
-def volcano(df_path, plot_path, genelist=[], dims=["6000","3600"], labels=False):
+def volcano(df_path, plot_path, genelist=[], dims=["10","6"], labels=False):
   """
   Make the actual plot and save it
   """
@@ -18,7 +18,7 @@ def volcano(df_path, plot_path, genelist=[], dims=["6000","3600"], labels=False)
   df = pd.read_csv(df_path, sep='\t')
 
   # Create the figure
-  fig, ax = plt.subplots(figsize=(int(dims[0])/600,int(dims[1])/600))
+  fig, ax = plt.subplots(figsize=(int(dims[0]),int(dims[1])))
 
   # Fix and plot the p values
   ax.scatter(df['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in df['padj'].tolist()], c='grey', s=2, alpha=0.05)
@@ -38,7 +38,7 @@ def volcano(df_path, plot_path, genelist=[], dims=["6000","3600"], labels=False)
     wdf = df[df['Genes'].isin(genelist)]
 
     # Plot the selection of genes
-    ax.scatter(wdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in wdf['padj'].tolist()], c='blue', s=100)
+    ax.scatter(wdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in wdf['padj'].tolist()], c='blue', s=20)
 
     # Label the dots
     if labels:
@@ -56,9 +56,9 @@ def volcano(df_path, plot_path, genelist=[], dims=["6000","3600"], labels=False)
     signdf = df[(df['padj'] < 0.05) & ((df['log2FoldChange'] > 1) | (df['log2FoldChange'] < -1))]
 
     # Draw selected sections
-    ax.scatter(nsdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in nsdf['padj'].tolist()], c='orange', s=50, alpha=0.3)
-    ax.scatter(lfcdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in lfcdf['padj'].tolist()], c='red', s=50, alpha=0.3)
-    ax.scatter(signdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in signdf['padj'].tolist()], c='green', s=50)
+    ax.scatter(nsdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in nsdf['padj'].tolist()], c='orange', s=10, alpha=0.3)
+    ax.scatter(lfcdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in lfcdf['padj'].tolist()], c='red', s=10, alpha=0.3)
+    ax.scatter(signdf['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-30) for i in signdf['padj'].tolist()], c='green', s=10)
 
   fig.tight_layout()
 
