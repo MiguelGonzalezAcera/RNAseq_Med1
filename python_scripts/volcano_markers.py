@@ -28,7 +28,7 @@ def get_gene_markers(organism, tmppath):
     #<TODO>: Establish sets of markers for specific tissues
     gene_markers = ["Mitochondrial", "EnterocyteDist", "EnterocyteProx", "Enteroendocrine", "Goblet", "Mcells", "Paneth",
             "Stem", "TAprog", "Tuft", "Fibroblasts", "MODC", "Plasma", "Tcells", "Bcells", "Mast", "NK",
-            "Endothelial", "Neutrophils", "SmoothMuscle", "EntericGlial", "EntericNeuron"]
+            "Endothelial", "Neutrophils", "SmoothMuscle", "EntericGlia", "EntericNeuron"]
 
     # Generate a clustering R command for each marker and genelist
     for marker in gene_markers:

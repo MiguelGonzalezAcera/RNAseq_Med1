@@ -23,7 +23,7 @@ def markers_plots(norm_counts, heatmap, organism, command, design, dims):
     #<TODO>: Establish sets of markers for specific tissues
     gene_markers = ["Mitochondrial", "EnterocyteDist", "EnterocyteProx", "Enteroendocrine", "Goblet", "Mcells", "Paneth",
             "Stem", "TAprog", "Tuft", "Fibroblasts", "MODC", "Plasma", "Tcells", "Bcells", "Mast", "NK",
-            "Endothelial", "Neutrophils", "SmoothMuscle", "EntericGlial", "EntericNeuron"]
+            "Endothelial", "Neutrophils", "SmoothMuscle", "EntericGlia", "EntericNeuron"]
 
     # Generate a clustering R command for each marker and genelist
     for marker in gene_markers:
@@ -72,6 +72,14 @@ def clustering_markers(config, tool_name):
     logging.info(f'Starting {tool_name} process')
 
     # Get the needed parameters
+    # Other
+    # Project name
+    project = config['project']
+    # Organism
+    organism = config['options']['organism']
+    # Dimensions
+    dims = config['tools_conf'][tool_name]['tool_conf']['dimensions']
+
     # Inputs
     # Normalized counts file
     norm_counts = config['tools_conf'][tool_name]['input']['norm_counts']
@@ -85,14 +93,6 @@ def clustering_markers(config, tool_name):
     heatmap = markerstouched.replace("markerstouched.txt",f"{project}_clustering_markers.png")
     # Results directory
     out_dir = "/".join(markerstouched.split('/')[0:-1])
-    
-    # Other
-    # Project name
-    project = config['project']
-    # Organism
-    organism = config['options']['organism']
-    # Dimensions
-    dims = config['tools_conf'][tool_name]['tool_conf']['dimensions']
 
     # Create the command to run the pca R script
     command = ""
