@@ -45,7 +45,6 @@ def GO_enrichment(config, tool_name):
             id_universe = id_sample + "_universe.Rda"
 
             # Create the out firectory and the GO R command
-            command += f"mkdir {id_dir}; "
             command += f'Rscript Rscripts/GO_enrichment.r --out_tab {id_tab} --obj {id_sample} --universe {id_universe} --organism {organism}; '
     
     # create the markerfile

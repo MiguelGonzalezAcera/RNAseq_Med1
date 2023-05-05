@@ -49,7 +49,6 @@ def KEGG_enrichment(config, tool_name):
             id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{id_obj}.Rda"
 
             # Make the commands
-            command += f"mkdir {id_dir}; "
             command += f'Rscript Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '
     
     # make the command for the ending control file
