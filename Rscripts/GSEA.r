@@ -53,8 +53,8 @@ write.table(as.data.frame(z), file = gsub(".png", ".tsv", opt$gseaplot, fixed = 
 # Make and save the plot
 png(
   file = opt$gseaplot,
-  width = int(strsplit(opt$dims, ",")[0]),
-  height = int(strsplit(opt$dims, ",")[1]),
+  width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+  height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
   res = 200
 )
 # No variation of the color here. This is way more standard.

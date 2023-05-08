@@ -25,7 +25,7 @@ option_list <- list(
                     help = "Limits and center for the color scale. Default = -2,0,2"),
         make_option("--cluster_cols", type = "character", default = "FALSE",
                     help = "Enable column clustering. Options = TRUE, FALSE. Default = FALSE"),
-        make_option("--cluster_row", type = "character", default = "FALSE",
+        make_option("--cluster_rows", type = "character", default = "FALSE",
                     help = "Enable row clustering. Options = TRUE, FALSE. Default = FALSE"),
         make_option("--design", type = "character", default = "",
                     help = "Organism analyzed. Available = human, mouse. Default = mouse")
@@ -82,8 +82,8 @@ cdf <- clust_df
 
 # Columns of the dataframe are factors, so just transforming into matrix will fuck up the data.
 # Solution from: https://stackoverflow.com/questions/27528907/how-to-convert-data-frame-column-from-factor-to-numeric
-indx <- sapply(cdf, is.factor)
-cdf[indx] <- lapply(cdf[indx], function(x) as.numeric(as.character(x)))
+# https://stackoverflow.com/questions/55320327/how-to-apply-a-function-in-each-column-of-a-data-frame
+cdf <- sapply(cdf, function(x) as.numeric(as.character(x)))
 
 # Establish the symbols as rows
 rownames(cdf) <- rows_hm
@@ -118,22 +118,22 @@ if (as.logical(opt$cluster_rows)) {
 # Establish colors and limits of the gradient
 color <- colorRamp2(
         c(
-                int(strsplit(opt$limits, ", ")[0]),
-                int(strsplit(opt$limits, ", ")[1]),
-                int(strsplit(opt$limits, ", ")[2])
+                as.integer(strsplit(opt$limits, ",")[[1]][1]),
+                as.integer(strsplit(opt$limits, ",")[[1]][2]),
+                as.integer(strsplit(opt$limits, ",")[[1]][3])
         ),
         c(
-                strsplit(opt$colors, ", ")[0],
-                strsplit(opt$colors, ", ")[1],
-                strsplit(opt$colors, ", ")[2]
+                strsplit(opt$colors, ",")[[1]][1],
+                strsplit(opt$colors, ",")[[1]][2],
+                strsplit(opt$colors, ",")[[1]][3]
         )
 )
 
 # Open the image with the given parameters
 png(
         file = opt$heatmap,
-        width = int(strsplit(opt$dims, ",")[0]),
-        height = int(strsplit(opt$dims, ",")[1]),
+        width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+        height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
         res = 300
 )
 # Mount the heatmap with the respective transformations

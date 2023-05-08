@@ -75,22 +75,22 @@ write.table(gsva.es, file = gsub(".Rda",".tsv", opt$out_obj, fixed = TRUE), sep 
 # Establish colors
 color <- colorRamp2(
   c(
-    int(strsplit(opt$limits, ", ")[0]),
-    int(strsplit(opt$limits, ", ")[1]),
-    int(strsplit(opt$limits, ", ")[2])
+    as.integer(strsplit(opt$limits, ",")[[1]][1]),
+    as.integer(strsplit(opt$limits, ",")[[1]][2]),
+    as.integer(strsplit(opt$limits, ",")[[1]][3])
   ),
   c(
-    strsplit(opt$colors, ", ")[0],
-    strsplit(opt$colors, ", ")[1],
-    strsplit(opt$colors, ", ")[2]
+    strsplit(opt$colors, ",")[[1]][1],
+    strsplit(opt$colors, ",")[[1]][2],
+    strsplit(opt$colors, ",")[[1]][3]
   )
 )
 
 # Create a heatmap of the values
 png(
   file = opt$heatmap,
-  width = int(strsplit(opt$dims, ",")[0]),
-  height = int(strsplit(opt$dims, ",")[1]),
+  width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+  height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
   res = 600
 )
 Heatmap(gsva.es, cluster_columns = FALSE,
@@ -201,7 +201,7 @@ if (length(rownames(clust_df)) < 2) {
     data.matrix(clust_df), cluster_rows = as.dendrogram(hr),
     cluster_columns = FALSE, col = color, row_dend_width = unit(3, "cm"),
     row_names_gp = gpar(fontsize = (90 / length(rownames(clust_df)) + 5)),
-    column_names_gp = gpar(fontsize = (90/length(rownames(clust_df)) + 5) + 2),
+    column_names_gp = gpar(fontsize = (90 / length(rownames(clust_df)) + 5) + 2),
     column_names_max_height = unit(8, "cm"),
     cell_fun = function(j, i, x, y, width, height, fill) {
       grid.text(
