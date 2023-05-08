@@ -71,10 +71,13 @@ def volcano_marker_plot(tab_name, gene_markers, out_path, title, dims=["7","7"])
     # Read the provided table
     df = pd.read_csv(tab_name, sep='\t')
 
+    # Get the path for the files
+    out_path_folder = "/".join(out_path.split('/')[0:-1])
+
     # Iterate throug the genelists
     for glist in gene_markers:
         # Read the gene list into a list
-        with open(f"{out_path}/volcano_{glist}_genelist.txt") as f:
+        with open(f"{out_path_folder}/volcano_{glist}_genelist.txt") as f:
             genelist = f.read().splitlines()
 
         # Filter dataframe by the genelist
