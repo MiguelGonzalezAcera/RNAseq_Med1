@@ -95,7 +95,18 @@ png(
 )
 Heatmap(gsva.es, cluster_columns = FALSE,
         col = color, column_dend_height = unit(5, "cm"),
-        row_dend_width = unit(2, "cm"))
+        row_dend_width = unit(2, "cm"),
+        heatmap_legend_param = list(
+          title = "Relative counts",
+          at = c(
+            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
+            as.integer(strsplit(opt$limits, ",")[[1]][1]),
+            as.integer(strsplit(opt$limits, ",")[[1]][2]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
+            )
+        )
+        )
 dev.off()
 
 # ----------------------------------------------------------------
@@ -208,7 +219,17 @@ if (length(rownames(clust_df)) < 2) {
         sprintf("%.2f", data.matrix(pval_df)[i, j]), x, y,
         gp = gpar(fontsize = (80 / length(rownames(clust_df)) + 3))
       )
-    }
+    },
+    heatmap_legend_param = list(
+          title = "Fold",
+          at = c(
+            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
+            as.integer(strsplit(opt$limits, ",")[[1]][1]),
+            as.integer(strsplit(opt$limits, ",")[[1]][2]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
+            )
+        )
   )
   dev.off()
 }

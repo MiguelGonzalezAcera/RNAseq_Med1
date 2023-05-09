@@ -141,7 +141,18 @@ Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = rclust,
         cluster_columns = cclust,
         col = color, column_dend_height = unit(5, "cm"),
         row_names_gp = gpar(fontsize = (90 / length(genes) + 5)),
-        row_dend_width = unit(2, "cm"), show_row_names = TRUE)
+        row_dend_width = unit(2, "cm"), show_row_names = TRUE,
+        heatmap_legend_param = list(
+          title = "Fold",
+          at = c(
+            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
+            as.integer(strsplit(opt$limits, ",")[[1]][1]),
+            as.integer(strsplit(opt$limits, ",")[[1]][2]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
+            )
+        )
+        )
 dev.off()
 
 # Save environment
