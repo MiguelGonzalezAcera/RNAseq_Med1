@@ -28,7 +28,7 @@ option_list <- list(
   make_option("--colors", type = "character", default = "blue,white,red",
               help = "Colors for the heatmap, from lower to higher. Default = blue,white,red"),
   make_option("--limits", type = "character", default = "-1,0,1",
-              help = "Limits and center for the color scale. Default = -1,0,1"),
+              help = "Limits and center for the color scale. Default = -1,0,1")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -51,9 +51,9 @@ genes <- list()
 
 # load the respective set of gene markers according to organism
 if (opt$organism == "mouse") {
-  source("Static/Mouse_genemarkers_ensembl.Rda")
+  load("Static/Mouse_genemarkers_ensembl.Rda")
 } else if (opt$organism == "human") {
-  source("Static/Human_genemarkers_ensembl.Rda")
+  load("Static/Human_genemarkers_ensembl.Rda")
 }
 
 # transform the data to numeric matrix
@@ -165,14 +165,14 @@ pval_df <- pval_df[complete.cases(pval_df), ]
 # Keep only genes with valid pvalues
 clust_df <- clust_df[rownames(clust_df) %in% rownames(pval_df), drop = FALSE]
 
-# Change column names
-colnames(clust_df) <- filenames
-colnames(pval_df) <- filenames
-
 # Failsafe for clusterings with low instances
 if (length(rownames(clust_df)) < 2) {
   print("GSVA doesn\'t have the necessary length to do the clustering in this group of samples")
 } else {
+  # Change column names
+  colnames(clust_df) <- filenames
+  colnames(pval_df) <- filenames
+
   # Perform the clustering analysis over the table
   # Tree construction (rows)
   hr <- hclust(as.dist(1 - cor(t(data.matrix(clust_df)),
@@ -190,8 +190,8 @@ if (length(rownames(clust_df)) < 2) {
 
   png(
     file = FC_hmap_path,
-    width = int(strsplit(opt$dims, ",")[0]),
-    height = int(strsplit(opt$dims, ",")[1]),
+    width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+    height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
     res = 600
   )
 
