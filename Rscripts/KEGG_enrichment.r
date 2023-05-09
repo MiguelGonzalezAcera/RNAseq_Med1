@@ -1,5 +1,3 @@
-# Resctome enrichment
-
 suppressPackageStartupMessages(library(clusterProfiler))
 suppressPackageStartupMessages(library(pathview))
 suppressPackageStartupMessages(library(DESeq2))
@@ -20,7 +18,7 @@ option_list <- list(
               help="Organism analyzed. STR. Available = human, mouse. Default = Mouse")
 )
 
-opt_parser <- OptionParser(option_list=option_list)
+opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
 # Load R object

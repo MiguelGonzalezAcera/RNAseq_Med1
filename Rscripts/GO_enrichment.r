@@ -4,6 +4,7 @@ suppressPackageStartupMessages(library(GOstats))
 suppressPackageStartupMessages(library(clusterProfiler))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(enrichplot))
 
 option_list = list(
   make_option("--out_tab", type = "character",
@@ -60,6 +61,40 @@ for (ont in ontologies) {
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = TRUE,
                 pAdjustMethod = "BH", universe = universeids)
 
+  # Obtain plots
+  # barplot
+  png(file = sprintf("%s_%s_barplot.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  # when plotting inside a for loop, you have to explicitely print the plot
+  print(barplot(x, showCategory = 16))
+  dev.off()
+
+  # dotplot
+  png(file = sprintf("%s_%s_dotplot.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  print(dotplot(x, showCategory = 16))
+  dev.off()
+
+  # Enrichment map
+  png(file = sprintf("%s_%s_emap.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  x2 <- pairwise_termsim(x)
+  print(emapplot(x2))
+  dev.off()
+
+  # Gene-Concept Network
+  # plot linkages of genes and enriched concepts
+  # (e.g. GO categories, KEGG pathways)
+  png(file = sprintf("%s_%s_cnet.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  print(cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids))
+  dev.off()
+
+  # Save the objects
   save(x, file = sprintf("%s_%s.Rda",
                        gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont))
 
@@ -71,37 +106,6 @@ for (ont in ontologies) {
               gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
               sep = "\t", row.names = FALSE)
 
-  # Obtain plots
-  # barplot
-  png(file = sprintf("%s_%s_barplot.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  barplot(x, showCategory = 16)
-  dev.off()
-
-  # dotplot
-  png(file = sprintf("%s_%s_dotplot.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  dotplot(x, showCategory = 16)
-  dev.off()
-
-  # Enrichment map
-  png(file = sprintf("%s_%s_emap.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  x2 <- pairwise_termsim(x)
-  emapplot(x2)
-  dev.off()
-
-  # Gene-Concept Network
-  # plot linkages of genes and enriched concepts
-  # (e.g. GO categories, KEGG pathways)
-  png(file = sprintf("%s_%s_cnet.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids)
-  dev.off()
 }
 
 # Save environment
