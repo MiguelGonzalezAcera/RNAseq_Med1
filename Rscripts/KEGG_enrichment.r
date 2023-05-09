@@ -94,8 +94,8 @@ if (length(rownames(KEGGtable)) >= 25) {
   top_pathways <- rownames(KEGGtable)[1:maxlength]
   }
 
-#<TODO>: change the working directory to exit folder
-# setwd("/path/to/my/directory")
+#Change the working directory to exit folder
+setwd(dirname(opt$out_tab))
 
 # Make the graphs for the selected pathways
 for (pway in top_pathways) {
@@ -115,12 +115,9 @@ for (pway in top_pathways) {
       message("Pathview had a warning:")
       message(cond)
     },
-    finally = {}
+    finally = {
+    }
   )
-  wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = ".")), collapse = "/")
-
-  file.copy(wd, path)
-  file.remove(wd)
 }
 
 # Save environment
