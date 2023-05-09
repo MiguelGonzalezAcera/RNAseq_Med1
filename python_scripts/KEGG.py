@@ -30,7 +30,7 @@ def KEGG_enrichment(config, tool_name):
 
     # Make the out dir if it doesnt exist
     if not os.path.exists(out_dir):
-        command += f"mkdir {out_dir};"
+        command += f"mkdir {out_dir}; "
 
     # Iter through the samples to make the analysis
     for control in samples:
@@ -41,6 +41,10 @@ def KEGG_enrichment(config, tool_name):
 
             # define a separate folder for each analysis
             id_dir = out_dir + "/" + id_obj
+
+            # Create the folder in question
+            if not os.path.exists(id_dir):
+                command += f"mkdir {id_dir}; "
 
             # Define the name of the out table
             id_tab = id_dir + "/" + f"{id_obj}_KEGG.tsv"

@@ -29,7 +29,7 @@ def GO_enrichment(config, tool_name):
     out_dir = "/".join(GOtouched.split('/')[0:-1])
 
     if not os.path.exists(out_dir):
-        command += f"mkdir {out_dir};"
+        command += f"mkdir {out_dir}; "
 
     # Iter through the samples and controls to make a GO analysis for each comparison
     for control in samples:
@@ -37,6 +37,9 @@ def GO_enrichment(config, tool_name):
         for sample in sample_ids:
             # Get the name of the out dir
             id_dir = out_dir + "/" + f"{sample}_{control}"
+            # Create the subdirectory
+            if not os.path.exists(id_dir):
+                command += f"mkdir {id_dir}; "
             # Make the name of the outfile. The script witll generate the ontology variants
             id_tab = id_dir + "/" + f"{sample}_{control}_GO.tsv"
             # Get the DE file
