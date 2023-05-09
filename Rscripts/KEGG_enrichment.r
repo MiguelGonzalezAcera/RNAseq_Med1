@@ -87,28 +87,44 @@ pathlength <- length(pathlist) - 1
 path <- paste(pathlist[1:pathlength], collapse = "/")
 
 # Show the main pathways
-if (length(rownames(KEGGtable)) >= 50) {
-  top_pathways <- rownames(KEGGtable)[1:50]
+if (length(rownames(KEGGtable)) >= 25) {
+  top_pathways <- rownames(KEGGtable)[1:25]
 } else {
   maxlength <- length(rownames(KEGGtable))
   top_pathways <- rownames(KEGGtable)[1:maxlength]
   }
 
+#<TODO>: change the working directory to exit folder
+# setwd("/path/to/my/directory")
+
 # Make the graphs for the selected pathways
 for (pway in top_pathways) {
-  pathway <- pathview(
-    gene.data = geneList, pathway.id = pway, species = org_db,
-    kegg.dir = "/DATA/tmp/", out.suffix = opt$id,
-    limit = list(gene = 2, cpd = 0.25)
+  pathway <- tryCatch(
+    {
+      pathview(
+        gene.data = geneList, pathway.id = pway, species = org_db,
+        out.suffix = opt$id, limit = list(gene = 2, cpd = 0.25)
+        )
+    },
+    error = function(cond) {
+      message(paste("Error in pathway:", pway))
+      message("Error message:")
+      message(cond)
+    },
+    warning = function(cond) {
+      message("Pathview had a warning:")
+      message(cond)
+    },
+    finally = {}
   )
-  wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = '.')), collapse = '/')
+  wd <- paste(c(getwd(), paste(c(pway, opt$id, "png"), collapse = ".")), collapse = "/")
 
   file.copy(wd, path)
   file.remove(wd)
 }
 
 # Save environment
-save.image(file = gsub(".tsv", ".RData",opt$out_tab, fixed = TRUE))
+save.image(file = gsub(".tsv", ".RData", opt$out_tab, fixed = TRUE))
 
 # Save versions
-get_versions(gsub(".tsv", "_versions.tsv",opt$out_tab, fixed = TRUE))
+get_versions(gsub(".tsv", "_versions.tsv", opt$out_tab, fixed = TRUE))
