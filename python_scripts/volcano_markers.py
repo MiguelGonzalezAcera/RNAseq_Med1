@@ -197,10 +197,10 @@ def volcano_markers(config, tool_name):
         for sample in samples:
             # Get the paths for in table, out plot format. Use wildcard /GENENAME/ in the name of the plot
             tab_name = f"{in_path}/{project}_{sample}_{control}.tsv"
-            out_path = f'{out_path}/GENEMARKER_{sample}_{control}_scattermarkers.png'
+            out_path_fix = f'{out_path}/GENEMARKER_{sample}_{control}_scattermarkers.png'
 
             # Establish the plot title
             plot_title = f"GENEMARKER - {sample} - {control}"
 
             # Run the plots
-            volcano_marker_plot(tab_name, gene_markers, out_path, plot_title, dimensions)
+            volcano_marker_plot(tab_name, gene_markers, out_path_fix, plot_title, dimensions)
