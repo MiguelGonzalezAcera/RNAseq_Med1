@@ -174,7 +174,7 @@ clust_df <- clust_df[complete.cases(clust_df), ]
 pval_df <- pval_df[complete.cases(pval_df), ]
 
 # Keep only genes with valid pvalues
-clust_df <- clust_df[rownames(clust_df) %in% rownames(pval_df), drop = FALSE]
+clust_df <- clust_df[rownames(clust_df) %in% rownames(pval_df), , drop = FALSE]
 
 # Failsafe for clusterings with low instances
 if (length(rownames(clust_df)) < 2) {
