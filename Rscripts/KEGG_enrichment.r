@@ -37,15 +37,33 @@ if (opt$organism == "human") {
 
 # Generate named list of FC
 geneList <- res$log2FoldChange
+
 names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
                                        "ENTREZID", "ENSEMBL"))
 
 # Obtain genelist
 if (opt$genelist == ""){
   geneids <- rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),])
-  entrezgeneids <- (as.character(mapIds(database, as.character(geneids), "ENTREZID", "ENSEMBL")))
+  entrezgeneids <- tryCatch(
+    {
+      as.character(mapIds(database, as.character(geneids), "ENTREZID", "ENSEMBL"))
+    },
+    error = function(cond) {
+      message(paste("Error with gene set:", geneids))
+      message("Error message:")
+      message(cond)
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+    },
+    finally = {
+    }
+  )
 } else {
   genes <- scan(opt$genelist, character(), quote = "")
+
 
   # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
   entrezgeneids <- as.character(mapIds(database, as.character(genes), "ENTREZID", "ENSEMBL"))

@@ -40,12 +40,44 @@ database <- select.organism(opt$organism)
 
 # Obtain genelist
 if (opt$genelist == "") {
-  entrezgeneids <- (as.character(mapIds(database, as.character(rownames(res)), "ENTREZID", "ENSEMBL")))
+  entrezgeneids <- tryCatch(
+    {
+      as.character(mapIds(database, as.character(rownames(res)), "ENTREZID", "ENSEMBL"))
+    },
+    error = function(cond) {
+      message(paste("Error with gene set:", rownames(res)))
+      message("Error message:")
+      message(cond)
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+    },
+    finally = {
+    }
+  )
 } else {
   genes <- readLines(opt$genelist)
 
   # Transform the ensembl names into gene symbol. NOTE that the name of the variable must change.
-  entrezgeneids <- as.character(mapIds(database, as.character(genes), "ENTREZID", "ENSEMBL"))
+  entrezgeneids <- tryCatch(
+    {
+      entrezgeneids <- as.character(mapIds(database, as.character(genes), "ENTREZID", "ENSEMBL"))
+    },
+    error = function(cond) {
+      message(paste("Error with gene set:", genes))
+      message("Error message:")
+      message(cond)
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+    },
+    finally = {
+    }
+  )
 }
 
 # Obtain universe ids
