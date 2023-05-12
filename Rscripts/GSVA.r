@@ -111,7 +111,7 @@ dev.off()
 
 # ----------------------------------------------------------------
 
-# Run a differential expression analysis and make a heatmap with it
+# Run a differential expression analysis
 # diff expression with limma
 sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 
@@ -124,11 +124,6 @@ fit <- lmFit(gsva.es, design)
 fit <- eBayes(fit)
 res <- decideTests(fit, p.value = 0.1)
 
-# Get a dataframe with the columns of the fold change of all the samples
-clust_df <- NULL
-pval_df <- NULL
-filenames <- c()
-
 # Save each of the results by sample
 for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # Get result of the diff expression
@@ -138,100 +133,6 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   restab_name <- paste(paste("", sample, opt$control, sep= " "), "tsv", sep = ".")
   write.table(restab, file = gsub(".Rda", restab_name, opt$out_obj, fixed = TRUE),
               sep = "\t")
-
-  # Transform into dataframe
-  full_df <- as.data.frame(restab)
-
-  # Get the fold change and the pvalue column
-  FC_df <- full_df["logFC"]
-  pv_df <- full_df["P.Value"]
-
-  # Make the filename and rename the columns
-  filename <- paste(sample, opt$control, sep = "_")
-  # Name the column as the file and save the name
-  colnames(FC_df) <- c(filename)
-  colnames(pv_df) <- c(filename)
-  filenames <- c(filenames, filename)
-
-  if (is.null(clust_df) == TRUE) {
-    # If the final df is empty, fill it with one column
-    clust_df <- FC_df
-    pval_df <- pv_df
-  } else {
-    # If not, add the column to the df
-    clust_df <- merge(clust_df, FC_df, by = 0, all = TRUE)
-    rownames(clust_df) <- clust_df$Row.names
-    clust_df$Row.names <- NULL
-
-    pval_df <- merge(pval_df, pv_df, by = 0, all = TRUE)
-    rownames(pval_df) <- pval_df$Row.names
-    pval_df$Row.names <- NULL
-  }
-}
-
-# Drop Na values
-clust_df <- clust_df[complete.cases(clust_df), ]
-pval_df <- pval_df[complete.cases(pval_df), ]
-
-# Keep only genes with valid pvalues
-clust_df <- clust_df[rownames(clust_df) %in% rownames(pval_df), , drop = FALSE]
-
-# Failsafe for clusterings with low instances
-if (length(rownames(clust_df)) < 2) {
-  print("GSVA doesn\'t have the necessary length to do the clustering in this group of samples")
-} else {
-  # Change column names
-  colnames(clust_df) <- filenames
-  colnames(pval_df) <- filenames
-
-  # Perform the clustering analysis over the table
-  # Tree construction (rows)
-  hr <- hclust(as.dist(1 - cor(t(data.matrix(clust_df)),
-                            method = "pearson")), method = "average")
-
-  # Tree cutting
-  mycl <- cutree(hr, h = max(hr$height) / 1.3)
-
-  # Clustering boxes
-  mycolhc <- rainbow(length(unique(mycl)), start = 0.1, end = 0.9)
-  mycolhc <- mycolhc[as.vector(mycl)]
-
-  # change heatmap filename for the Fc one
-  FC_hmap_path <- gsub(".png", "_FC.png", opt$heatmap, fixed = TRUE)
-
-  png(
-    file = FC_hmap_path,
-    width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
-    height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
-    res = 600
-  )
-
-  # Mount the heatmap
-  row_den <- color_branches(hr, h = max(hr$height) / 1.5)
-  Heatmap(
-    data.matrix(clust_df), cluster_rows = as.dendrogram(hr),
-    cluster_columns = FALSE, col = color, row_dend_width = unit(3, "cm"),
-    row_names_gp = gpar(fontsize = (90 / length(rownames(clust_df)) + 5)),
-    column_names_gp = gpar(fontsize = (90 / length(rownames(clust_df)) + 5) + 2),
-    column_names_max_height = unit(8, "cm"),
-    cell_fun = function(j, i, x, y, width, height, fill) {
-      grid.text(
-        sprintf("%.2f", data.matrix(pval_df)[i, j]), x, y,
-        gp = gpar(fontsize = (80 / length(rownames(clust_df)) + 3))
-      )
-    },
-    heatmap_legend_param = list(
-          title = "Fold",
-          at = c(
-            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
-            as.integer(strsplit(opt$limits, ",")[[1]][1]),
-            as.integer(strsplit(opt$limits, ",")[[1]][2]),
-            as.integer(strsplit(opt$limits, ",")[[1]][3]),
-            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
-            )
-        )
-  )
-  dev.off()
 }
 
 # Save environment
