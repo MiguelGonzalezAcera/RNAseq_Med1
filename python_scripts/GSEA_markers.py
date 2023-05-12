@@ -1,14 +1,12 @@
-import argparse
 import logging
 import os
-import glob
-import json
-import subprocess
 import pandas as pd
+import python_scripts.python_functions as pf
 
 def fix_genelists(genelist, outpath, organism):
     """"""
     # Get gene reference table
+    #<TODO>: get the data from the refs database, not the file
     all_genes = pd.read_csv(f"/DATA/{organism}_genes.tsv", sep='\t', index_col=None, header=None)
     all_genes.columns = ['ensembl','entrez','genename']
 
@@ -39,11 +37,12 @@ def fix_genelists(genelist, outpath, organism):
 
     return genegroups_path
 
-def GSEA_markers_plots(in_obj, outpath, organism, command):
+def GSEA_markers_plots(in_obj, outpath, organism, command, dims):
     """
     Do plots for markers
     """
     # Define markers
+    #<TODO>: read from database
     gene_markers = {
         "mouse": {
             "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/Mitochondrial_ensembl.txt",
@@ -70,6 +69,7 @@ def GSEA_markers_plots(in_obj, outpath, organism, command):
             "EntericNeuron": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/EntericNeuron_ensembl.txt"
         },
         "human": {
+            "Mitochondrial": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Mitochondrial_human_ensembl.txt",
             "EnterocyteDist": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteDist_human_ensembl.txt",
             "EnterocyteProx": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/EnterocyteProx_human_ensembl.txt",
             "Enteroendocrine": "/DATA/Thesis_proj/Requests_n_stuff/20210224_Christoph_cell_markers/MarkersV2/human_markers/Enteroendocrine_human_ensembl.txt",
@@ -102,10 +102,11 @@ def GSEA_markers_plots(in_obj, outpath, organism, command):
         gseaplot_mark = outpath + "/" + in_obj.split('/')[-1].replace(".Rda",f"_{marker}_GSEA.png")
 
         # Fix the markers into a gene group
+        # Explanation: The GSEA function takes a named list of the Entrez IDs, so we must transform the gene markers to something more akin
         genegroup = fix_genelists(marker_path, outpath, organism)
 
         # Add command
-        command += f'Rscript Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot_mark} --organism {organism}; '
+        command += f'Rscript Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot_mark} --organism {organism} --dims {dims}; '
 
     return(command)
 
@@ -126,8 +127,11 @@ def GSEA_markers(config, tool_name):
     project = config['project']
 
     # Extract the out path and out markerfile
-    out_path = "/".join(config['tools_conf'][tool_name]['output']['GSEAMtouched'].split('/')[0:-1])
     outmarker = config['tools_conf'][tool_name]['output']['GSEAMtouched']
+    out_path = "/".join(outmarker.split('/')[0:-1])
+
+    # Get the dimensions
+    dimensions = config['tools_conf'][tool_name]['tool_conf']['dimensions']
 
     # Create the command to run the pca R script
     command = ""
@@ -143,65 +147,11 @@ def GSEA_markers(config, tool_name):
             # Read the table with the whole data
             in_obj = f"{in_path}/{project}_{sample}_{control}.Rda"
 
-            command = GSEA_markers_plots(in_obj, out_path, organism, command)
+            # Create the corresponding command
+            command = GSEA_markers_plots(in_obj, out_path, organism, command, dimensions)
 
+    # touch the marker file
     command += f"touch {outmarker}; "
 
-    logging.info(f'Running command: {command}')
-    for cmd in command.split('; '):
-        output = subprocess.run(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stout = output.stdout.decode('utf-8')
-        error = output.stderr.decode('utf-8')
-        if output.returncode == 1:
-            logging.error(f'{cmd}\n\n{error}')
-        elif output.returncode == 0:
-            logging.info(stout)
-            logging.info(error)
-
-def get_arguments():
-    """
-    Function that parse arguments given by the user, returning a dictionary
-    that contains all the values.
-    """
-
-    # Create the top-level parser
-    parser = argparse.ArgumentParser()
-
-    # Mandatory variables
-    parser.add_argument('--config', required=True, help='Configuration file in json format')
-
-    # Test and debug variables
-    parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
-    parser.add_argument('--debug', '-d', action='store_true', default=False, help='dry_run')
-    parser.add_argument('--test', '-t', action='store_true', default=False, help='test')
-
-    # parse some argument lists
-    args = parser.parse_args()
-
-    return args
-
-
-def main():
-    """
-    Main function of the script. Launches the rest of the process
-    """
-
-    # Get arguments from user input
-    args = get_arguments()
-
-    with open(args.config, 'r') as f:
-        config_dict = json.load(f)
-
-    logfile = config_dict["output"]["out_plot"].replace('.png','') + '_GSEA.log'
-    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
-    logging.info(f'Starting GSEA')
-
-    config = {'tools_conf': {'GSEA': config_dict}}
-    config['options'] = config['tools_conf']['GSEA']['options']
-
-    GSEA_markers(config, 'GSEA')
-
-    logging.info(f'Finished GSEA')
-
-if __name__ == "__main__":
-    main()
+    # Run the finished command
+    pf.run_command(command)

@@ -13,7 +13,6 @@ import os
 import json
 import argparse
 import logging
-import time
 import glob
 import pandas as pd
 from datetime import date
@@ -239,29 +238,38 @@ def fillFrame(frame, list, c):
     frame.addFromList(list, c)
 
 def draw_image(FCPlot, h, w):
+    # The element that's drawn is tecnically a list, so we add the elements on it
     story = []
+    # Make the image object and establish the dimensions
     placeholder = Image(FCPlot)
     placeholder.drawHeight = h*cm
     placeholder.drawWidth = w*cm
 
+    # put the image in the story
     story.append(placeholder)
 
     return story
 
 def draw_paragraph(par_text, style):
+    # Create the story list
     story = []
-
+    # Put the text in it with the proper format and style
     story.append(Paragraph(par_text, style))
 
     return story
 
 def draw_GSEA_table(table_path):
+    # Init the story
     story = []
 
+    # Read the table
     df = pd.read_csv(table_path, sep='\t', index_col=None)
 
+    # Init the story for the table with the header
     data = [['Enrichment score','p value']]
 
+    # iter through the rows of the GSEA table to get the color for the enrichment cell if significant
+    # <TODO>: Dows this need to be in a for loop? Is there more than one row?
     for index, row in df.iterrows():
         # Select color for the background
         if row['pvalue'] < 0.05 and row['enrichmentScore'] >= 0:
@@ -271,12 +279,13 @@ def draw_GSEA_table(table_path):
         else:
             color_cell = colors.white
 
-        # Get data in table format
+        # Get data in the table list
         data_row = [round(row['enrichmentScore'], 2),round(row['pvalue'], 2)]
         data.append(data_row)
 
     # Table the data
     t = Table(data)
+    # format the table
     t.setStyle(TableStyle([
          ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
          ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -303,22 +312,22 @@ def get_gene_markers(organism):
             "EnterocyteProx": "Intestinal epithelial cells located closer to the start of the small intestine.",
             "Enteroendocrine": "Enteroendocrine cells are specialized cells located in the intestinal epitheluium with endocrine function. Their main task is to produce a wide range of gut hormones, constituting the enteric endocrine system. Gut hormones mediate in multiple processes, such as rate of nutrient absorption, composition of the luminal environment and the integrity of the epithelial barrier. Enteroendocrine cells also play a role in the detection of microbial metabolites, and can release cytokines to trigger immune respones, among other hormones (https://doi.org/10.1038/mi.2017.73, https://doi.org/10.1038/s41574-019-0168-8)",
             "Goblet": "Goblet cells are secretory cells whose main function is to secrete mucins, creating and preservating the mucus layer in multiple organs. This is a key component in mantaining intestinal homeostasis. These cells are located in the base of the intestinal crypt, and are renewed continuously. In the context of the immune response, these cells can also act as antigen importers (NBK553208)",
-            "M_cells": "M cells are specialized epithelial cells of the mucosa-asocciated lymphoid tissues. A characteristic of M cells is that they transport antigens from the lumen to cells of the immune system, thereby initiating an immune response or tolerance. Soluble macromolecules, small particles, and also entire microorganisms are transported by M cells. They can be founs in Peyer's patches of the intestine. Their behavoiur may change depending of the location in the gut. (PMC 8768493)",
+            "Mcells": "M cells are specialized epithelial cells of the mucosa-asocciated lymphoid tissues. A characteristic of M cells is that they transport antigens from the lumen to cells of the immune system, thereby initiating an immune response or tolerance. Soluble macromolecules, small particles, and also entire microorganisms are transported by M cells. They can be founs in Peyer's patches of the intestine. Their behavoiur may change depending of the location in the gut. (PMC 8768493)",
             "Paneth": "Paneth cells are specialized secretory cells located in the small intestine epithelium. They are specialized in secreting antimicrobial peptides and immunomodulating proteins, thus playing an important role in the regulation of the intestinal flora, and all of the processes in which it is involved. (https://doi.org/10.1038/nrmicro2546, https://doi.org/10.3389/fimmu.2020.00587)",
-            "StemProg": "Pluripotent cells that serve as the main source for new replacements of the epithelium cells. They ar able to divide an unlimited number of times in order to mantain the cell population of the intestine.",
-            "TAProg": "Multipotent cells in rapid division that spawn from the resident stem cell population. They can divide a limited number of times before differentiation.",
+            "Stem": "Pluripotent cells that serve as the main source for new replacements of the epithelium cells. They ar able to divide an unlimited number of times in order to mantain the cell population of the intestine.",
+            "TAprog": "Multipotent cells in rapid division that spawn from the resident stem cell population. They can divide a limited number of times before differentiation.",
             "Tuft": "Tuft cells are rare, secretory epithelial cells located in the intestinal epithelium, where they play a chemosensory role. They have been associated with the inspecific immune response, als known as type 2, and they have been seen to have increased activity in parasitic infections. They are the main source of secreted interleukin 25. (0.1126/science.aaf5215 , https://doi.org/10.1038/s41577-019-0176-x)",
             "Fibroblasts": "Fibroblasts are connective-cell fillers. They fill spaces with proteins.",
-            "MO_DC": "Monocyte derived Dendritic Cells are a distinct dendritic cell subset involved in inflammation and infection. While conventional DCs are critical for self-tolerance and for triggering specific immunity, inflammatory DCs are mainly involved in innate defenses and T-cell activation. (https://doi.org/10.3389/fimmu.2020.01406)",
-            "Plasma_cells": "Plasma cells are white blood cells that secrete antibodies. They can be moved to the target antigen site for its neutralizacion or destruction. B cells can differentiate into plasma cells to produce antibodies against the antigen that activated them. The main antibody they produce is immunoglobulin A, but other types can be detected. (https://doi.org/10.1186/s13578-019-0288-9)",
-            "T_cells": "Lymphocytes T, or T cells, are white blood cells that control and shape the immune response. They can be divided in CD4 cells, or T helper, and CD8 cells, or cytotoxic cells.",
-            "B_cells": "Lymphocytes B, or B cells, are white blood cells that function in the humoral immunity component of the adaptative immune system. They produce and store antibodies, using them as receptors , instead of secreting them. When it is activated by an antigen, they differentiate into plasma cells, who secrete the antibody.",
-            "Mast_cells": "Mast cells are granulocytes resident in the conective tissue. They contain granules rich in histamine and heparine, and play a role in the type 2 immunity, and the response against parasites. Whenb tey degranulate, the released molecules interact with the enteric neurons, and can trigger an inflammatory response",
-            "NK_ILC1": "NK cells, or natural killer cells, are a type of cytotoxic lymphocyte that can trigger cell death by lysis or apoptosis in virus-infected cells, or similar.",
+            "MODC": "Monocyte derived Dendritic Cells are a distinct dendritic cell subset involved in inflammation and infection. While conventional DCs are critical for self-tolerance and for triggering specific immunity, inflammatory DCs are mainly involved in innate defenses and T-cell activation. (https://doi.org/10.3389/fimmu.2020.01406)",
+            "Plasma": "Plasma cells are white blood cells that secrete antibodies. They can be moved to the target antigen site for its neutralizacion or destruction. B cells can differentiate into plasma cells to produce antibodies against the antigen that activated them. The main antibody they produce is immunoglobulin A, but other types can be detected. (https://doi.org/10.1186/s13578-019-0288-9)",
+            "Tcells": "Lymphocytes T, or T cells, are white blood cells that control and shape the immune response. They can be divided in CD4 cells, or T helper, and CD8 cells, or cytotoxic cells.",
+            "Bcells": "Lymphocytes B, or B cells, are white blood cells that function in the humoral immunity component of the adaptative immune system. They produce and store antibodies, using them as receptors , instead of secreting them. When it is activated by an antigen, they differentiate into plasma cells, who secrete the antibody.",
+            "Mast": "Mast cells are granulocytes resident in the conective tissue. They contain granules rich in histamine and heparine, and play a role in the type 2 immunity, and the response against parasites. Whenb tey degranulate, the released molecules interact with the enteric neurons, and can trigger an inflammatory response",
+            "NK": "NK cells, or natural killer cells, are a type of cytotoxic lymphocyte that can trigger cell death by lysis or apoptosis in virus-infected cells, or similar.",
             "Endothelial": "Endothelial cells are the epithelial cells that cover the interior of blood vessels. They play a role in the transition of immune cells from blood to the affected tissue in multiple types of immune response.",
             "Neutrophils": "Neutrophils are granulocytes that are the main effector cell in the innate immune response during the acute phase of inflammation.",
-            "Smooth_muscle": "The intestinal smooth muscle is in charge of the intestinal motility, and can be affected by the inflammation and associated processes (PMC4793911, 12928070)",
-            "EntericGlial": "Enteric glia are cells members of the enteric nervous system, that play a supportive role for the enteric neurons, but also are shown to have involvement in intestinal regulation. (15066004)",
+            "SmoothMuscle": "The intestinal smooth muscle is in charge of the intestinal motility, and can be affected by the inflammation and associated processes (PMC4793911, 12928070)",
+            "EntericGlia": "Enteric glia are cells members of the enteric nervous system, that play a supportive role for the enteric neurons, but also are shown to have involvement in intestinal regulation. (15066004)",
             "EntericNeuron": "The enteric neurons are the main players of the enteric nervous system, which is critical for gastrointestinal function, both sensor and effector processes."
         },
         "human": {
@@ -326,22 +335,22 @@ def get_gene_markers(organism):
             "EnterocyteProx": "Intestinal epithelial cells located closer to the start of the small intestine.",
             "Enteroendocrine": "Enteroendocrine cells are specialized cells located in the intestinal epitheluium with endocrine function. Their main task is to produce a wide range of gut hormones, constituting the enteric endocrine system. Gut hormones mediate in multiple processes, such as rate of nutrient absorption, composition of the luminal environment and the integrity of the epithelial barrier. Enteroendocrine cells also play a role in the detection of microbial metabolites, and can release cytokines to trigger immune respones, among other hormones (https://doi.org/10.1038/mi.2017.73, https://doi.org/10.1038/s41574-019-0168-8)",
             "Goblet": "Goblet cells are secretory cells whose main function is to secrete mucins, creating and preservating the mucus layer in multiple organs. This is a key component in mantaining intestinal homeostasis. These cells are located in the base of the intestinal crypt, and are renewed continuously. In the context of the immune response, these cells can also act as antigen importers (NBK553208)",
-            "M_cells": "M cells are specialized epithelial cells of the mucosa-asocciated lymphoid tissues. A characteristic of M cells is that they transport antigens from the lumen to cells of the immune system, thereby initiating an immune response or tolerance. Soluble macromolecules, small particles, and also entire microorganisms are transported by M cells. They can be founs in Peyer's patches of the intestine. Their behavoiur may change depending of the location in the gut. (PMC 8768493)",
+            "Mcells": "M cells are specialized epithelial cells of the mucosa-asocciated lymphoid tissues. A characteristic of M cells is that they transport antigens from the lumen to cells of the immune system, thereby initiating an immune response or tolerance. Soluble macromolecules, small particles, and also entire microorganisms are transported by M cells. They can be founs in Peyer's patches of the intestine. Their behavoiur may change depending of the location in the gut. (PMC 8768493)",
             "Paneth": "Paneth cells are specialized secretory cells located in the small intestine epithelium. They are specialized in secreting antimicrobial peptides and immunomodulating proteins, thus playing an important role in the regulation of the intestinal flora, and all of the processes in which it is involved. (https://doi.org/10.1038/nrmicro2546, https://doi.org/10.3389/fimmu.2020.00587)",
-            "StemProg": "Pluripotent cells that serve as the main source for new replacements of the epithelium cells. They ar able to divide an unlimited number of times in order to mantain the cell population of the intestine.",
-            "TAProg": "Multipotent cells in rapid division that spawn from the resident stem cell population. They can divide a limited number of times before differentiation.",
+            "Stem": "Pluripotent cells that serve as the main source for new replacements of the epithelium cells. They ar able to divide an unlimited number of times in order to mantain the cell population of the intestine.",
+            "TAprog": "Multipotent cells in rapid division that spawn from the resident stem cell population. They can divide a limited number of times before differentiation.",
             "Tuft": "Tuft cells are rare, secretory epithelial cells located in the intestinal epithelium, where they play a chemosensory role. They have been associated with the inspecific immune response, als known as type 2, and they have been seen to have increased activity in parasitic infections. They are the main source of secreted interleukin 25. (0.1126/science.aaf5215 , https://doi.org/10.1038/s41577-019-0176-x)",
             "Fibroblasts": "Fibroblasts are connective-cell fillers. They fill spaces with proteins.",
-            "MO_DC": "Monocyte derived Dendritic Cells are a distinct dendritic cell subset involved in inflammation and infection. While conventional DCs are critical for self-tolerance and for triggering specific immunity, inflammatory DCs are mainly involved in innate defenses and T-cell activation. (https://doi.org/10.3389/fimmu.2020.01406)",
-            "Plasma_cells": "Plasma cells are white blood cells that secrete antibodies. They can be moved to the target antigen site for its neutralizacion or destruction. B cells can differentiate into plasma cells to produce antibodies against the antigen that activated them. The main antibody they produce is immunoglobulin A, but other types can be detected. (https://doi.org/10.1186/s13578-019-0288-9)",
-            "T_cells": "Lymphocytes T, or T cells, are white blood cells that control and shape the immune response. They can be divided in CD4 cells, or T helper, and CD8 cells, or cytotoxic cells.",
-            "B_cells": "Lymphocytes B, or B cells, are white blood cells that function in the humoral immunity component of the adaptative immune system. They produce and store antibodies, using them as receptors , instead of secreting them. When it is activated by an antigen, they differentiate into plasma cells, who secrete the antibody.",
-            "Mast_cells": "Mast cells are granulocytes resident in the conective tissue. They contain granules rich in histamine and heparine, and play a role in the type 2 immunity, and the response against parasites. Whenb tey degranulate, the released molecules interact with the enteric neurons, and can trigger an inflammatory response",
-            "NK_ILC1": "NK cells, or natural killer cells, are a type of cytotoxic lymphocyte that can trigger cell death by lysis or apoptosis in virus-infected cells, or similar.",
+            "MODC": "Monocyte derived Dendritic Cells are a distinct dendritic cell subset involved in inflammation and infection. While conventional DCs are critical for self-tolerance and for triggering specific immunity, inflammatory DCs are mainly involved in innate defenses and T-cell activation. (https://doi.org/10.3389/fimmu.2020.01406)",
+            "Plasma": "Plasma cells are white blood cells that secrete antibodies. They can be moved to the target antigen site for its neutralizacion or destruction. B cells can differentiate into plasma cells to produce antibodies against the antigen that activated them. The main antibody they produce is immunoglobulin A, but other types can be detected. (https://doi.org/10.1186/s13578-019-0288-9)",
+            "Tcells": "Lymphocytes T, or T cells, are white blood cells that control and shape the immune response. They can be divided in CD4 cells, or T helper, and CD8 cells, or cytotoxic cells.",
+            "Bcells": "Lymphocytes B, or B cells, are white blood cells that function in the humoral immunity component of the adaptative immune system. They produce and store antibodies, using them as receptors , instead of secreting them. When it is activated by an antigen, they differentiate into plasma cells, who secrete the antibody.",
+            "Mast": "Mast cells are granulocytes resident in the conective tissue. They contain granules rich in histamine and heparine, and play a role in the type 2 immunity, and the response against parasites. Whenb tey degranulate, the released molecules interact with the enteric neurons, and can trigger an inflammatory response",
+            "NK": "NK cells, or natural killer cells, are a type of cytotoxic lymphocyte that can trigger cell death by lysis or apoptosis in virus-infected cells, or similar.",
             "Endothelial": "Endothelial cells are the epithelial cells that cover the interior of blood vessels. They play a role in the transition of immune cells from blood to the affected tissue in multiple types of immune response.",
             "Neutrophils": "Neutrophils are granulocytes that are the main effector cell in the innate immune response during the acute phase of inflammation.",
-            "Smooth_muscle": "The intestinal smooth muscle is in charge of the intestinal motility, and can be affected by the inflammation and associated processes (PMC4793911, 12928070)",
-            "EntericGlial": "Enteric glia are cells members of the enteric nervous system, that play a supportive role for the enteric neurons, but also are shown to have involvement in intestinal regulation. (15066004)",
+            "SmoothMuscle": "The intestinal smooth muscle is in charge of the intestinal motility, and can be affected by the inflammation and associated processes (PMC4793911, 12928070)",
+            "EntericGlia": "Enteric glia are cells members of the enteric nervous system, that play a supportive role for the enteric neurons, but also are shown to have involvement in intestinal regulation. (15066004)",
             "EntericNeuron": "The enteric neurons are the main players of the enteric nervous system, which is critical for gastrointestinal function, both sensor and effector processes."
         }
     }
@@ -362,23 +371,26 @@ def report(config, tool_name):
     # Get the comparisons desired
     comparisons = config['comparisons']
 
+    # Get the marker plots path
     markerHeatmapsPath = "/".join(config['tools_conf'][tool_name]['input']['markerstouched'].split('/')[0:-1])
-    markerScatterPath = "/".join(config['tools_conf'][tool_name]['input']['MVtouched'].split('/')[0:-1])
-    markerGSEAPath = "/".join(config['tools_conf'][tool_name]['input']['GSEAMtouched'].split('/')[0:-1])
 
-    # Select the list of markers
+    # Get the descriptions for the markers
     gene_markers = get_gene_markers(organism)
 
     # Get date
     today = date.today()
     d = today.strftime("%Y-%m-%d")
 
+    # ----------Begin building the pdf----------
+
     # Generate the canvas
     c = Canvas(OUTPDF)
 
+    # Input the header and footer for the first page
     header(c, d, styles)
     footer(c, styles)
 
+    # ----------------------------------------------------------
     # Create the page for the GSVA analysis
 
     # Write the title
@@ -398,14 +410,6 @@ def report(config, tool_name):
     GSVAheatmapInfoFrame = Frame(1.5*cm, 390, 300, 300, showBoundary=0)
     fillFrame(GSVAheatmapInfoFrame, GSVAheatmapInfo, c)
 
-    # Repeat for the FC heatmap
-    GSVAhmapFCPath = config['tools_conf'][tool_name]['input']['GSVAhmap'].replace(".png", "_FC.png")
-    if os.path.isfile(GSVAhmapFCPath):
-        GSVAheatmapFCInfo = draw_image(GSVAhmapFCPath, 8.5, 8.5)
-
-        GSVAheatmapFCInfoFrame = Frame(10.5*cm, 390, 300, 300, showBoundary=0)
-        fillFrame(GSVAheatmapFCInfoFrame, GSVAheatmapFCInfo, c)
-
     # Write explanation for GSVA
     GSVAsubt = 'GSVA (Gene Set Variation Analysis) is a non-parametric, unsupervised method that calculates sample-wise gene set enrichment scores as a function of genes inside and outside the gene set, analogously to a competitive gene set test (PMC3618321). The heatmap on the left represents said scores in a color scale, being able to appreciate the differences between the control samples and the problem samples of the study. These differences can be tested by performing differential expression, done with the limma R package, and are represented in the heatmap on the right, with the p value of each test written inside each cell. In this last heatmap, the nomenclature for each test is always <b>Problem-Control</b>. Any of the cell types that could be found significant, has been subjected to other empirical and statistical tests in the pages below.'
 
@@ -415,7 +419,9 @@ def report(config, tool_name):
     GSVAInfoFrame = Frame(2*cm, 340, 500, 100, showBoundary=0)
     fillFrame(GSVAInfoFrame, GSVAInfo, c)
 
-    # Increase page, create theader
+    # ----------------------------------------------------------
+    # Make the legend page for the rest of the document
+    # Increase page, create header+footer
     c.showPage()
     header(c, d, styles)
     footer(c, styles)
@@ -429,7 +435,7 @@ def report(config, tool_name):
     fillFrame(titleInfoFrame, titleInfo, c)
 
     # Object with the heatmap
-    hmapPath = "/DATA/RNAseq_test/Scripts/Legend/Legend_clustering_marker.png"
+    hmapPath = "Legend/Legend_clustering_marker.png"
     heatmapInfo = draw_image(hmapPath, 9, 9)
 
     # Draw in canvas
@@ -443,34 +449,36 @@ def report(config, tool_name):
     fillFrame(controlInfoFrame, controlInfo, c)
 
     # Draw the example scatterplot
-    scplot = "/DATA/RNAseq_test/Scripts/Legend/Legend_scattermarkers.png"
+    scplot = "Legend/Legend_scattermarkers.png"
     scplotInfo = draw_image(scplot, 6, 6)
 
     scplotInfoFrame = Frame(2*cm, 180, 200, 200, showBoundary=0)
     fillFrame(scplotInfoFrame, scplotInfo, c)
 
     # Object with the GSEA plot:
-    GSEAplot = "/DATA/RNAseq_test/Scripts/Legend/Legend_GSEA.png"
+    GSEAplot = "Legend/Legend_GSEA.png"
     GSEAplotInfo = draw_image(GSEAplot, 6, 6)
 
     GSEAplotInfoFrame = Frame(9*cm, 180, 200, 200, showBoundary=0)
     fillFrame(GSEAplotInfoFrame, GSEAplotInfo, c)
 
     # Object with the GSEA plot:
-    GSEAtab = "/DATA/RNAseq_test/Scripts/Legend/Legend_GSEA.tsv"
+    GSEAtab = "Legend/Legend_GSEA.tsv"
     GSEAtabInfo = draw_GSEA_table(GSEAtab)
 
     GSEAtabInfoFrame = Frame(15*cm, 180, 160, 130, showBoundary=0)
     fillFrame(GSEAtabInfoFrame, GSEAtabInfo, c)
 
     # Write the legend texts
-    legendData = "Plots for a marker analysis over the complete study.<br/><br/><br/><b>Left</b>: Heatmap representing the normalized counts of each gene in the samples of your study. Counts are relativized per row.<br/><br/><b>Bottom Left</b>: Volcano plot displaying the marker genes. X axis shows the lof2FolChange, as obtained by DESeq2. Y axis shows the -log10 of the p-value. Colored boxes are delimited by a p-value of 0.05 and a log2FoldChange of +- 1.<br/><br/><b>Bottom Middle</b>: Gene Set Enrichment Analysis (GSEA) of the marker set. Upregulated genes are placed left to the plot by the algorithm, and downregulated genes are right.<br/><br/><b>Bottom Right</b>: Table containing the enrichment score of the GSEA, as well as the p-value associated to the test."
+    legendData = "<b>Plots for marker analysis:</b><br/><br/><br/><b>Left</b>: Heatmap representing the normalized counts of each gene in the samples of your study. Counts are relativized per row.<br/><br/><b>Bottom Left</b>: Volcano plot displaying the marker genes. X axis shows the lof2FolChange, as obtained by DESeq2. Y axis shows the -log10 of the p-value. Colored boxes are delimited by a p-value of 0.05 and a log2FoldChange of +- 1.<br/><br/><b>Bottom Middle</b>: Gene Set Enrichment Analysis (GSEA) of the marker set. Upregulated genes are placed left to the plot by the algorithm, and downregulated genes are right.<br/><br/><b>Bottom Right</b>: Table containing the enrichment score of the GSEA, as well as the p-value associated to the test."
     legendInfo = draw_paragraph(legendData, styles['normal'])
 
     legendInfoFrame = Frame(12*cm, 390, 200, 300, showBoundary=0)
     fillFrame(legendInfoFrame, legendInfo, c)
 
-    # Increase page, create theader
+    # ----------------------------------------------------------
+    # Iterate through each marker and comparison
+    # Increase page, create header
     c.showPage()
     header(c, d, styles)
     footer(c, styles)
@@ -533,16 +541,17 @@ def report(config, tool_name):
         # Set a counter for the final pages
         k = 0
 
+        # Start itering through the comparisons
         for control in comparisons:
             samples = comparisons[control].split(",")
 
             # Write title of section
-            controlInfo = draw_paragraph(f"DE with control: {control}", styles['leftSubtitle'])
+            controlInfo = draw_paragraph(f"DE with control: <b>{control}</b>", styles['leftSubtitle'])
 
             controlInfoFrame = Frame(2*cm, y, 500, 60, showBoundary=0)
             fillFrame(controlInfoFrame, controlInfo, c)
 
-            y -= 160
+            y -= 170
 
             # Init counter for last page
             l = 0
@@ -590,8 +599,6 @@ def report(config, tool_name):
 
                 l += 1
 
-                #print(f"{marker}_{sample}_{control}, {y}, {j}, {l}, {len(samples)}")
-
                 # If heigth is less than the threshold, the line is full and there is still plots to add
                 if y < 90  and l != len(samples):
                     # Reset page
@@ -603,7 +610,7 @@ def report(config, tool_name):
                     y = 500
                 elif l != len(samples):
                     # Add space exept if its the first one
-                    y -= 160
+                    y -= 170
 
             # Decrease heigth and reset width for the next iteration
             y -= 50
@@ -630,50 +637,3 @@ def report(config, tool_name):
             footer(c, styles)
 
     c.save()
-
-def get_arguments():
-    """
-    Function that parse arguments given by the user, returning a dictionary
-    that contains all the values.
-    """
-
-    # Create the top-level parser
-    parser = argparse.ArgumentParser()
-
-    # Mandatory variables
-    parser.add_argument('--config', required=True, help='Configuration file in json format')
-
-    # Test and debug variables
-    parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
-    parser.add_argument('--debug', '-d', action='sore_true', default=False, help='dry_run')
-    parser.add_argument('--test', '-t', action='store_true', default=False, help='test')
-
-    # parse some argument lists
-    args = parser.parse_args()
-
-    return args
-
-def main():
-    """
-    Main function of the script. Launches the rest of the process
-    """
-
-    # Get arguments from user input
-    args = get_arguments()
-
-    with open(args.config, 'r') as f:
-        config_dict = json.load(f)
-
-    logfile = config_dict["output"]["report"].replace('.pdf','') + '_query.log'
-    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
-    logging.info(f'Starting report')
-
-    config = {'tools_conf': {'report': config_dict}}
-    config['options'] = config['tools_conf']['report']['options']
-
-    report(config, 'report')
-
-    logging.info(f'Finished report')
-
-if __name__ == "__main__":
-    main()

@@ -4,6 +4,7 @@ suppressPackageStartupMessages(library(GOstats))
 suppressPackageStartupMessages(library(clusterProfiler))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(enrichplot))
 
 option_list = list(
   make_option("--out_tab", type="character",
@@ -45,7 +46,8 @@ dev.off()
 # Enrichment map
 png(file=sprintf("%s_emap.png",
                  gsub(".rda","", opt$out_tab, fixed=TRUE)), width = 8000, height = 6000, res = 600)
-emapplot(x)
+x2 <- pairwise_termsim(x)
+emapplot(x2)
 dev.off()
 
 # Gene-Concept Network

@@ -4,7 +4,7 @@ suppressPackageStartupMessages(library(calibrate))
 
 # Create options
 option_list = list(
-  make_option("--res", type="character",
+  make_option("--RData", type="character",
               help="R object with the result of the analysis"),
   make_option("--out_plot", type="character",
               help="file that contains the volcano."),
@@ -12,6 +12,8 @@ option_list = list(
               help="Organism for the genenames"),
   make_option("--genelist", type="character", default="",
               help="List of genes to be included in the plot, in txt format. Ensembl IDs only"),
+  make_option("--dims", type="character", default= "2000,2000",
+              help="Dimensions of the plot in pixels. Default = 2000,2000"),
   make_option("--labels", type="character", default=FALSE,
               help="Add labels of the genes")
 )
@@ -26,7 +28,7 @@ source("Rscripts/Rfunctions.R")
 database <- select.organism(opt$organism)
 
 # Read data table
-load(opt$res)
+load(opt$RData)
 #load("/VAULT/Thesis_proj/detables/Mouse_models_cDSSdc_Cerldc.Rda")
 resdf <- data.frame(res)[complete.cases(data.frame(res)),]
 
@@ -45,8 +47,7 @@ if (opt$genelist != "") {
 resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
                                    'SYMBOL', 'ENSEMBL'))
 
-png(file=opt$out_plot, width = 3000, height = 3000, res = 600)
-#png(file="/DATA/Thesis_proj/Requests_n_stuff/20200217_Le_request/cDSS_volcano_plot.png", width = 3000, height = 3000, res = 600)
+png(file=opt$out_plot, width = int(strsplit(opt$dims, ',')[0]), height = int(strsplit(opt$dims, ',')[1]), res = 600)
 # Create scatterplot for the volcano
 with(resdf, plot(log2FoldChange, -log10(pvalue), pch=20, cex = 0.6))
 
