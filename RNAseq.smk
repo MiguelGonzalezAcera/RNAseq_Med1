@@ -56,7 +56,8 @@ if config_dict['options']['reads'] == 'single':
         input:
             fastq_r1 = fastq_r1
         output:
-            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
+            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
+            bamfof = f"{outfolder}/bamfiles/bam.fof"
         run:
             tool_name = 'mapping'
             config_dict['tools_conf'][tool_name] = {
@@ -73,7 +74,8 @@ else:
         input:
             fastq_r1 = fastq_r1
         output:
-            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt"
+            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
+            bamfof = f"{outfolder}/bamfiles/bam.fof"
         run:
             tool_name = 'mapping'
             config_dict['tools_conf'][tool_name] = {
@@ -86,12 +88,24 @@ else:
             }
             python_scripts.mapping.mapping(config_dict, tool_name)
 
-#<TODO>: The splicing pipeline has to be re-done completely, so this chunk of code will stay commented
-# if config_dict['options']['splicing'] == 'True':
-#     include: './subworkflows/splicing.smk'
-#     splicetouched = rules.Splicing.output.splicetouched
-# else:
-#     splicetouched = config['param']
+rule Splicing:
+    input:
+        bamfof = rules.Mapping.output.bamfof,
+        annot = annot_path,
+        design = design
+    output:
+        splicetouched = f"{outfolder}/splicing/splicetouched.txt"
+    run:
+        tool_name = 'splicing'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {
+                "threads": "15"
+            }
+        }
+        python_scripts.splicing.splicing(config_dict, tool_name)
 
 rule Counts:
     input:
@@ -322,6 +336,7 @@ rule all:
         volcanotouched = rules.volcano_plot.output.volcanotouched,
         heatmap = rules.clustering_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,
+        splicetouched = rules.Splicing.output.splicetouched,
         report = rules.report.output.report
     run:
         tool_name = 'all'
@@ -337,6 +352,10 @@ rule all:
             {
                 "name": "Counts",
                 "value": rules.Counts.output.counts
+            },
+            {
+                "name": "Splicing",
+                "value": "/".join(rules.Splicing.output.splicetouched.split('/')[0:-1])
             },
             {
                 "name": "PCA",

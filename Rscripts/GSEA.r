@@ -58,5 +58,7 @@ png(
   res = 200
 )
 # No variation of the color here. This is way more standard.
-gseaplot2(z, geneSetID = 1, color = "red", pvalue_table = FALSE, base_size = 24)
+if (nrow(as.data.frame(z)) > 0) {
+  gseaplot2(z, geneSetID = 1, color = "red", pvalue_table = FALSE, base_size = 24)
+}
 dev.off()
