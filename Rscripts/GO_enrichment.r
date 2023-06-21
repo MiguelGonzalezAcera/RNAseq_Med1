@@ -6,7 +6,7 @@ suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(enrichplot))
 
-option_list = list(
+option_list <- list(
   make_option("--out_tab", type = "character",
               help = "Table with the result of the analysis."),
   make_option("--obj", type = "character",
