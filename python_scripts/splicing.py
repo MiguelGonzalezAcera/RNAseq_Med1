@@ -80,13 +80,15 @@ def splicing(config, tool_name):
             samplebam = ",".join([f"{bamfofpath}/{bam}.bam" for bam in designdf[designdf['Condition'] == sample]['Sample_name'].tolist()])
 
             # Make the command for testing
-            command = f"spladder test --conditionA {controlbam} --conditionB {samplebam} --outdir {splicedir}; "
+            command = f"spladder test --conditionA {samplebam} --conditionB {controlbam} --outdir {splicedir}; "
 
             # Run the command
             pf.run_command(command)
 
             # Rename the resulting folder
             os.rename(f"{splicedir}/testing", f"{splicedir}/{sample}_{control}_testing")
+
+            #<TODO>: Part 3. Plot the events somewhat.
 
     # Last part: Touch the marker file for ending
 
