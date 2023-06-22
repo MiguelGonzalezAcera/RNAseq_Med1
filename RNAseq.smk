@@ -50,43 +50,41 @@ annot_path = config_dict['tools_conf']['annot']
 
 # ------------------Snakemake pipeline------------------
 # Rules
-# The mapping has to be different if single or paired
-if config_dict['options']['reads'] == 'single':
-    rule Mapping:
-        input:
-            fastq_r1 = fastq_r1
-        output:
-            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
-            bamfof = f"{outfolder}/bamfiles/bam.fof"
-        run:
-            tool_name = 'mapping'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {
-                    "threads": "2"
-                }
+rule Mapping:
+    input:
+        fastq_r1 = fastq_r1
+    output:
+        mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
+        bamfof = f"{outfolder}/bamfiles/bam.fof"
+    run:
+        tool_name = 'mapping'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {
+                "threads": "2"
             }
-            python_scripts.mapping.mapping(config_dict, tool_name)
-else:
-    rule Mapping:
-        input:
-            fastq_r1 = fastq_r1
-        output:
-            mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
-            bamfof = f"{outfolder}/bamfiles/bam.fof"
-        run:
-            tool_name = 'mapping'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {
-                    "threads": "2"
-                }
+        }
+        python_scripts.mapping.mapping(config_dict, tool_name)
+
+rule FastQC:
+    input:
+        fastq_r1 = fastq_r1,
+        bamdir = rules.Mapping.output.mappingtouched
+    output:
+        fastqctouched = f"{outfolder}/fastqc/fastqctouched.txt"
+    run:
+        tool_name = 'fastqc'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {
+                "threads": "5"
             }
-            python_scripts.mapping.mapping(config_dict, tool_name)
+        }
+        python_scripts.splicing.splicing(config_dict, tool_name)
 
 rule Splicing:
     input:
@@ -333,6 +331,7 @@ rule all:
         pca = rules.PCA.output.pcatouched,
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
+        fastqctouched = rules.FastQC.output.fastqctouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
         heatmap = rules.clustering_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,
