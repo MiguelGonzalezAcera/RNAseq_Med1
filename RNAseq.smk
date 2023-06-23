@@ -84,7 +84,23 @@ rule FastQC:
                 "threads": "5"
             }
         }
-        python_scripts.splicing.splicing(config_dict, tool_name)
+        python_scripts.fastqc.fastqc(config_dict, tool_name)
+
+rule BamQC:
+    input:
+        bamfof = rules.Mapping.output.bamfof
+    output:
+        bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
+    run:
+        tool_name = 'bamqc'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {
+            }
+        }
+        python_scripts.bamqc.bamqc(config_dict, tool_name)
 
 rule Splicing:
     input:
@@ -332,6 +348,7 @@ rule all:
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
         fastqctouched = rules.FastQC.output.fastqctouched,
+        bamtouched = rules.BamQC.output.bamqctouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
         heatmap = rules.clustering_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,

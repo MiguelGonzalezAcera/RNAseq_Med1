@@ -3,7 +3,7 @@ import os
 import glob
 import python_scripts.python_functions as pf
 
-def splicing(config, tool_name):
+def fastqc(config, tool_name):
     # Report the start in the log
     logging.info(f'Starting {tool_name} process')
 

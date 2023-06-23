@@ -92,7 +92,7 @@ rownames(cdf) <- rows_hm
 if (as.logical(opt$cluster_cols)) {
         # Quick fix for column clustering in case some values are equal
         a <- cor(log(cdf + 1), method = "pearson")
-        rownames(cdf) <- rows_hma[is.na(a)] <- 0
+        a[is.na(a)] <- 0
 
         # Perform the clustering analysis over the table
         # Tree construction
