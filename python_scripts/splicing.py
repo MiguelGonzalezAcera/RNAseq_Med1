@@ -58,7 +58,9 @@ def splicing(config, tool_name):
     command += f"spladder build -o {splicedir} -a {annot} -b {bamfiles}; "
 
     # Run the commands
-    pf.run_command(command)
+    #<TEMPORARY>: Commands are just printed, not run, as I'm considering changing the tool
+    #pf.run_command(command)
+    logging.info(command)
 
     # Part 2. Run the differential splicing tests.
 
@@ -83,10 +85,11 @@ def splicing(config, tool_name):
             command = f"spladder test --conditionA {samplebam} --conditionB {controlbam} --outdir {splicedir}; "
 
             # Run the command
-            pf.run_command(command)
+            #pf.run_command(command)
+            logging.info(command)
 
             # Rename the resulting folder
-            os.rename(f"{splicedir}/testing", f"{splicedir}/{sample}_{control}_testing")
+            #os.rename(f"{splicedir}/testing", f"{splicedir}/{sample}_{control}_testing")
 
             #<TODO>: Part 3. Plot the events somewhat.
 

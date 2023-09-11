@@ -55,7 +55,7 @@ png(
   file = opt$gseaplot,
   width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
   height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
-  res = 200
+  res = 600
 )
 # No variation of the color here. This is way more standard.
 if (nrow(as.data.frame(z)) > 0) {
