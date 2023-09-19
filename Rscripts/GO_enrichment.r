@@ -48,11 +48,13 @@ if (opt$genelist == "") {
       message(paste("Error with gene set:", rownames(res)))
       message("Error message:")
       message(cond)
+      message()
       quit()
     },
     warning = function(cond) {
       message("Database had a warning:")
       message(cond)
+      message()
     },
     finally = {
     }
@@ -93,28 +95,93 @@ for (ont in ontologies) {
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = TRUE,
                 pAdjustMethod = "BH", universe = universeids)
 
+  # Transform the result into a data frame
+  GOtable <- as.data.frame(x)
+
+  # Save the data frame
+  write.table(GOtable, file = sprintf("%s_%s.tsv",
+              gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+              sep = "\t", row.names = FALSE)
+
   # Obtain plots
   # barplot
   png(file = sprintf("%s_%s_barplot.png",
                   gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
                   width = 8000, height = 6000, res = 600)
   # when plotting inside a for loop, you have to explicitely print the plot
-  print(barplot(x, showCategory = 16))
+  bplot <- tryCatch(
+    {
+      barplot(x, showCategory = 16)
+    },
+    error = function(cond) {
+      message(paste("Error doing barplot of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(bplot)
   dev.off()
 
   # dotplot
   png(file = sprintf("%s_%s_dotplot.png",
                   gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
                   width = 8000, height = 6000, res = 600)
-  print(dotplot(x, showCategory = 16))
+  dplot <- tryCatch(
+    {
+      dotplot(x, showCategory = 16)
+    },
+    error = function(cond) {
+      message(paste("Error doing dotplot of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(dplot)
   dev.off()
 
   # Enrichment map
   png(file = sprintf("%s_%s_emap.png",
                   gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
                   width = 8000, height = 6000, res = 600)
-  x2 <- pairwise_termsim(x)
-  print(emapplot(x2))
+  emplot <- tryCatch(
+    {
+      x2 <- pairwise_termsim(x)
+      emapplot(x2)
+    },
+    error = function(cond) {
+      message(paste("Error doing barplot of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(emplot)
   dev.off()
 
   # Gene-Concept Network
@@ -123,20 +190,32 @@ for (ont in ontologies) {
   png(file = sprintf("%s_%s_cnet.png",
                   gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
                   width = 8000, height = 6000, res = 600)
-  print(cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids))
+  # Cnet misses sometimes, so we can put it in a error structure
+  cnet <- tryCatch(
+    {
+      cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids)
+    },
+    error = function(cond) {
+      message(paste("Error doing cnet of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(cnet)
   dev.off()
 
   # Save the objects
   save(x, file = sprintf("%s_%s.Rda",
                        gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont))
-
-  # Transform the result into a data frame
-  GOtable <- as.data.frame(x)
-
-  # Save the data frame
-  write.table(GOtable, file = sprintf("%s_%s.tsv",
-              gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-              sep = "\t", row.names = FALSE)
 
 }
 
