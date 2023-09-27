@@ -25,53 +25,38 @@ def pca(config, tool_name):
     # Inputs
     # Counts files
     tr_counts = config['tools_conf'][tool_name]['input']['tr_counts'].replace(".Rda", ".tsv")
-    tr_B_counts = config['tools_conf'][tool_name]['input']['tr_B_counts'].replace(".Rda", ".tsv")
     # Design file
     design = config['tools_conf'][tool_name]['input']['design']
 
     # Outputs
     # Control files
     pcatouched = config['tools_conf'][tool_name]['output']['pcatouched']
-    pcaBtouched = config['tools_conf'][tool_name]['output']['pcaBtouched']
     # Out directory
-    out_dir_A = "/".join(pcatouched.split('/')[0:-1])
-    out_dir_B = "/".join(pcaBtouched.split('/')[0:-1])
+    out_dir = "/".join(pcatouched.split('/')[0:-1])
 
     # Create the command to run the pca R script
     command = ""
     
     # Make directory if it soes not exist
-    if not os.path.exists(out_dir_A):
-        command += f"mkdir {out_dir_A};"
-    if not os.path.exists(out_dir_B):
-        command += f"mkdir {out_dir_B};"
+    if not os.path.exists(out_dir):
+        command += f"mkdir {out_dir};"
 
     # Command
-    command += f'Rscript Rscripts/pca.r --counts {tr_counts} --design {design} --out_dir {out_dir_A}; '
-    command += f'touch {pcatouched}; '
-    command += f'Rscript Rscripts/pca.r --counts {tr_B_counts} --design {design} --out_dir {out_dir_B}; '
-    command += f'touch {pcaBtouched}'
+    command += f'Rscript Rscripts/pca.r --counts {tr_counts} --design {design} --out_dir {out_dir}; '
+    command += f'touch {pcatouched}'
 
     # Run command
     pf.run_command(command)
 
     # List files to make gif if needed
     try:
-        filelist = pf.list_files_dir(out_dir_A, ext = "*3d*")
+        filelist = pf.list_files_dir(out_dir, ext = "*3d*")
     except:
         filelist = []
 
     # Run the creation of a gif if filelist is not empty
     if len(filelist) != 0:
-        gif(sorted(filelist), out_dir_A)
-
-    # Repeat for batch corrected ones
-    try:
-        filelist = pf.list_files_dir(out_dir_B, ext = "*3d*")
-    except:
-        filelist = []
-    if len(filelist) != 0:
-        gif(sorted(filelist), out_dir_B)
+        gif(sorted(filelist), out_dir)
 
 def get_arguments():
     """

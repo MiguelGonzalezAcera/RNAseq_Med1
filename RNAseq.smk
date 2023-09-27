@@ -159,11 +159,25 @@ rule deseq2:
 rule PCA:
     input:
         tr_counts = rules.deseq2.output.tr_counts,
-        tr_B_counts = rules.deseq2.output.tr_B_counts,
         design = design
     output:
-        pcatouched = f"{outfolder}/pca/pcatouched.txt",
-        pcaBtouched = f"{outfolder}/pca_B/pcatouched.txt"
+        pcatouched = f"{outfolder}/pca/pcatouched.txt"
+    run:
+        tool_name = 'pca'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.pca.pca(config_dict, tool_name)
+
+rule PCA_B:
+    input:
+        tr_counts = rules.deseq2.output.tr_B_counts,
+        design = design
+    output:
+        pcatouched = f"{outfolder}/pca_B/pcatouched.txt"
     run:
         tool_name = 'pca'
         config_dict['tools_conf'][tool_name] = {
@@ -368,6 +382,7 @@ rule report:
 rule all:
     input:
         pca = rules.PCA.output.pcatouched,
+        pca_b = rules.PCA_B.output.pcatouched,
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
         fastqctouched = rules.FastQC.output.fastqctouched,
