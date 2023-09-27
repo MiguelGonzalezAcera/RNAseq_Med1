@@ -66,7 +66,7 @@ def splicing(config, tool_name):
 
     # Get the design to find the sample names associated to each condition
     designdf = pd.read_csv(design, index_col=None, sep = '\t')
-    designdf.columns = ['Sample_name', 'Condition']
+    designdf.columns = ['Sample_name', 'Condition', 'Batch']
 
     # Iter through the comparisons
     for control in samples:

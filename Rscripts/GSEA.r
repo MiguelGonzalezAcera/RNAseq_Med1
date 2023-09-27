@@ -38,25 +38,7 @@ names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
 groups <- read.table(opt$genegroup, fileEncoding = "UTF8")
 
 # Do the gene set enrichment analysis
-z <- tryCatch(
-    {
-      GSEA(sort(geneList, decreasing = T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 5)
-    },
-    error = function(cond) {
-      message(paste("Error with gene set:", opt$genegroup))
-      message("Error message:")
-      message(cond)
-      message()
-      quit()
-    },
-    warning = function(cond) {
-      message("Database had a warning:")
-      message(cond)
-      message()
-    },
-    finally = {
-    }
-  )
+z <- GSEA(sort(geneList, decreasing = T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 5)
 
 # Plot the result of the GSA
 if (length(rownames(as.data.frame(z))) >= 10) {

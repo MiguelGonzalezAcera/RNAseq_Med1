@@ -37,11 +37,11 @@ def load_design(config, tool_name):
     if result:
         logging.info(f'Table {project} already exists in Designs')
     else:
-        create_command = f"""create table Designs.{project}(ID INT unique auto_increment, Sample VARCHAR(255) NOT NULL, Treatment VARCHAR(255) NOT NULL, primary key(ID));"""
+        create_command = f"""create table Designs.{project}(ID INT unique auto_increment, Sample VARCHAR(255) NOT NULL, Treatment VARCHAR(255) NOT NULL, Batch VARCHAR(255) NOT NULL, primary key(ID));"""
         logging.info(create_command)
         mycursor.execute(create_command)
 
-        insert_command = f"""load data local infile '{design}' into table Designs.{project} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (Sample,Treatment);"""
+        insert_command = f"""load data local infile '{design}' into table Designs.{project} fields terminated by '\\t' enclosed by '"' lines terminated by '\\n' ignore 1 rows (Sample,Treatment,Batch);"""
         logging.info(insert_command)
         mycursor.execute(insert_command)
 

@@ -83,59 +83,61 @@ KEGGtable <- as.data.frame(x)
 write.table(KEGGtable, file = opt$out_tab, sep = "\t", row.names = FALSE)
 
 # Obtain plots
-# barplot
-png(file = gsub(".tsv", "_barplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
-barplot(x, showCategory = 16)
-dev.off()
+if (!is.null(x)) {
+  # barplot
+  png(file = gsub(".tsv", "_barplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+  print(barplot(x, showCategory = 16))
+  dev.off()
 
-# dotplot
-png(file = gsub(".tsv", "_dotplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
-dotplot(x, x = "Count", showCategory = 50)
-dev.off()
+  # dotplot
+  png(file = gsub(".tsv", "_dotplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+  print(dotplot(x, x = "Count", showCategory = 50))
+  dev.off()
 
-# Enrichment map
-png(file = gsub(".tsv", "_emap.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
-x2 <- pairwise_termsim(x)
-emapplot(x2)
-dev.off()
+  # Enrichment map
+  png(file = gsub(".tsv", "_emap.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+  x2 <- pairwise_termsim(x)
+  print(emapplot(x2))
+  dev.off()
 
-# Get final path
-pathlist <- unlist(strsplit(opt$out_tab, "/"))
-pathlength <- length(pathlist) - 1
-path <- paste(pathlist[1:pathlength], collapse = "/")
+  # Get final path
+  pathlist <- unlist(strsplit(opt$out_tab, "/"))
+  pathlength <- length(pathlist) - 1
+  path <- paste(pathlist[1:pathlength], collapse = "/")
 
-# Show the main pathways
-if (length(rownames(KEGGtable)) >= 25) {
-  top_pathways <- rownames(KEGGtable)[1:25]
-} else {
-  maxlength <- length(rownames(KEGGtable))
-  top_pathways <- rownames(KEGGtable)[1:maxlength]
-  }
-
-#Change the working directory to exit folder
-setwd(dirname(opt$out_tab))
-
-# Make the graphs for the selected pathways
-for (pway in top_pathways) {
-  pathway <- tryCatch(
-    {
-      pathview(
-        gene.data = geneList, pathway.id = pway, species = org_db,
-        out.suffix = opt$id, limit = list(gene = 2, cpd = 0.25)
-        )
-    },
-    error = function(cond) {
-      message(paste("Error in pathway:", pway))
-      message("Error message:")
-      message(cond)
-    },
-    warning = function(cond) {
-      message("Pathview had a warning:")
-      message(cond)
-    },
-    finally = {
+  # Show the main pathways
+  if (length(rownames(KEGGtable)) >= 25) {
+    top_pathways <- rownames(KEGGtable)[1:25]
+  } else {
+    maxlength <- length(rownames(KEGGtable))
+    top_pathways <- rownames(KEGGtable)[1:maxlength]
     }
-  )
+
+  #Change the working directory to exit folder
+  setwd(dirname(opt$out_tab))
+
+  # Make the graphs for the selected pathways
+  for (pway in top_pathways) {
+    pathway <- tryCatch(
+      {
+        pathview(
+          gene.data = geneList, pathway.id = pway, species = org_db,
+          out.suffix = opt$id, limit = list(gene = 2, cpd = 0.25)
+          )
+      },
+      error = function(cond) {
+        message(paste("Error in pathway:", pway))
+        message("Error message:")
+        message(cond)
+      },
+      warning = function(cond) {
+        message("Pathview had a warning:")
+        message(cond)
+      },
+      finally = {
+      }
+    )
+  }
 }
 
 # Save environment

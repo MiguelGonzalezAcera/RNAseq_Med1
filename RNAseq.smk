@@ -23,7 +23,7 @@ logging.info(f'Starting RNAseq {project}')
 
 # Get the design into a dataframe
 design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
-design_file.columns = ['sample','tr']
+design_file.columns = ['sample','tr','batch']
 
 # Read the fastq files
 fastq_path = config_dict['fastq_path']
@@ -137,29 +137,15 @@ rule Counts:
         }
         python_scripts.get_counts.counts(config_dict, tool_name)
 
-rule PCA:
-    input:
-        counts = rules.Counts.output.counts,
-        design = design
-    output:
-        pcatouched = f"{outfolder}/pca/pcatouched.txt"
-    run:
-        tool_name = 'pca'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.pca.pca(config_dict, tool_name)
-
 rule deseq2:
     input:
         counts = rules.Counts.output.counts,
         design = design
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
-        norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda"
+        norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
+        tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
+        tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
     run:
         tool_name = 'differential_expression'
         config_dict['tools_conf'][tool_name] = {
@@ -169,6 +155,24 @@ rule deseq2:
             'tool_conf': {}
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
+
+rule PCA:
+    input:
+        tr_counts = rules.deseq2.output.tr_counts,
+        tr_B_counts = rules.deseq2.output.tr_B_counts,
+        design = design
+    output:
+        pcatouched = f"{outfolder}/pca/pcatouched.txt",
+        pcaBtouched = f"{outfolder}/pca_B/pcatouched.txt"
+    run:
+        tool_name = 'pca'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.pca.pca(config_dict, tool_name)
 
 rule GSVA:
     input:
@@ -186,10 +190,29 @@ rule GSVA:
         }
         python_scripts.GSVA.GSVA(config_dict, tool_name)
 
+rule clustering_B_heatmap:
+    input:
+        DEtouched = rules.deseq2.output.DEtouched,
+        norm_counts = rules.deseq2.output.tr_B_counts,
+        design = design
+    output:
+        heatmap = f"{outfolder}/plots/{project}_clustering_B_heatmap.png"
+    run:
+        tool_name = 'clustering_B_heatmap'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {
+                "dimensions": "2000,2000"
+            }
+        }
+        python_scripts.clustering_heatmap.clustering_heatmap(config_dict, tool_name)
+
 rule clustering_heatmap:
     input:
         DEtouched = rules.deseq2.output.DEtouched,
-        norm_counts = rules.deseq2.output.norm_counts,
+        norm_counts = rules.deseq2.output.tr_B_counts,
         design = design
     output:
         heatmap = f"{outfolder}/plots/{project}_clustering_heatmap.png"
@@ -351,6 +374,7 @@ rule all:
         bamtouched = rules.BamQC.output.bamqctouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
         heatmap = rules.clustering_heatmap.output.heatmap,
+        heatmap_B = rules.clustering_B_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,
         splicetouched = rules.Splicing.output.splicetouched,
         report = rules.report.output.report
