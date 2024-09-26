@@ -30,7 +30,7 @@ def volcano(df_path, plot_path, genelist=[], dims=["10","6"], labels=False):
 
   # Put labels on axises
   ax.set_xlabel("Fold Change (log2FoldChange)")
-  ax.set_ylabel("P value (-log10(pvalue))")
+  ax.set_ylabel("P value (-log10(padj))")
 
   # Draw the dots of 
   if genelist:

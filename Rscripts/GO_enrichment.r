@@ -91,9 +91,9 @@ ontologies <- c("BP", "MF", "CC")
 # Loop for each ontology
 for (ont in ontologies) {
   # Do the GSEA
-  hgCutoff <- 0.05
+  hgCutoff <- 0.1
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = TRUE,
-                pAdjustMethod = "BH", universe = universeids)
+                pAdjustMethod = "BH", universe = universeids, minGSSize = 1, maxGSSize = 1000)
 
   # Transform the result into a data frame
   GOtable <- as.data.frame(x)

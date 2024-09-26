@@ -18,7 +18,7 @@ design = config_dict['design']
 project = config_dict['project']
 
 # Set and start logger
-logging.basicConfig(filename=f'{outfolder}/RNAseq.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+logging.basicConfig(filename=f'{outfolder}/RNAseq_fromCounts.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
 logging.info(f'Starting RNAseq {project}')
 
 # Get the design into a dataframe
@@ -26,120 +26,11 @@ design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
 design_file.columns = ['sample','tr','batch']
 
 # Read the fastq files
-fastq_path = config_dict['fastq_path']
-
-# Select file extension naming convention between single end and paired end
-if config_dict['options']['reads'] == 'single':
-    fastq_r1 = []
-
-    for name in design_file['sample'].tolist():
-        fastq_r1.append(glob.glob(f'{fastq_path}/{name}.fastq.gz')[0])
-else:
-    fastq_r1 = []
-
-    for name in design_file['sample'].tolist():
-        fastq_r1.append(glob.glob(f'{fastq_path}/{name}_1.fastq.gz')[0])
-
-# raise error when no files are found in the selected path
-if not fastq_r1:
-    logger.error(f'FASTQ files not found in {fastq_path}')
-    raise ValueError(f'FASTQ files not found in {fastq_path}')
-
-# get the annotation files
-annot_path = config_dict['tools_conf']['annot']
-
-# ------------------Snakemake pipeline------------------
-# Rules
-rule Mapping:
-    input:
-        fastq_r1 = fastq_r1
-    output:
-        mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
-        bamfof = f"{outfolder}/bamfiles/bam.fof"
-    run:
-        tool_name = 'mapping'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {
-                "threads": "2"
-            }
-        }
-        python_scripts.mapping.mapping(config_dict, tool_name)
-
-rule FastQC:
-    input:
-        fastq_r1 = fastq_r1,
-        bamdir = rules.Mapping.output.mappingtouched
-    output:
-        fastqctouched = f"{outfolder}/fastqc/fastqctouched.txt"
-    run:
-        tool_name = 'fastqc'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {
-                "threads": "5"
-            }
-        }
-        python_scripts.fastqc.fastqc(config_dict, tool_name)
-
-rule BamQC:
-    input:
-        bamfof = rules.Mapping.output.bamfof
-    output:
-        bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
-    run:
-        tool_name = 'bamqc'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {
-            }
-        }
-        python_scripts.bamqc.bamqc(config_dict, tool_name)
-
-rule Splicing:
-    input:
-        bamfof = rules.Mapping.output.bamfof,
-        annot = annot_path,
-        design = design
-    output:
-        splicetouched = f"{outfolder}/splicing/splicetouched.txt"
-    run:
-        tool_name = 'splicing'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {
-                "threads": "15"
-            }
-        }
-        python_scripts.splicing.splicing(config_dict, tool_name)
-
-rule Counts:
-    input:
-        bamdir = rules.Mapping.output.mappingtouched,
-        annot = annot_path
-    output:
-        counts = f"{outfolder}/counts.tsv"
-    run:
-        tool_name = 'get_counts'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.get_counts.counts(config_dict, tool_name)
+counts_file = config_dict['counts_file']
 
 rule deseq2:
     input:
-        counts = rules.Counts.output.counts,
+        counts = counts_file,
         design = design
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
@@ -389,7 +280,6 @@ rule all:
         heatmap = rules.clustering_heatmap.output.heatmap,
         heatmap_B = rules.clustering_B_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,
-        splicetouched = rules.Splicing.output.splicetouched,
         report = rules.report.output.report
     run:
         tool_name = 'all'
@@ -402,10 +292,6 @@ rule all:
 
         # Construct a dictionary with the main results
         config_dict['results'] = {"results": [
-            {
-                "name": "Splicing",
-                "value": "/".join(rules.Splicing.output.splicetouched.split('/')[0:-1])
-            },
             {
                 "name": "PCA",
                 "value": "/".join(rules.PCA.output.pcatouched.split('/')[0:-1])

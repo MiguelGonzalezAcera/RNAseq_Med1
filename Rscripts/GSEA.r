@@ -38,7 +38,7 @@ names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
 groups <- read.table(opt$genegroup, fileEncoding = "UTF8")
 
 # Do the gene set enrichment analysis
-z <- GSEA(sort(geneList, decreasing = T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 5)
+z <- GSEA(sort(geneList, decreasing = T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 2, maxGSSize = 1000)
 
 # Plot the result of the GSA
 if (length(rownames(as.data.frame(z))) >= 10) {
@@ -48,17 +48,29 @@ if (length(rownames(as.data.frame(z))) >= 10) {
 }
 
 # Save enrichment table
-write.table(as.data.frame(z), file = gsub(".png", ".tsv", opt$gseaplot, fixed = TRUE), sep = "\t", row.names = FALSE)
+write.table(as.data.frame(z), file = gsub(".svg", ".tsv", opt$gseaplot, fixed = TRUE), sep = "\t", row.names = FALSE)
 
 # Make and save the plot
+
 png(
-  file = opt$gseaplot,
+  file = gsub(".svg", ".png", opt$gseaplot, fixed = TRUE),
   width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
   height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
-  res = 600
+  res = 300
 )
 # No variation of the color here. This is way more standard.
 if (nrow(as.data.frame(z)) > 0) {
-  gseaplot2(z, geneSetID = 1, color = "red", pvalue_table = FALSE, base_size = 24)
+  gseaplot2(z, geneSetID = 1, color = "#ff8000", pvalue_table = FALSE, base_size = 12, subplots = 1:2)
+}
+dev.off()
+
+svg(
+  file = opt$gseaplot,
+  width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+  height = as.integer(strsplit(opt$dims, ",")[[1]][2])
+)
+# No variation of the color here. This is way more standard.
+if (nrow(as.data.frame(z)) > 0) {
+  gseaplot2(z, geneSetID = 1, color = "#ff8000", pvalue_table = FALSE, base_size = 24, subplots = 1:2)
 }
 dev.off()

@@ -51,8 +51,12 @@ sampleTableSingle$rn <- row.names(sampleTableSingle)
 control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn']]
 
 # Design model matrix, including batch effect correction
-Tr1 <- relevel(factor(sampleTableSingle[, 1]), opt$control)
-design <- model.matrix(~ Tr1 + factor(sampleTableSingle$Batch))
+Tr1 <- relevel(factor(sampleTableSingle$Tr1), opt$control)
+if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
+  design <- model.matrix(~ Tr1 + factor(sampleTableSingle$Batch))
+} else {
+  design <- model.matrix(~ Tr1)
+}
 
 # --------------------------------------------------------------
 
@@ -91,46 +95,6 @@ colnames(norm_counts) <- c(norm_counts_colnames, "Genename")
 write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
 df_norm <- as.data.frame(norm_counts)
 save(df_norm, file = gsub(".Rda", "_norm_counts.Rda", opt$out_obj, fixed = TRUE))
-
-# --------------------------------------------------------------
-
-# Save the transformed normalized counts, with and without batch effect correction
-# Transform the object using Variance Stabilizing Transformation
-vsd <- vst(dds)
-
-# Get the counts from the transformed object
-tr_counts <- assay(vsd)
-
-# Get the names of the columns
-tr_counts_colnames <- colnames(tr_counts)
-# Add the gene names as a new column
-tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
-# Rename the columns with the new name
-colnames(tr_counts) <- c(tr_counts_colnames, "Genename")
-
-# Save the object both as table and as R object
-write.table(tr_counts, file=gsub(".Rda","_tr_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
-df_norm <- as.data.frame(tr_counts)
-save(df_norm, file = gsub(".Rda", "_tr_counts.Rda", opt$out_obj, fixed = TRUE))
-
-
-# Run limma's Batch effect correction and save again
-assay(vsd) <- removeBatchEffect(assay(vsd), vsd$Batch)
-
-# Get the counts from the transformed object
-tr_B_counts <- assay(vsd)
-
-# Get the names of the columns
-tr_B_counts_colnames <- colnames(tr_B_counts)
-# Add the gene names as a new column
-tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
-# Rename the columns with the new name
-colnames(tr_B_counts) <- c(tr_B_counts_colnames, "Genename")
-
-# Save the object both as table and as R object
-write.table(tr_B_counts, file=gsub(".Rda","_tr_B_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
-df_norm <- as.data.frame(tr_B_counts)
-save(df_norm, file = gsub(".Rda", "_tr_B_counts.Rda", opt$out_obj, fixed = TRUE))
 
 # --------------------------------------------------------------
 
@@ -184,6 +148,53 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   write.table(resdf_wcounts, file=gsub(".Rda", res_exp_tab_name, opt$out_obj, fixed = TRUE),
               sep = "\t", row.names = FALSE)
 }
+
+# --------------------------------------------------------------
+
+# Save the transformed normalized counts, with and without batch effect correction
+# Transform the object using Variance Stabilizing Transformation
+vsd <- vst(dds)
+
+# Get the counts from the transformed object
+tr_counts <- assay(vsd)
+
+# Get the names of the columns
+tr_counts_colnames <- colnames(tr_counts)
+# Add the gene names as a new column
+tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
+# Rename the columns with the new name
+colnames(tr_counts) <- c(tr_counts_colnames, "Genename")
+
+# Save the object both as table and as R object
+write.table(tr_counts, file=gsub(".Rda","_tr_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
+df_norm <- as.data.frame(tr_counts)
+save(df_norm, file = gsub(".Rda", "_tr_counts.Rda", opt$out_obj, fixed = TRUE))
+
+if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
+  # Run limma's Batch effect correction and save again
+  assay(vsd) <- removeBatchEffect(assay(vsd), vsd$Batch)
+
+  # Get the counts from the transformed object
+  tr_B_counts <- assay(vsd)
+
+  # Get the names of the columns
+  tr_B_counts_colnames <- colnames(tr_B_counts)
+  # Add the gene names as a new column
+  tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
+  # Rename the columns with the new name
+  colnames(tr_B_counts) <- c(tr_B_counts_colnames, "Genename")
+
+  # Save the object both as table and as R object
+  write.table(tr_B_counts, file=gsub(".Rda","_tr_B_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
+  df_norm <- as.data.frame(tr_B_counts)
+  save(df_norm, file = gsub(".Rda", "_tr_B_counts.Rda", opt$out_obj, fixed = TRUE))
+} else {
+  # re-Save the object both as table and as R object
+write.table(tr_counts, file=gsub(".Rda","_tr_B_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
+df_norm <- as.data.frame(tr_counts)
+save(df_norm, file = gsub(".Rda", "_tr_B_counts.Rda", opt$out_obj, fixed = TRUE))
+}
+
 # Save environment
 save.image(file = gsub(".Rda", ".RData", opt$out_obj, fixed = TRUE))
 

@@ -23,6 +23,8 @@ option_list <- list(
               help = "Value from the designs to use as control"),
   make_option("--comparisons", type = "character",
               help = "Values from the designs, comma separated, to compare against control."),
+  make_option("--genesets", type = "character", default = '',
+              help = "List of files with the sets of genes desired, ensemblIDs, comma separated."),
   make_option("--dims", type = "character", default = "3500,3500",
               help = "Dimensions of the plot in pixels. Default = 3500,3500"),
   make_option("--colors", type = "character", default = "blue,white,red",
@@ -49,11 +51,20 @@ wdf_norm <- df_norm[, !names(df_norm) %in% c("Genename")]
 # Create the lists of genes
 genes <- list()
 
-# load the respective set of gene markers according to organism
-if (opt$organism == "mouse") {
-  load("Static/Mouse_genemarkers_ensembl.Rda")
-} else if (opt$organism == "human") {
-  load("Static/Human_genemarkers_ensembl.Rda")
+# Check if there are genelists to be used
+if (opt$genesets == '') {
+  # load the respective set of gene markers according to organism
+  if (opt$organism == "mouse") {
+    load("Static/Mouse_genemarkers_ensembl.Rda")
+  } else if (opt$organism == "human") {
+    load("Static/Human_genemarkers_ensembl.Rda")
+  }
+} else {
+  for (genefile in strsplit(opt$genesets, ",")[[1]]) {
+    genefile_name = gsub("_ensembl.txt","", tail(strsplit(genefile, "/")[[1]], n=1), fixed = TRUE)
+
+    genes[[genefile_name]] <- readLines(genefile)
+  }
 }
 
 # transform the data to numeric matrix
@@ -63,7 +74,8 @@ rownames(numwdf_norm) <- rownames(wdf_norm)
 colnames(numwdf_norm) <- colnames(wdf_norm)
 
 # Run the gsva ove the set of counts
-gsva.es <- gsva(numwdf_norm, genes, verbose = FALSE)
+gsvaPar <- gsvaParam(numwdf_norm, genes)
+gsva.es <- gsva(gsvaPar, verbose = FALSE)
 
 # Save the GSVA table as R object and table
 save(gsva.es, file = opt$out_obj)
@@ -130,7 +142,7 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   restab <- topTable(fit, coef = paste("Tr1", sample, sep = ""), number = 100)
 
   # Save the table
-  restab_name <- paste(paste("", sample, opt$control, sep= " "), "tsv", sep = ".")
+  restab_name <- paste(paste("", sample, opt$control, sep= "_"), "tsv", sep = ".")
   write.table(restab, file = gsub(".Rda", restab_name, opt$out_obj, fixed = TRUE),
               sep = "\t")
 }

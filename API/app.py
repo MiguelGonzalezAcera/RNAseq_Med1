@@ -13,7 +13,8 @@ app = Flask(__name__)
 def get_script_names():
     # Dictionary with the snakemake scripts included in the pipeline api
     data = {
-        'RNAseq': {'path': 'RNAseq.smk'}
+        'RNAseq': {'path': 'RNAseq.smk'},
+        'RNAseq_fromCounts': {'path': 'RNAseq_fromCounts.smk'}
     }
 
     return data
@@ -25,9 +26,9 @@ def get_references_names():
                 "genome": "/DATA/references/star_genomes/hs38/star_indices_overhang150/",
                 #"genomedict": "/DATA/references/star_genomes/hs38/star_indices_overhang150/GRCh38.primary_assembly.genome.dict",
                 #"bedfile":"/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.96.corr.bed",
-                "annot": "/DATA/references/star_genomes/hs38/star_indices_overhang150/GCF_000001405.40_GRCh38.p14_genomic.gtf",
+                "annot": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.111.gtf",
                 #"genometxt": "/DATA/references/star_genomes/hs38/star_indices_overhang150/GRCh38.primary_assembly.genome.txt",
-                "genomefasta": "/DATA/references/star_genomes/hs38/star_indices_overhang150/GCF_000001405.40_GRCh38.p14_genomic.fna"
+                "genomefasta": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.dna.toplevel.fa"
                 }
             },
         'mouse_mm38': {
@@ -116,7 +117,7 @@ def launch_process(config_json_path, postdata, pipeline, mode='POPEN'):
 
     # create the command for the snakemake pipeline
     cmd = f'snakemake -s {config_names[pipeline]["path"]} all -j 10 ' +\
-        f"--config param={config_json_path} --use-conda"
+        f"--config param={config_json_path} --ri"
     print(cmd)
 
     # Run according to mode
@@ -168,6 +169,20 @@ def launch_test():
 def launch_RNAseq():
     postdata = request.get_json()
     pipeline = 'RNAseq'
+
+    # Create and save configuration
+    config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    dag = launch_job(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/RNAseq_fromCounts/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_RNAseq_fromCounts():
+    postdata = request.get_json()
+    pipeline = 'RNAseq_fromCounts'
 
     # Create and save configuration
     config_json_path = generate_configuration(postdata, pipeline)

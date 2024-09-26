@@ -83,7 +83,7 @@ KEGGtable <- as.data.frame(x)
 write.table(KEGGtable, file = opt$out_tab, sep = "\t", row.names = FALSE)
 
 # Obtain plots
-if (!is.null(x)) {
+if (length(rownames(KEGGtable)) > 0) {
   # barplot
   png(file = gsub(".tsv", "_barplot.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
   print(barplot(x, showCategory = 16))
