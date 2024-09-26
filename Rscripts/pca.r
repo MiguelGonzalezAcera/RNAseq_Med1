@@ -108,7 +108,7 @@ mdsdf$SampleID <- sampleids
 pca2d(mdsdf, 1, 2, eig_pc, opt$out_dir)
 
 # If 3rd eigenvalue is higher than 10, produce the dimension combination and the gif
-if (eig_pc[3] >= dimthr) {
+if (eig_pc[3] >= dimthr || length(row.names(mdsdf)) > 20) {
   # Do the rest of the 2d graphs
   pca2d(mdsdf, 2, 3, eig_pc, opt$out_dir)
   pca2d(mdsdf, 1, 3, eig_pc, opt$out_dir)
