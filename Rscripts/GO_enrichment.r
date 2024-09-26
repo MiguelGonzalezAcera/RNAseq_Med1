@@ -26,12 +26,6 @@ opt <- parse_args(opt_parser)
 # Load Rfunctions
 source("Rscripts/Rfunctions.R")
 
-# Load R object
-load(opt$obj)
-
-# Filter the object by fold change
-res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)), ]
-
 # Load the universe
 load(opt$universe)
 
@@ -40,6 +34,12 @@ database <- select.organism(opt$organism)
 
 # Obtain genelist
 if (opt$genelist == "") {
+  # Load R object
+  load(opt$obj)
+
+  # Filter the object by fold change
+  res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)), ]
+
   entrezgeneids <- tryCatch(
     {
       as.character(mapIds(database, as.character(rownames(res)), "ENTREZID", "ENSEMBL"))
