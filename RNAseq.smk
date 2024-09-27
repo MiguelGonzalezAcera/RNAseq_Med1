@@ -1,3 +1,13 @@
+## Import modules for analysis 
+## os: provides a way to interact with the operating system, such as working with files and directories
+## json: encode and decode JSON (JavaScript Object Notation) data
+## argparse: facilitates the parsing of command-line arguments for a Python script.
+## datetime: provides classes for working with dates and times.
+## python_scripts: custom module, and its contents would be defined in a file named python_scripts.py in the same directory or in a package structure.
+## glob: function for matching files using Unix shell-style wildcards.
+## pandas: powerful data manipulation library for Python.
+## logging: flexible and powerful logging framework.
+
 import os
 import json
 import argparse
@@ -7,8 +17,17 @@ import glob
 import pandas as pd
 import logging
 
+
 # Get initial data
-# Open the configuration json
+## context manager (with): properly close file after reading;
+## r = readmode
+
+# Open the configuration JSON file
+## configuration parameter named 'param,' !!change param to filename(?)!!
+## expected to contain the path to a JSON configuration file
+## config_dict: reads the contents of the opened JSON file (f) 
+## --> and loads it into a Python dictionary (dict)
+## converts it into a corresponding Python dictionary 
 with open(config['param'], 'r') as f:
     config_dict = json.load(f)
 
@@ -18,17 +37,37 @@ design = config_dict['design']
 project = config_dict['project']
 
 # Set and start logger
+## https://docs.python.org/3/howto/logging.html
+## logging.basicConfig (**kwargs: additional keyword argument)
+## logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
+
+## logging.info (msg, *args, **kwargs) 
+## --> Confirmation that things are working as expected
+## f`xx {string}`is a so-called f-string -> values inside the variable
 logging.basicConfig(filename=f'{outfolder}/RNAseq.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
 logging.info(f'Starting RNAseq {project}')
 
 # Get the design into a dataframe
+## Use Panda library to read CSV file into a DataFrame
+## 'sep=´\t´' --> specifies that file is tab seperated
+## index_col=0 --> indicates that first column of file is index of DataFrame
+## design_file.columns = ['sample','tr'] --> sets column names of data frames 
+## .reset_index() --> resets index to default integer index, adds a new default integer index column to the DataFrame.
+## -->e.g. if the original TSV file had an index that you want to reset.
 design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
 design_file.columns = ['sample','tr','batch']
 
 # Read the fastq files
 fastq_path = config_dict['fastq_path']
 
+
 # Select file extension naming convention between single end and paired end
+## A list of file paths is created either to single- or paired-ends accordingly
+
+## Single end  (almost not done anymore); Paired end better (CUBIDA)
+## For Single end: empty list initialized (fastq_r1) 
+## 'glob' module consturcts a file path to finde corresponding FASTQC files
+## appendend to fastq_r1 list
 if config_dict['options']['reads'] == 'single':
     fastq_r1 = []
 
@@ -41,6 +80,8 @@ else:
         fastq_r1.append(glob.glob(f'{fastq_path}/{name}_1.fastq.gz')[0])
 
 # raise error when no files are found in the selected path
+## raise 
+## ValueError
 if not fastq_r1:
     logger.error(f'FASTQ files not found in {fastq_path}')
     raise ValueError(f'FASTQ files not found in {fastq_path}')
@@ -315,6 +356,13 @@ rule GSEA_markers:
 # This one just loads the design in a different database.
 # The DEtouched thing is only there in case there is an error in the naming and the DE fails.
 # It would run the DE and this at the same time and I don't want it to load something mistaken if the input's wrong
+
+## extracting key-value pairs from the input and output objects using the _allitems() method
+## input.allitems() method to create input dictionary:
+## first element (i[0]) of each tuple becomes key
+## second element (i[1]) becomes value
+## This is done to easier manipulation and access. (multiple values are expressed by single variables)
+
 rule load_project:
     input:
         design = design,
@@ -401,6 +449,9 @@ rule all:
         }
 
         # Construct a dictionary with the main results
+        ## set to a dictionary with a single key "results"
+        ## the value associated with "results" is a list containing a dictionary
+        ## dictionary includes information about "Counts," with the count data stored in: rules.Counts.output.counts.
         config_dict['results'] = {"results": [
             {
                 "name": "Splicing",
