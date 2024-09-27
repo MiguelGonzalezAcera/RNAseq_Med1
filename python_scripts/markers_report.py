@@ -10,9 +10,6 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.lib.colors import HexColor
 import os
-import json
-import argparse
-import logging
 import glob
 import pandas as pd
 from datetime import date
@@ -331,6 +328,7 @@ def get_gene_markers(organism):
             "EntericNeuron": "The enteric neurons are the main players of the enteric nervous system, which is critical for gastrointestinal function, both sensor and effector processes."
         },
         "human": {
+            "Mitochondrial": "Mitochondrial genes.",
             "EnterocyteDist": "Intestinal epithelial cells located closer to the ileum, at the end of the small intestine.",
             "EnterocyteProx": "Intestinal epithelial cells located closer to the start of the small intestine.",
             "Enteroendocrine": "Enteroendocrine cells are specialized cells located in the intestinal epitheluium with endocrine function. Their main task is to produce a wide range of gut hormones, constituting the enteric endocrine system. Gut hormones mediate in multiple processes, such as rate of nutrient absorption, composition of the luminal environment and the integrity of the epithelial barrier. Enteroendocrine cells also play a role in the detection of microbial metabolites, and can release cytokines to trigger immune respones, among other hormones (https://doi.org/10.1038/mi.2017.73, https://doi.org/10.1038/s41574-019-0168-8)",
@@ -392,6 +390,7 @@ def report(config, tool_name):
 
     # ----------------------------------------------------------
     # Create the page for the GSVA analysis
+    #<TODO>: Add a table with the DE values or something. a bubble plot could also do the trick
 
     # Write the title
     titleInfo = draw_paragraph("GSVA analysis", styles['bigSubtitle'])

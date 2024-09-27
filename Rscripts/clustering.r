@@ -19,10 +19,10 @@ option_list <- list(
                     help = "Organism analyzed. Available = human, mouse. Default = mouse"),
         make_option("--dims", type = "character", default = "2000,2000",
                     help = "Dimensions of the plot in pixels. Default = 2000,2000"),
-        make_option("--colors", type = "character", default = "blue,white,red",
-                    help = "Colors for the heatmap, from lower to higher. Default = blue,white,red"),
-        make_option("--limits", type = "character", default = "-2,0,2",
-                    help = "Limits and center for the color scale. Default = -2,0,2"),
+        make_option("--colors", type = "character", default = "#7F00FF,#faebd7,#FF8000",
+                    help = "Colors for the heatmap, from lower to higher. Default = #7F00FF,#faebd7,#FF8000"),
+        make_option("--limits", type = "character", default = "-1,0,1",
+                    help = "Limits and center for the color scale. Default = -1,0,1"),
         make_option("--cluster_cols", type = "character", default = "FALSE",
                     help = "Enable column clustering. Options = TRUE, FALSE. Default = FALSE"),
         make_option("--cluster_rows", type = "character", default = "FALSE",
@@ -88,11 +88,14 @@ cdf <- sapply(cdf, function(x) as.numeric(as.character(x)))
 # Establish the symbols as rows
 rownames(cdf) <- rows_hm
 
+# #Wee trick for now
+# rows_hm[!(rows_hm %in% c('Arg2','Dio1','Rdh9','Rdh16','Aldh1l1','Ppargc1a'))] <- ""
+
 # Cluster columns if requested
 if (as.logical(opt$cluster_cols)) {
         # Quick fix for column clustering in case some values are equal
         a <- cor(log(cdf + 1), method = "pearson")
-        rownames(cdf) <- rows_hma[is.na(a)] <- 0
+        a[is.na(a)] <- 0
 
         # Perform the clustering analysis over the table
         # Tree construction
@@ -140,8 +143,40 @@ png(
 Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = rclust,
         cluster_columns = cclust,
         col = color, column_dend_height = unit(5, "cm"),
+        row_labels = rows_hm,
         row_names_gp = gpar(fontsize = (90 / length(genes) + 5)),
-        row_dend_width = unit(2, "cm"), show_row_names = TRUE,
+        row_dend_width = unit(1, "cm"),
+        show_row_names = TRUE,
+        #show_row_names = FALSE,
+        show_column_names = TRUE,
+        heatmap_legend_param = list(
+          title = "Fold",
+          at = c(
+            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
+            as.integer(strsplit(opt$limits, ",")[[1]][1]),
+            as.integer(strsplit(opt$limits, ",")[[1]][2]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]),
+            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
+            )
+        )
+        )
+dev.off()
+
+#Save as svg also
+svg(
+        file = gsub(".png", ".svg", opt$heatmap, fixed = TRUE),
+        width = as.integer(strsplit(opt$dims, ",")[[1]][1]) / 500,
+        height = as.integer(strsplit(opt$dims, ",")[[1]][2]) / 500
+)
+# Mount the heatmap with the respective transformations
+Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = rclust,
+        cluster_columns = cclust,
+        col = color, column_dend_height = unit(5, "cm"),
+        row_names_gp = gpar(fontsize = (90 / length(genes) + 5)),
+        row_dend_width = unit(1, "cm"),
+        #show_row_names = TRUE,
+        show_row_names = FALSE,
+        show_column_names = FALSE,
         heatmap_legend_param = list(
           title = "Fold",
           at = c(

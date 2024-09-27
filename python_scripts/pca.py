@@ -23,13 +23,13 @@ def pca(config, tool_name):
 
     # Get parameters
     # Inputs
-    # Counts file
-    counts = config['tools_conf'][tool_name]['input']['counts']
+    # Counts files
+    tr_counts = config['tools_conf'][tool_name]['input']['tr_counts'].replace(".Rda", ".tsv")
     # Design file
     design = config['tools_conf'][tool_name]['input']['design']
 
     # Outputs
-    # Control file
+    # Control files
     pcatouched = config['tools_conf'][tool_name]['output']['pcatouched']
     # Out directory
     out_dir = "/".join(pcatouched.split('/')[0:-1])
@@ -42,7 +42,7 @@ def pca(config, tool_name):
         command += f"mkdir {out_dir};"
 
     # Command
-    command += f'Rscript Rscripts/pca.r --counts {counts} --design {design} --out_dir {out_dir}; '
+    command += f'Rscript Rscripts/pca.r --counts {tr_counts} --design {design} --out_dir {out_dir}; '
     command += f'touch {pcatouched}'
 
     # Run command

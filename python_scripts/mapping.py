@@ -30,6 +30,8 @@ def mapping(config, tool_name):
     mappingtouched = config['tools_conf'][tool_name]['output']['mappingtouched']
     # Out folder
     bamdir = "/".join(mappingtouched.split('/')[0:-1])
+    # Bam fof
+    bamfof = config['tools_conf'][tool_name]['output']['bamfof']
 
     # Other information
     genomePath = config['tools_conf']['genome']
@@ -45,29 +47,45 @@ def mapping(config, tool_name):
     if not os.path.exists(bamdir):
         command += f"mkdir {bamdir}; "
     
+    # Init a list with the names of the generated bamfiles to dump in a fof
+    bamfoflist = []
+
     # Iter through the fastq filenames
     for filer1 in R1_FILES:
         # Make a different command when the run is with paired or single end
         if config['options']['reads'] == 'paired':
             # Make the name of the bam file from the fastq file
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('_1.fastq.gz','.bam')
+            # Add the name to the bam fof object
+            bamfoflist.append(bamfile)
+
             # Replace extension for the R2 file
             filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
 
             # Make the star mapper command, with the samtools indexing of the bam file
-            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
         else:
+            # Make the name of the bam file from the fastq file
+            bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
+            # Add the name to the bam fof object
+            bamfoflist.append(bamfile)
+
             # Make the name of the bam file from the fastq file
             bamfile = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.bam')
 
             # Make the star mapper command, with the samtools indexing of the bam file
-            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools-1.9 index {bamfile}; '
+            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile}; samtools index {bamfile}; '
     
     # Remove the loaded genome from memory
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "
 
     # Create tracking file
     command += f"touch {mappingtouched}"
+
+    # Dump the list of bamfiles in the fof
+    with open(bamfof, 'w') as f:
+        for line in bamfoflist:
+            f.write(f"{line}\n")
 
     # Run the commands
     pf.run_command(command)

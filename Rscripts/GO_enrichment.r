@@ -6,7 +6,7 @@ suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(enrichplot))
 
-option_list = list(
+option_list <- list(
   make_option("--out_tab", type = "character",
               help = "Table with the result of the analysis."),
   make_option("--obj", type = "character",
@@ -26,12 +26,6 @@ opt <- parse_args(opt_parser)
 # Load Rfunctions
 source("Rscripts/Rfunctions.R")
 
-# Load R object
-load(opt$obj)
-
-# Filter the object by fold change
-res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)), ]
-
 # Load the universe
 load(opt$universe)
 
@@ -40,6 +34,12 @@ database <- select.organism(opt$organism)
 
 # Obtain genelist
 if (opt$genelist == "") {
+  # Load R object
+  load(opt$obj)
+
+  # Filter the object by fold change
+  res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)), ]
+
   entrezgeneids <- tryCatch(
     {
       as.character(mapIds(database, as.character(rownames(res)), "ENTREZID", "ENSEMBL"))
@@ -48,11 +48,13 @@ if (opt$genelist == "") {
       message(paste("Error with gene set:", rownames(res)))
       message("Error message:")
       message(cond)
+      message()
       quit()
     },
     warning = function(cond) {
       message("Database had a warning:")
       message(cond)
+      message()
     },
     finally = {
     }
@@ -89,46 +91,9 @@ ontologies <- c("BP", "MF", "CC")
 # Loop for each ontology
 for (ont in ontologies) {
   # Do the GSEA
-  hgCutoff <- 0.05
+  hgCutoff <- 0.1
   x <- enrichGO(entrezgeneids, database, ont=ont, pvalueCutoff = hgCutoff, readable = TRUE,
-                pAdjustMethod = "BH", universe = universeids)
-
-  # Obtain plots
-  # barplot
-  png(file = sprintf("%s_%s_barplot.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  # when plotting inside a for loop, you have to explicitely print the plot
-  print(barplot(x, showCategory = 16))
-  dev.off()
-
-  # dotplot
-  png(file = sprintf("%s_%s_dotplot.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  print(dotplot(x, showCategory = 16))
-  dev.off()
-
-  # Enrichment map
-  png(file = sprintf("%s_%s_emap.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  x2 <- pairwise_termsim(x)
-  print(emapplot(x2))
-  dev.off()
-
-  # Gene-Concept Network
-  # plot linkages of genes and enriched concepts
-  # (e.g. GO categories, KEGG pathways)
-  png(file = sprintf("%s_%s_cnet.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  print(cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids))
-  dev.off()
-
-  # Save the objects
-  save(x, file = sprintf("%s_%s.Rda",
-                       gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont))
+                pAdjustMethod = "BH", universe = universeids, minGSSize = 1, maxGSSize = 1000)
 
   # Transform the result into a data frame
   GOtable <- as.data.frame(x)
@@ -137,6 +102,120 @@ for (ont in ontologies) {
   write.table(GOtable, file = sprintf("%s_%s.tsv",
               gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
               sep = "\t", row.names = FALSE)
+
+  # Obtain plots
+  # barplot
+  png(file = sprintf("%s_%s_barplot.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  # when plotting inside a for loop, you have to explicitely print the plot
+  bplot <- tryCatch(
+    {
+      barplot(x, showCategory = 16)
+    },
+    error = function(cond) {
+      message(paste("Error doing barplot of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(bplot)
+  dev.off()
+
+  # dotplot
+  png(file = sprintf("%s_%s_dotplot.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  dplot <- tryCatch(
+    {
+      dotplot(x, showCategory = 16)
+    },
+    error = function(cond) {
+      message(paste("Error doing dotplot of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(dplot)
+  dev.off()
+
+  # Enrichment map
+  png(file = sprintf("%s_%s_emap.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  emplot <- tryCatch(
+    {
+      x2 <- pairwise_termsim(x)
+      emapplot(x2)
+    },
+    error = function(cond) {
+      message(paste("Error doing barplot of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(emplot)
+  dev.off()
+
+  # Gene-Concept Network
+  # plot linkages of genes and enriched concepts
+  # (e.g. GO categories, KEGG pathways)
+  png(file = sprintf("%s_%s_cnet.png",
+                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                  width = 8000, height = 6000, res = 600)
+  # Cnet misses sometimes, so we can put it in a error structure
+  cnet <- tryCatch(
+    {
+      cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids)
+    },
+    error = function(cond) {
+      message(paste("Error doing cnet of: ", ont))
+      message("Error message:")
+      message(cond)
+      message()
+      quit()
+    },
+    warning = function(cond) {
+      message("Database had a warning:")
+      message(cond)
+      message()
+    },
+    finally = {
+    }
+  )
+  print(cnet)
+  dev.off()
+
+  # Save the objects
+  save(x, file = sprintf("%s_%s.Rda",
+                       gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont))
 
 }
 

@@ -58,7 +58,7 @@ def counts(config, tool_name):
 
     # Create the featurecounts command
     tmpoutput = output.replace('.tsv','.tmp.tsv')
-    command = f'featureCounts -a {annot} -o {tmpoutput} {" ".join(filelist)}; '
+    command = f'featureCounts -p -a {annot} -o {tmpoutput} {" ".join(filelist)}; '
 
     # Reformat the output of featurecounts into a readable table
     command += f"cat {tmpoutput} | tail -n +2 | sed -r 's/\t([^\t]+)\//\t/g' | sed 's/.bam//g' | cut --complement -f 2,3,4,5,6 | perl -pe 's|(\.).*?\t|\t|' > {output};"

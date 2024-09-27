@@ -12,4 +12,7 @@ from python_scripts import volcano_markers
 from python_scripts import GSEA_markers
 from python_scripts import clustering_heatmap
 from python_scripts import clustering_markers
+from python_scripts import splicing
+from python_scripts import fastqc
+from python_scripts import bamqc
 from python_scripts import python_functions as pf

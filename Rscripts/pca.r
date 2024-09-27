@@ -45,6 +45,7 @@ Treatment <- do.call(paste, c(sampleTableSingle[colnames(
   sampleTableSingle)[(1:lenCol)]], sep = "_"))
 
 # Annotate the columns with the treatment.
+sampleids <- paste(colnames(highexprgenes_counts), factor(Treatment), sep = " - ")
 colnames(highexprgenes_counts) <- factor(Treatment)
 
 # Get the genes as columns
@@ -73,11 +74,23 @@ pca2d <- function(tab, d1, d2, perc, out) {
   # dev.off()
   
   # Opt 2: ggplot
-  tab_plot <- ggplot(tab, aes(x = get(sprintf("V%s", d1)), y = get(sprintf("V%s", d2)), color = Treatment, size = 20)) + 
-    geom_point() + 
-    xlab(sprintf("V%s", d1)) + ylab(sprintf("V%s", d2))
-    theme_minimal()
-  ggsave(file = paste(out,sprintf("pca_2d_d%s_d%s.png", d1, d2), sep = "/"), tab_plot, device = "png", bg = "white")
+  tab_plot <- ggplot(tab, aes(x = get(sprintf("V%s", d1)), y = get(sprintf("V%s", d2)), color = Treatment, size = 20, label = SampleID)) + 
+    geom_point(size = 2) +
+    xlab(sprintf("Dimension %s (%s %%)",d1,perc[d1])) + ylab(sprintf("Dimension %s (%s %%)",d2,perc[d2])) + 
+    #geom_text(hjust = 0, vjust = 0, size = 2) +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.line = element_line(colour = "black"),
+      panel.background = element_rect(fill='transparent'), #transparent panel bg
+      plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+      legend.background = element_rect(fill='transparent'), #transparent legend bg
+      legend.box.background = element_rect(fill='transparent') #transparent legend panel
+    )
+  ggsave(file = paste(out,sprintf("pca_2d_d%s_d%s.png", d1, d2), sep = "/"), tab_plot, device = "png", bg = "white", width = 14, height = 10, units = 'cm', dpi=600)
+  ggsave(file = paste(out,sprintf("pca_2d_d%s_d%s_transparent.png", d1, d2), sep = "/"), tab_plot, device = "png", bg = "transparent", width = 14, height = 10, units = 'cm', dpi=600)
+  ggsave(file = paste(out,sprintf("pca_2d_d%s_d%s.svg", d1, d2), sep = "/"), tab_plot, device = "svg", bg = "white", width = 14, height = 10, units = 'cm', dpi=600)
+  ggsave(file = paste(out,sprintf("pca_2d_d%s_d%s_transparent.svg", d1, d2), sep = "/"), tab_plot, device = "svg", bg = "transparent", width = 14, height = 10, units = 'cm', dpi=600)
 }
 
 # Translate this into parameter
@@ -89,12 +102,13 @@ mds <- cmdscale(dist(data_for_PCA), k = 3)
 # Transform the data to a data frame and keep the row names
 mdsdf <- as.data.frame(mds)
 mdsdf$Treatment <- rownames(mds)
+mdsdf$SampleID <- sampleids
 
 # Do the 2d graph
 pca2d(mdsdf, 1, 2, eig_pc, opt$out_dir)
 
 # If 3rd eigenvalue is higher than 10, produce the dimension combination and the gif
-if (eig_pc[3] >= dimthr) {
+if (eig_pc[3] >= dimthr || length(row.names(mdsdf)) > 20) {
   # Do the rest of the 2d graphs
   pca2d(mdsdf, 2, 3, eig_pc, opt$out_dir)
   pca2d(mdsdf, 1, 3, eig_pc, opt$out_dir)
@@ -114,7 +128,8 @@ if (eig_pc[3] >= dimthr) {
     png(file = paste(opt$out_dir, sprintf("pca_3d_%03d.png", ang), sep = "/"))
     #png(file=sprintf("/DATA/Thesis_proj/SEPIA_The_Paper/FullPCA/pca_FC_full_3d_%03d.png",ang), width = 1200, height = 1200, res = 150)
     s3d <- scatterplot3d(mdsdf[, 1], mdsdf[, 2], mdsdf[, 3], pch = shape, color = colore,
-                         cex.symbols = 1.5, angle = ang, label.tick.marks = FALSE,
+                         cex.symbols = 1.5, angle = ang,
+                         #label.tick.marks = TRUE,
                          xlab = sprintf("Dimension 1 (%s %%)", eig_pc[1]),
                          ylab = sprintf("Dimension 2 (%s %%)", eig_pc[2]),
                          zlab = sprintf("Dimension 3 (%s %%)", eig_pc[3]))
