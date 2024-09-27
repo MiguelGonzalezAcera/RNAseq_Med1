@@ -18,15 +18,14 @@ def fix_genelists(marker, outpath, organism, mycursor):
     df_set = []
     for row in mycursor:
         df_set.append(row)
-
     resdf = pd.DataFrame(df_set)
-    resdf.columns = ["ensembl','entrez','genename"]
+    resdf.columns = ['ensembl','entrez','genename']
 
     # Add a column with the marker name
     resdf['group'] = [marker]*len(resdf['ensembl'].tolist())
 
     # Change column names and data types
-    resdf.columns = ['group','entrez']
+    resdf = resdf[['group','entrez']]
 
     # Remove rows with Nan
     resdf = resdf.dropna()
@@ -58,9 +57,10 @@ def GSEA_markers_plots(in_obj, outpath, organism, command, dims):
     mycursor = mydb.cursor()
 
     # Loop through the markers
+    #<TODO>: Parallel this. Fuck it. 5 cores at least, it takes too damn long
     for marker in gene_markers:
         # Make the marker outfile
-        gseaplot_mark = outpath + "/" + in_obj.split('/')[-1].replace(".Rda",f"_{marker}_GSEA.png")
+        gseaplot_mark = outpath + "/" + in_obj.split('/')[-1].replace(".Rda",f"_{marker}_GSEA.svg")
 
         # Fix the markers into a gene group
         # Explanation: The GSEA function takes a named list of the Entrez IDs, so we must transform the gene markers to something more akin

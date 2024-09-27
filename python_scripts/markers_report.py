@@ -10,9 +10,6 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.lib.colors import HexColor
 import os
-import json
-import argparse
-import logging
 import glob
 import pandas as pd
 from datetime import date
@@ -393,6 +390,7 @@ def report(config, tool_name):
 
     # ----------------------------------------------------------
     # Create the page for the GSVA analysis
+    #<TODO>: Add a table with the DE values or something. a bubble plot could also do the trick
 
     # Write the title
     titleInfo = draw_paragraph("GSVA analysis", styles['bigSubtitle'])

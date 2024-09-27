@@ -27,8 +27,8 @@ option_list <- list(
               help = "List of files with the sets of genes desired, ensemblIDs, comma separated."),
   make_option("--dims", type = "character", default = "3500,3500",
               help = "Dimensions of the plot in pixels. Default = 3500,3500"),
-  make_option("--colors", type = "character", default = "blue,white,red",
-              help = "Colors for the heatmap, from lower to higher. Default = blue,white,red"),
+  make_option("--colors", type = "character", default = "purple,white,orange",
+              help = "Colors for the heatmap, from lower to higher. Default = purple,white,orange"),
   make_option("--limits", type = "character", default = "-1,0,1",
               help = "Limits and center for the color scale. Default = -1,0,1")
 )
