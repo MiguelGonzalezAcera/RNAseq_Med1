@@ -70,7 +70,7 @@ def clustering_heatmap(config, tool_name):
     gene_file.close()
 
     # Make the command for the clustering
-    command += f'Rscript Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism} --design {design} --dims {dimensions}; '
+    command += f'Rscript Rscripts/clustering.r --heatmap {heatmap} --counts {norm_counts} --genelist {genelist_path} --organism {organism} --design {design} --dims {dimensions} --cluster_rows TRUE; '
 
     # Slice the table with the selected genes
     command += f'head -n +1 {norm_counts_tab} | awk \'{{print \"EnsemblID\\t\" $0}}\' > {norm_counts_res}; grep -f {genelist_path} {norm_counts_tab} >> {norm_counts_res}; '

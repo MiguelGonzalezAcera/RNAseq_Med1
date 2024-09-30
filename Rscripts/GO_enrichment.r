@@ -103,115 +103,90 @@ for (ont in ontologies) {
               gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
               sep = "\t", row.names = FALSE)
 
-  # Obtain plots
-  # barplot
-  png(file = sprintf("%s_%s_barplot.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  # when plotting inside a for loop, you have to explicitely print the plot
-  bplot <- tryCatch(
-    {
-      barplot(x, showCategory = 16)
-    },
-    error = function(cond) {
-      message(paste("Error doing barplot of: ", ont))
-      message("Error message:")
-      message(cond)
-      message()
-      quit()
-    },
-    warning = function(cond) {
-      message("Database had a warning:")
-      message(cond)
-      message()
-    },
-    finally = {
-    }
-  )
-  print(bplot)
-  dev.off()
+  # Do the plots if the df has a result
+  if (nrow(GOtable) > 0) {
 
-  # dotplot
-  png(file = sprintf("%s_%s_dotplot.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  dplot <- tryCatch(
-    {
-      dotplot(x, showCategory = 16)
-    },
-    error = function(cond) {
-      message(paste("Error doing dotplot of: ", ont))
-      message("Error message:")
-      message(cond)
-      message()
-      quit()
-    },
-    warning = function(cond) {
-      message("Database had a warning:")
-      message(cond)
-      message()
-    },
-    finally = {
-    }
-  )
-  print(dplot)
-  dev.off()
+    # Obtain plots
+    # barplot
+    png(file = sprintf("%s_%s_barplot.png",
+                    gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                    width = 8000, height = 6000, res = 600)
+    # when plotting inside a for loop, you have to explicitely print the plot
+    bplot <- tryCatch(
+      {
+        barplot(x, showCategory = 16)
+      },
+      error = function(cond) {
+        message(paste("Error doing barplot of: ", ont))
+        message("Error message:")
+        message(cond)
+        message()
+        quit()
+      },
+      warning = function(cond) {
+        message("Database had a warning:")
+        message(cond)
+        message()
+      },
+      finally = {
+      }
+    )
+    print(bplot)
+    dev.off()
 
-  # Enrichment map
-  png(file = sprintf("%s_%s_emap.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  emplot <- tryCatch(
-    {
-      x2 <- pairwise_termsim(x)
-      emapplot(x2)
-    },
-    error = function(cond) {
-      message(paste("Error doing barplot of: ", ont))
-      message("Error message:")
-      message(cond)
-      message()
-      quit()
-    },
-    warning = function(cond) {
-      message("Database had a warning:")
-      message(cond)
-      message()
-    },
-    finally = {
-    }
-  )
-  print(emplot)
-  dev.off()
+    # dotplot
+    png(file = sprintf("%s_%s_dotplot.png",
+                    gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                    width = 8000, height = 6000, res = 600)
+    dplot <- tryCatch(
+      {
+        dotplot(x, showCategory = 16)
+      },
+      error = function(cond) {
+        message(paste("Error doing dotplot of: ", ont))
+        message("Error message:")
+        message(cond)
+        message()
+        quit()
+      },
+      warning = function(cond) {
+        message("Database had a warning:")
+        message(cond)
+        message()
+      },
+      finally = {
+      }
+    )
+    print(dplot)
+    dev.off()
 
-  # Gene-Concept Network
-  # plot linkages of genes and enriched concepts
-  # (e.g. GO categories, KEGG pathways)
-  png(file = sprintf("%s_%s_cnet.png",
-                  gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
-                  width = 8000, height = 6000, res = 600)
-  # Cnet misses sometimes, so we can put it in a error structure
-  cnet <- tryCatch(
-    {
-      cnetplot(x, categorySize = "pvalue", foldChange = entrezgeneids)
-    },
-    error = function(cond) {
-      message(paste("Error doing cnet of: ", ont))
-      message("Error message:")
-      message(cond)
-      message()
-      quit()
-    },
-    warning = function(cond) {
-      message("Database had a warning:")
-      message(cond)
-      message()
-    },
-    finally = {
-    }
-  )
-  print(cnet)
-  dev.off()
+    # Enrichment map
+    png(file = sprintf("%s_%s_emap.png",
+                    gsub(".tsv", "", opt$out_tab, fixed = TRUE), ont),
+                    width = 8000, height = 6000, res = 600)
+    emplot <- tryCatch(
+      {
+        x2 <- pairwise_termsim(x)
+        emapplot(x2)
+      },
+      error = function(cond) {
+        message(paste("Error doing emapplot of: ", ont))
+        message("Error message:")
+        message(cond)
+        message()
+        quit()
+      },
+      warning = function(cond) {
+        message("Database had a warning:")
+        message(cond)
+        message()
+      },
+      finally = {
+      }
+    )
+    print(emplot)
+    dev.off()
+  }
 
   # Save the objects
   save(x, file = sprintf("%s_%s.Rda",

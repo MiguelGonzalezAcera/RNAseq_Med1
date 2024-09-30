@@ -29,6 +29,7 @@ def fix_genelists(marker, outpath, organism, mycursor):
 
     # Remove rows with Nan
     resdf = resdf.dropna()
+    resdf = resdf[resdf['entrez'] != 'NA']
     resdf['entrez'] = resdf['entrez'].astype('int')
 
     # Dump onto file
