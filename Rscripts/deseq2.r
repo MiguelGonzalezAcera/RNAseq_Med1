@@ -61,7 +61,7 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
 # --------------------------------------------------------------
 
 # Create the experiment from a SummarizedExperiment object
-dss <- DESeqDataSetFromMatrix(countData = Counts_tab,
+dss <- DESeqDataSetFromMatrix(countData = round(Counts_tab),
                               colData = sampleTableSingle,
                               design = design)
 
