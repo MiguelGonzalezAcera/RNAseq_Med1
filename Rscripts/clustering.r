@@ -6,6 +6,7 @@ suppressPackageStartupMessages(library(cluster))
 suppressPackageStartupMessages(library(gplots))
 suppressPackageStartupMessages(library(circlize))
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(rjson))
 
 # Might be a table from clusterProfiler, the raw genelist, or might be other source
 option_list <- list(
@@ -27,8 +28,16 @@ option_list <- list(
                     help = "Enable column clustering. Options = TRUE, FALSE. Default = FALSE"),
         make_option("--cluster_rows", type = "character", default = "FALSE",
                     help = "Enable row clustering. Options = TRUE, FALSE. Default = FALSE"),
+        make_option("--col_names", type = "character", default = "TRUE",
+                    help = "Display col names. Options = TRUE, FALSE. Default = TRUE"),
+        make_option("--row_names", type = "character", default = "TRUE",
+                    help = "Display row names. Options = TRUE, FALSE. Default = TRUE"),
         make_option("--design", type = "character", default = "",
-                    help = "Organism analyzed. Available = human, mouse. Default = mouse")
+                    help = "Organism analyzed. Available = human, mouse. Default = mouse"),
+        make_option("--annot_cols_tab", type = "character", default = "",
+                    help = "Table with the annotation of the columns"),
+        make_option("--annot_cols_color", type = "character", default = "",
+                    help = "json object with the colors for the annotation")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -88,18 +97,55 @@ cdf <- sapply(cdf, function(x) as.numeric(as.character(x)))
 # Establish the symbols as rows
 rownames(cdf) <- rows_hm
 
-# #Wee trick for now
-# rows_hm[!(rows_hm %in% c('Arg2','Dio1','Rdh9','Rdh16','Aldh1l1','Ppargc1a'))] <- ""
+# Prepare the annotation of the heatmap if needed
+if (opt$annot_cols_tab != "") {
+        # load the table with the annotations
+        annotColTable <- read.table(opt$annot_cols_tab, fileEncoding = "UTF8", header = T, row.names = 1)
+
+        annotColTable_filt <- annotColTable[rownames(sampleTableSingle), ]
+
+        # check if colors are provided
+        if (opt$annot_cols_color != "") {
+                # Read the json file
+                myData <- fromJSON(file = opt$annot_cols_color)
+
+                # transform into the named list that is the appropriate format
+                myCols <- list()
+                for (i in names(myData)) {
+                        myCols[[i]] <- unlist(myData[[i]])
+                }
+
+                # Create the annotation object
+                colAnn <- HeatmapAnnotation(
+                        df = annotColTable_filt,
+                        which = 'column',
+                        col = myCols
+                )
+        } else {
+                # Create the annotation object
+                colAnn <- HeatmapAnnotation(
+                        df = annotColTable_filt,
+                        which = 'column'
+                )
+        }
+
+        # Re-sort the columns
+        colOrder <- rownames(annotColTable_filt)
+} else {
+        colAnn <- NULL
+        colOrder <- NULL
+}
 
 # Cluster columns if requested
 if (as.logical(opt$cluster_cols)) {
         # Quick fix for column clustering in case some values are equal
-        a <- cor(log(cdf + 1), method = "pearson")
+        a <- cor(cdf, method = "pearson")
         a[is.na(a)] <- 0
 
         # Perform the clustering analysis over the table
         # Tree construction
         cclust <- hclust(as.dist(1 - a), method = "complete")
+        print(cclust)
 } else {
         # Assign the FALSe value to the variable
         cclust <- as.logical(opt$cluster_cols)
@@ -108,7 +154,7 @@ if (as.logical(opt$cluster_cols)) {
 # Cluster rows if requested
 if (as.logical(opt$cluster_rows)) {
         # Quick fix for the row clustering in case some values are equal
-        b <- cor(log(t(cdf)), method = "pearson")
+        b <- cor(t(cdf), method = "pearson")
         b[is.na(b)] <- 0
 
         # Perform the clustering analysis over the table
@@ -140,23 +186,22 @@ png(
         res = 300
 )
 # Mount the heatmap with the respective transformations
-Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = rclust,
+Heatmap(t(scale(t(cdf))), cluster_rows = rclust,
         cluster_columns = cclust,
         col = color, column_dend_height = unit(5, "cm"),
         row_labels = rows_hm,
         row_names_gp = gpar(fontsize = (90 / length(genes) + 5)),
         row_dend_width = unit(1, "cm"),
-        show_row_names = TRUE,
-        #show_row_names = FALSE,
-        show_column_names = TRUE,
+        column_order = colOrder,
+        show_row_names = as.logical(opt$row_names),
+        show_column_names = as.logical(opt$col_names),
+        top_annotation = colAnn,
         heatmap_legend_param = list(
-          title = "Fold",
+          title = "Z-score",
           at = c(
-            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
             as.integer(strsplit(opt$limits, ",")[[1]][1]),
             as.integer(strsplit(opt$limits, ",")[[1]][2]),
-            as.integer(strsplit(opt$limits, ",")[[1]][3]),
-            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
+            as.integer(strsplit(opt$limits, ",")[[1]][3])
             )
         )
         )
@@ -174,17 +219,16 @@ Heatmap(t(scale(t(log(cdf + 1)))), cluster_rows = rclust,
         col = color, column_dend_height = unit(5, "cm"),
         row_names_gp = gpar(fontsize = (90 / length(genes) + 5)),
         row_dend_width = unit(1, "cm"),
-        #show_row_names = TRUE,
+        column_order = colOrder,
         show_row_names = FALSE,
         show_column_names = FALSE,
+        top_annotation = colAnn,
         heatmap_legend_param = list(
-          title = "Fold",
+          title = "Z-score",
           at = c(
-            as.integer(strsplit(opt$limits, ",")[[1]][1]) * 2,
             as.integer(strsplit(opt$limits, ",")[[1]][1]),
             as.integer(strsplit(opt$limits, ",")[[1]][2]),
-            as.integer(strsplit(opt$limits, ",")[[1]][3]),
-            as.integer(strsplit(opt$limits, ",")[[1]][3]) * 2
+            as.integer(strsplit(opt$limits, ",")[[1]][3])
             )
         )
         )
