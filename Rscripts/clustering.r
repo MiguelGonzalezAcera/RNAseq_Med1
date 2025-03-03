@@ -20,10 +20,12 @@ option_list <- list(
                     help = "Organism analyzed. Available = human, mouse. Default = mouse"),
         make_option("--dims", type = "character", default = "2000,2000",
                     help = "Dimensions of the plot in pixels. Default = 2000,2000"),
-        make_option("--colors", type = "character", default = "#7F00FF,#faebd7,#FF8000",
-                    help = "Colors for the heatmap, from lower to higher. Default = #7F00FF,#faebd7,#FF8000"),
+        make_option("--colors", type = "character", default = "#7F00FF,#7F00FF,#faebd7,#FF8000,#FF8000",
+                    help = "Colors for the heatmap, from lower to higher. Default = #7F00FF,#7F00FF,#faebd7,#FF8000,#FF8000"),
         make_option("--limits", type = "character", default = "-1,0,1",
-                    help = "Limits and center for the color scale. Default = -1,0,1"),
+                    help = "Limits and center for the display of the color scale. Default = -1,0,1"),
+        make_option("--limits_colors", type = "character", default = "-2,-1,0,1,2",
+                    help = "Limits, midpoints and center for the color scale. Default = -2,-1,0,1,2"),
         make_option("--cluster_cols", type = "character", default = "FALSE",
                     help = "Enable column clustering. Options = TRUE, FALSE. Default = FALSE"),
         make_option("--cluster_rows", type = "character", default = "FALSE",
@@ -167,14 +169,18 @@ if (as.logical(opt$cluster_rows)) {
 # Establish colors and limits of the gradient
 color <- colorRamp2(
         c(
-                as.integer(strsplit(opt$limits, ",")[[1]][1]),
-                as.integer(strsplit(opt$limits, ",")[[1]][2]),
-                as.integer(strsplit(opt$limits, ",")[[1]][3])
+                as.numeric(strsplit(opt$limits_colors, ",")[[1]][1]),
+                as.numeric(strsplit(opt$limits_colors, ",")[[1]][2]),
+                as.numeric(strsplit(opt$limits_colors, ",")[[1]][3]),
+                as.numeric(strsplit(opt$limits_colors, ",")[[1]][4]),
+                as.numeric(strsplit(opt$limits_colors, ",")[[1]][5])
         ),
         c(
                 strsplit(opt$colors, ",")[[1]][1],
                 strsplit(opt$colors, ",")[[1]][2],
-                strsplit(opt$colors, ",")[[1]][3]
+                strsplit(opt$colors, ",")[[1]][3],
+                strsplit(opt$colors, ",")[[1]][4],
+                strsplit(opt$colors, ",")[[1]][5]
         )
 )
 
@@ -186,7 +192,7 @@ png(
         res = 300
 )
 # Mount the heatmap with the respective transformations
-Heatmap(t(scale(t(cdf))), cluster_rows = rclust,
+Heatmap(t(scale(t(cdf+1))), cluster_rows = rclust,
         cluster_columns = cclust,
         col = color, column_dend_height = unit(5, "cm"),
         row_labels = rows_hm,
