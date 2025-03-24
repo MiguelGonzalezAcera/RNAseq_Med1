@@ -86,7 +86,7 @@ def getStyles():
         parent=styles['default'],
         # fontName='Geogrotesque_Md',
         fontSize=9,
-        leading=0,
+        leading=9,
         alignment=TA_CENTER,
     )
     styles['leftSubtitle'] = ParagraphStyle(
@@ -255,7 +255,7 @@ def draw_paragraph(par_text, style):
 
     return story
 
-def draw_GSEA_table(table_path):
+def draw_GSEA_table(table_path, marker = ""):
     # Init the story
     story = []
 
@@ -263,38 +263,45 @@ def draw_GSEA_table(table_path):
     df = pd.read_csv(table_path, sep='\t', index_col=None)
 
     # Init the story for the table with the header
-    data = [['Enrichment score','p value']]
+    data = [['Enrichment Score','p adj. value']]
 
-    # iter through the rows of the GSEA table to get the color for the enrichment cell if significant
-    # <TODO>: Dows this need to be in a for loop? Is there more than one row?
-    for index, row in df.iterrows():
-        # Select color for the background
-        if row['pvalue'] < 0.05 and row['enrichmentScore'] >= 0:
-            color_cell = colors.pink
-        elif row['pvalue'] < 0.05 and row['enrichmentScore'] < 0:
-            color_cell = colors.lavender
-        else:
-            color_cell = colors.white
+    # check if the marker in question is included in the table
+    if marker != "" and marker in df['pathway'].tolist():
+        df = df[df['pathway'] == marker]
 
-        # Get data in the table list
-        data_row = [round(row['enrichmentScore'], 2),round(row['pvalue'], 2)]
-        data.append(data_row)
+        # iter through the rows of the GSEA table to get the color for the enrichment cell if significant
+        # <TODO>: Dows this need to be in a for loop? Is there more than one row?
+        for index, row in df.iterrows():
+            # Select color for the background
+            if row['padj'] < 0.05 and row['ES'] >= 0:
+                color_cell = colors.pink
+            elif row['padj'] < 0.05 and row['ES'] < 0:
+                color_cell = colors.lavender
+            else:
+                color_cell = colors.white
 
-    # Table the data
-    t = Table(data)
-    # format the table
-    t.setStyle(TableStyle([
-         ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
-         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-         ('SIZE', (0, 0), (-1, -1), 5),
-         ('LEADING', (0, 0), (-1, -1), 9),
-         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
-         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-         ('BACKGROUND', (0, 1), (0, 1), color_cell),
-         ]))
+            # Get data in the table list
+            data_row = [round(row['ES'], 2),round(row['padj'], 2)]
+            data.append(data_row)
 
-    story.append(t)
+        # Table the data
+        t = Table(data)
+        # format the table
+        t.setStyle(TableStyle([
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('SIZE', (0, 0), (-1, -1), 5),
+            ('LEADING', (0, 0), (-1, -1), 9),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BACKGROUND', (0, 1), (0, 1), color_cell),
+            ]))
+        
+        # Append to the story
+        story.append(t)
+    
+    # Return the story, empty or not
     return story
 
 def get_gene_markers(organism):
@@ -463,7 +470,7 @@ def report(config, tool_name):
 
     # Object with the GSEA plot:
     GSEAtab = "Legend/Legend_GSEA.tsv"
-    GSEAtabInfo = draw_GSEA_table(GSEAtab)
+    GSEAtabInfo = draw_GSEA_table(GSEAtab, marker = 'Paneth')
 
     GSEAtabInfoFrame = Frame(15*cm, 180, 160, 130, showBoundary=0)
     fillFrame(GSEAtabInfoFrame, GSEAtabInfo, c)
@@ -583,13 +590,13 @@ def report(config, tool_name):
                     fillFrame(GSEAplotInfoFrame, GSEAplotInfo, c)
 
                 # Object with the GSEA plot:
-                GSEAtab_list = glob.glob(f"{markerHeatmapsPath}/*_{sample}_{control}_{marker}_GSEA.tsv")
+                GSEAtab_list = glob.glob(f"{markerHeatmapsPath}/*_{sample}_{control}_GSEA.tsv")
                 if len(GSEAtab_list) == 0:
                     GSEAtabInfo = draw_paragraph(f"No markers have been found differentially expressed for assay {sample} - {control}.", styles['subtitle'])
                 else:
                     GSEAtab = GSEAtab_list[0]
                     try:
-                        GSEAtabInfo = draw_GSEA_table(GSEAtab)
+                        GSEAtabInfo = draw_GSEA_table(GSEAtab, marker = marker)
                     except:
                         GSEAtabInfo = draw_paragraph(f"GSEA isn't significant enough for {marker} in assay {sample} - {control}.", styles['subtitle'])
 

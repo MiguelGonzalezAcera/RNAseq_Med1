@@ -1,12 +1,12 @@
-suppressPackageStartupMessages(library(clusterProfiler))
-suppressPackageStartupMessages(library(enrichplot))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(fgsea))
+suppressPackageStartupMessages(library(rjson))
 
 option_list <- list(
-  make_option("--genegroup", type = "character",
-              help = "Path for the groups of genes, in particular entrez table format"),
+  make_option("--pathways", type = "character",
+              help = "Path for the selected pathways, in json format"),
   make_option("--in_obj", type = "character",
               help = "Robject with the DE analysis. Rda extension"),
   make_option("--gseaplot", type = "character",
@@ -31,46 +31,51 @@ database <- select.organism(opt$organism)
 
 # Transform the object into a named genelist (all of the genes)
 geneList <- res$log2FoldChange
-names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
-                                       "ENTREZID", "ENSEMBL"))
+names(geneList) <- rownames(res)
 
-# Read the custom groups (column 1: name of the group, and column 2, gene id in entrez)
-groups <- read.table(opt$genegroup, fileEncoding = "UTF8")
+# Sort the genelist by value
+geneList <- geneList[order(geneList)]
 
-# Do the gene set enrichment analysis
-z <- GSEA(sort(geneList, decreasing = T), TERM2GENE = groups, pvalueCutoff = 1, minGSSize = 2, maxGSSize = 1000)
+# read the gene lists from the json
+pways_data <- fromJSON(file = opt$pathways)
 
-# Plot the result of the GSA
-if (length(rownames(as.data.frame(z))) >= 10) {
-  len <- 10
-} else {
-  len <- length(rownames(as.data.frame(z)))
-}
+# Do the gene set ernichment analysis
+z <- fgsea(pathways = pways_data, stats = geneList, minSize = 5, maxSize = 500)
+
+# fix the gene cells for the table
+z$leadingEdge<- unlist(lapply(z$leadingEdge, function(x) {paste(x, collapse = ",")}))
 
 # Save enrichment table
-write.table(as.data.frame(z), file = gsub(".svg", ".tsv", opt$gseaplot, fixed = TRUE), sep = "\t", row.names = FALSE)
+write.table(as.data.frame(z), file = gsub(".svg", "_GSEA.tsv", opt$gseaplot, fixed = TRUE), sep = "\t", row.names = FALSE)
 
-# Make and save the plot
+# Make the plots
+if (nrow(as.data.frame(z)) != 0) {
+  for (pway in as.data.frame(z)[['pathway']][1:min(10:length(as.data.frame(z)[['pathway']]))]) {
+    # Make the original plot
+    p <- plotEnrichment(pways_data[[pway]], geneList) + labs(title = pway)
+    print(pway)
+    # Replace the line color with a chosen one
+    if (as.data.frame(z)[as.data.frame(z)["pathway"] == pway, ][["ES"]] <= 0) {
+      p$layers[[1]]$aes_params$colour <- "#7f00ff"
+    } else {
+      p$layers[[1]]$aes_params$colour <- "#ff8000"
+    }
 
-png(
-  file = gsub(".svg", ".png", opt$gseaplot, fixed = TRUE),
-  width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
-  height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
-  res = 300
-)
-# No variation of the color here. This is way more standard.
-if (nrow(as.data.frame(z)) > 0) {
-  gseaplot2(z, geneSetID = 1, color = "#ff8000", pvalue_table = FALSE, base_size = 12, subplots = 1:2)
+    # Save the plot
+    png(
+      file = gsub(".svg", sprintf("_%s_GSEA.png", pway), opt$gseaplot, fixed = TRUE),
+      width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+    height = as.integer(strsplit(opt$dims, ",")[[1]][2]),
+      res = 300)
+    print(p)
+    dev.off()
+
+    svg(
+      file = gsub(".svg", sprintf("_%s_GSEA.svg", pway), opt$gseaplot, fixed = TRUE),
+      width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
+    height = as.integer(strsplit(opt$dims, ",")[[1]][2])
+      )
+    print(p)
+    dev.off()
+  }
 }
-dev.off()
-
-svg(
-  file = opt$gseaplot,
-  width = as.integer(strsplit(opt$dims, ",")[[1]][1]),
-  height = as.integer(strsplit(opt$dims, ",")[[1]][2])
-)
-# No variation of the color here. This is way more standard.
-if (nrow(as.data.frame(z)) > 0) {
-  gseaplot2(z, geneSetID = 1, color = "#ff8000", pvalue_table = FALSE, base_size = 24, subplots = 1:2)
-}
-dev.off()
