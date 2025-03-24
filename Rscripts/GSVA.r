@@ -45,6 +45,12 @@ database <- select.organism(opt$organism)
 # Load the r object containing the data.
 load(opt$counts)
 
+# Read the design
+sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
+
+# Select only the columns in the design
+df_norm <- df_norm[, row.names(sampleTableSingle)]
+
 # Remove the genename column
 wdf_norm <- df_norm[, !names(df_norm) %in% c("Genename")]
 
@@ -125,7 +131,6 @@ dev.off()
 
 # Run a differential expression analysis
 # diff expression with limma
-sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 
 # Design model matrix
 Tr1 <- relevel(factor(sampleTableSingle[, 1]), opt$control)

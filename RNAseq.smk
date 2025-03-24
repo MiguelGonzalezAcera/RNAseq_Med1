@@ -429,6 +429,8 @@ rule report:
 
 rule all:
     input:
+        fastqc = rules.FastQC.output.fastqctouched,
+        bamqc = rules.BamQC.output.bamqctouched,
         pca = rules.PCA.output.pcatouched,
         pca_b = rules.PCA_B.output.pcatouched,
         keggtouched = rules.KEGG.output.keggtouched,

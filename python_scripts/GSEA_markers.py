@@ -1,40 +1,43 @@
 import logging
 import os
+import json
 import pandas as pd
 import mysql.connector
 import python_scripts.python_functions as pf
 
-def fix_genelists(marker, outpath, organism, mycursor):
+def fix_genelists(gene_markers, outpath, organism, mycursor):
     """"""
-    # Get gene reference table
-    if organism == 'mouse':
-        marker_command = f'select * from markers_{marker};'
-    elif organism == 'human':
-        marker_command = f'select * from markers_{marker}_human;'
+    # Create the dictionary with each marker
+    marker_dict = {}
 
-    # Execute the command to the database and retrieve the table into a dataframe
-    mycursor.execute(marker_command)
+    # Iter through the markers to generate the dictionary
+    for marker in gene_markers:
+        # Get gene reference table
+        if organism == 'mouse':
+            marker_command = f'select * from markers_{marker};'
+        elif organism == 'human':
+            marker_command = f'select * from markers_{marker}_human;'
 
-    df_set = []
-    for row in mycursor:
-        df_set.append(row)
-    resdf = pd.DataFrame(df_set)
-    resdf.columns = ['ensembl','entrez','genename']
+        # Execute the command to the database and retrieve the table into a dataframe
+        mycursor.execute(marker_command)
 
-    # Add a column with the marker name
-    resdf['group'] = [marker]*len(resdf['ensembl'].tolist())
+        df_set = []
+        for row in mycursor:
+            df_set.append(row)
+        resdf = pd.DataFrame(df_set)
+        resdf.columns = ['ensembl','entrez','genename']
 
-    # Change column names and data types
-    resdf = resdf[['group','entrez']]
+        # Add the ensembl ids as list to the dictionary
+        marker_dict[marker] = resdf['ensembl'].tolist()
 
-    # Remove rows with Nan
-    resdf = resdf.dropna()
-    resdf['entrez'] = resdf['entrez'].astype('int')
+    # Generate the file name
+    genegroups_path = f"{outpath}/genegroups.json"
 
-    # Dump onto file
-    genegroups_path = f"{outpath}/{marker}_genegroups_test.txt"
-    resdf.to_csv(genegroups_path, sep='\t', index=False, header=False)
+    # dump onto json file
+    with open(genegroups_path, 'w') as f:
+        json.dump(marker_dict, f)
 
+    # Return the path to the dictionary
     return genegroups_path
 
 def GSEA_markers_plots(in_obj, outpath, organism, command, dims):
@@ -56,18 +59,14 @@ def GSEA_markers_plots(in_obj, outpath, organism, command, dims):
 
     mycursor = mydb.cursor()
 
-    # Loop through the markers
-    #<TODO>: Parallel this. Fuck it. 5 cores at least, it takes too damn long
-    for marker in gene_markers:
-        # Make the marker outfile
-        gseaplot_mark = outpath + "/" + in_obj.split('/')[-1].replace(".Rda",f"_{marker}_GSEA.svg")
+    # Correct the markers into a json file
+    genegroup = fix_genelists(gene_markers, outpath, organism, mycursor)
 
-        # Fix the markers into a gene group
-        # Explanation: The GSEA function takes a named list of the Entrez IDs, so we must transform the gene markers to something more akin
-        genegroup = fix_genelists(marker, outpath, organism, mycursor)
+    # Make the model outfile
+    gseaplot_mark = outpath + "/" + in_obj.split('/')[-1].replace(".Rda",f".svg")
 
-        # Add command
-        command += f'Rscript Rscripts/GSEA.r --genegroup {genegroup} --in_obj {in_obj} --gseaplot {gseaplot_mark} --organism {organism} --dims {dims}; '
+    # Add the command
+    command += f'Rscript Rscripts/GSEA.r --pathways {genegroup} --in_obj {in_obj} --gseaplot {gseaplot_mark} --organism {organism} --dims {dims}; '
 
     return(command)
 

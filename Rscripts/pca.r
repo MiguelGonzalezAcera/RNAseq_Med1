@@ -33,12 +33,11 @@ Counts_tab <- Counts_tab[, row.names(sampleTableSingle)]
 # RNAseq_DE_analysis_with_R.html
 
 # Select the 1000 most highly expressed genes.
-select <- order(rowMeans(Counts_tab), decreasing = TRUE)[1:1000]
 select <- order(rowMeans(Counts_tab), decreasing = TRUE)
 highexprgenes_counts <- Counts_tab[select, ]
 
 # Get all treatment columns into one:
-#<TO_DO> Adjust the format of the table (first names, then treatments)
+#<TODO>: Adjust the format of the table (first names, then treatments)
 lenCol <- length(colnames(sampleTableSingle))
 
 Treatment <- do.call(paste, c(sampleTableSingle[colnames(
