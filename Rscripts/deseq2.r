@@ -104,7 +104,13 @@ df_norm$EnsGenes <- rownames(df_norm)
 # Split the comparisons and run the loop to get each table
 for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # Using the names provided in the input as the samples, run this as a loop
-  res <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE)
+  res <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = TRUE, independentFiltering = TRUE)
+
+  # get also the genes that are filtered out
+  res_cCut <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE, independentFiltering = TRUE)
+  res_cCut_IF <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE, independentFiltering = FALSE)
+  res_cCut_lst <- setdiff(rownames(res_cCut[complete.cases(data.frame(res_cCut)), ]), rownames(data.frame(res[complete.cases(data.frame(res)), ])))
+  res_cCut_IF_lst <- setdiff(setdiff(rownames(res_cCut_IF[complete.cases(data.frame(res_cCut_IF)), ]), rownames(data.frame(res[complete.cases(data.frame(res)), ]))), res_cCut_lst)
 
   # Save the full result object
   # Contrast name will be replaced by the sample and controls
@@ -118,7 +124,12 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   dev.off()
 
   # Transform result into data frame
-  resdf <- data.frame(res)[complete.cases(data.frame(res)), ]
+  resdf <- data.frame(res)
+
+  # Replace the NA values in the pval and padj columns with 1
+  # (I need the column to be numeric)
+  resdf$pvalue[is.na(resdf$pvalue)] <- 1
+  resdf$padj[is.na(resdf$padj)] <- 1
 
   # Transform row ensembl IDs into column
   resdf$EnsGenes <- rownames(resdf)
@@ -141,7 +152,24 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # filter by normalized counts in order to remove false positives
   # Oder of stuff: Select samples or control columns, transform to numeric with the function up,
   # transform to a data matrix, get the medians, Boolean on who's under 25, select rows
-  resdf_wcounts$FLAG <- ifelse((rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25) | (rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > 25), 'OK', 'WARN: Inconsinstent Counts')
+  resdf_wcounts$FLAG <- ifelse(
+    resdf_wcounts$EnsGenes %in% res_cCut_IF_lst,
+    'FAIL: Filtered by indFilt',
+    ifelse(
+      resdf_wcounts$EnsGenes %in% res_cCut_lst,
+      'FAIL: Filtered by cooksCutoff',
+      ifelse(
+        (rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25) | (rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples],as.numeric))) > 25),
+        ifelse(
+          (rowSds(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric)))) | (rowSds(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric)))),
+          "WARN: High variation in condition",
+          'OK'
+        ),
+        'WARN: Inconsinstent Counts'
+      )
+    )
+  )
+  # resdf_wcounts$FLAG <- ifelse((rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25) | (rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > 25), 'OK', 'WARN: Inconsinstent Counts')
 
   #Save new table
   res_exp_tab_name = paste(paste("", sample, opt$control, sep='_'), "expanded.tsv", sep="_")
