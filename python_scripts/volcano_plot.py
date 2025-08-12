@@ -21,7 +21,7 @@ def volcano(df_path, plot_path, dims=["10","6"]):
   ax.scatter(df['log2FoldChange'].tolist(),[-math.log10(float(i)+1e-320) for i in df['padj'].tolist()], c='grey', s=2, alpha=0.05)
 
   # Plot the up n down values
-  df_up = df[(df['padj'] < 0.05) & (df['log2FoldChange'] > 0)]
+  df_up = df[(df['padj'] < 0.05) & (df['log2FoldChange'] > 0) & (df['FLAG'].isin(['OK', 'INFO: High variation in condition']))]
   ax.scatter(
       df_up['log2FoldChange'].tolist(),
       [-math.log10(float(i)+1e-320) for i in df_up['padj'].tolist()], 
@@ -30,7 +30,7 @@ def volcano(df_path, plot_path, dims=["10","6"]):
       alpha=0.5
   )
 
-  df_dw = df[(df['padj'] < 0.05) & (df['log2FoldChange'] < 0)]
+  df_dw = df[(df['padj'] < 0.05) & (df['log2FoldChange'] < 0) & (df['FLAG'] == 'OK')]
   ax.scatter(
       df_dw['log2FoldChange'].tolist(),
       [-math.log10(float(i)+1e-320) for i in df_dw['padj'].tolist()], 
@@ -84,7 +84,7 @@ def volcano_plot(config, tool_name):
           out_plot = out_dir + "/" + f"{sample}_{control}_volcano.png"
 
           # Get the name of the DE file (standardized)
-          id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.tsv"
+          id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}_expanded.tsv"
 
           volcano(id_sample, out_plot, dims=dimensions)
 

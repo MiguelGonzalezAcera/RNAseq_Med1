@@ -43,7 +43,7 @@ names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
 
 # Obtain genelist
 if (opt$genelist == ""){
-  geneids <- rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)),])
+  geneids <- rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05) & (res$FLAG %in% c("OK", "INFO: High variation in condition"))),])
   entrezgeneids <- tryCatch(
     {
       as.character(mapIds(database, as.character(geneids), "ENTREZID", "ENSEMBL"))

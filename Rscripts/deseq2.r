@@ -161,8 +161,20 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
       ifelse(
         (rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25) | (rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples],as.numeric))) > 25),
         ifelse(
-          (rowSds(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric)))) | (rowSds(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric)))),
-          "WARN: High variation in condition",
+          (
+            (
+              rowSds(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric)))
+            ) & (
+              rowSums(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25
+            )
+          ) | (
+            (
+              rowSds(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric)))
+            ) & (
+              rowSums(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > 25
+            )
+          ),
+          "INFO: High variation in condition",
           'OK'
         ),
         'WARN: Inconsinstent Counts'

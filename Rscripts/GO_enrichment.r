@@ -38,7 +38,7 @@ if (opt$genelist == "") {
   load(opt$obj)
 
   # Filter the object by fold change
-  res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05)), ]
+  res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05) & (res$FLAG %in% c("OK", "INFO: High variation in condition"))), ]
 
   entrezgeneids <- tryCatch(
     {
