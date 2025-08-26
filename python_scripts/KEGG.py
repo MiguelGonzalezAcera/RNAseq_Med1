@@ -50,7 +50,7 @@ def KEGG_enrichment(config, tool_name):
             id_tab = id_dir + "/" + f"{id_obj}_KEGG.tsv"
 
             # Obtain the path for the R object containing the DE result
-            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{id_obj}.Rda"
+            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{id_obj}_expanded.Rda"
 
             # Make the commands
             command += f'Rscript Rscripts/KEGG_enrichment.r --out_tab {id_tab} --in_obj {id_sample} --id {id_obj} --organism {organism}; '

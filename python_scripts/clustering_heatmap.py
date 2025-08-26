@@ -50,11 +50,11 @@ def clustering_heatmap(config, tool_name):
         sample_ids = samples[control].split(",")
         for sample in sample_ids:
             # Construct the path for the DE table using the path and the project name
-            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.tsv"
+            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}_expanded.tsv"
 
             # Load and select the genes that are significant
             tdf = pd.read_csv(id_sample, sep='\t', index_col=None)
-            genes = tdf[tdf['padj'] < 0.05]["EnsGenes"].tolist()
+            genes = tdf[(tdf['padj'] < 0.05) & (tdf['FLAG'].isin(["OK", "INFO: High variation in condition"]))]["EnsGenes"].tolist()
 
             # Add the selection to the list of genes
             genes_list += genes

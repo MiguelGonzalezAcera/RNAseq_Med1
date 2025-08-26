@@ -24,6 +24,9 @@ opt <- parse_args(opt_parser)
 # Load R object
 load(opt$in_obj)
 
+# Rename variable
+res <- resdf_wcounts
+
 # Load R scripts
 source("Rscripts/Rfunctions.R")
 
@@ -38,18 +41,19 @@ if (opt$organism == "human") {
 # Generate named list of FC
 geneList <- res$log2FoldChange
 
-names(geneList) <- as.character(mapIds(database, as.character(rownames(res)),
+names(geneList) <- as.character(mapIds(database, as.character(res$EnsGenes),
                                        "ENTREZID", "ENSEMBL"))
 
 # Obtain genelist
 if (opt$genelist == ""){
-  geneids <- rownames(res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05) & (res$FLAG %in% c("OK", "INFO: High variation in condition"))),])
+  res_tmp <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05) & (res$FLAG %in% c("OK", "INFO: High variation in condition"))),]
+
   entrezgeneids <- tryCatch(
     {
-      as.character(mapIds(database, as.character(geneids), "ENTREZID", "ENSEMBL"))
+      as.character(mapIds(database, as.character(res_tmp$EnsGenes), "ENTREZID", "ENSEMBL"))
     },
     error = function(cond) {
-      message(paste("Error with gene set:", geneids))
+      message(paste("Error with gene set:", res$EnsGenes))
       message("Error message:")
       message(cond)
       quit()

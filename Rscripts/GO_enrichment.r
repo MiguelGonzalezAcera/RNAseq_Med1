@@ -37,15 +37,18 @@ if (opt$genelist == "") {
   # Load R object
   load(opt$obj)
 
+  # Rename variable
+  res <- resdf_wcounts
+
   # Filter the object by fold change
   res <- res[which((res$log2FoldChange < -1 | res$log2FoldChange > 1) & (res$padj < 0.05) & (res$FLAG %in% c("OK", "INFO: High variation in condition"))), ]
 
   entrezgeneids <- tryCatch(
     {
-      as.character(mapIds(database, as.character(rownames(res)), "ENTREZID", "ENSEMBL"))
+      as.character(mapIds(database, as.character(res$EnsGenes), "ENTREZID", "ENSEMBL"))
     },
     error = function(cond) {
-      message(paste("Error with gene set:", rownames(res)))
+      message(paste("Error with gene set:", res$EnsGenes))
       message("Error message:")
       message(cond)
       message()

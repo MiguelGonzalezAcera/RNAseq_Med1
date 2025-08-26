@@ -43,7 +43,7 @@ def GO_enrichment(config, tool_name):
             # Make the name of the outfile. The script witll generate the ontology variants
             id_tab = id_dir + "/" + f"{sample}_{control}_GO.tsv"
             # Get the DE file
-            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}.Rda"
+            id_sample = out_dir_DE + "/" + config['project'] + "_" + f"{sample}_{control}_expanded.Rda"
             # Get the general universe file. Required for the GO function in R
             id_universe = out_dir_DE + "/" + config['project'] + "_universe.Rda"
 

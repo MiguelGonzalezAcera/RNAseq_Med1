@@ -35,17 +35,6 @@ database <- select.organism(opt$organism)
 # Read the table with the metadata
 sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 
-# Read the table containing the counts
-Counts_tab <- read.table(opt$counts, fileEncoding = "UTF8", header = TRUE)
-
-# Move the gene IDs as row names
-row.names(Counts_tab) <- Counts_tab$Geneid
-Counts_tab$Geneid <- NULL
-
-# Select the columns specified in the provided design and resort the genes
-Counts_tab <- Counts_tab[, row.names(sampleTableSingle)]
-Counts_tab <- Counts_tab[order(row.names(Counts_tab)), ]
-
 # Add row names as column and subset control samples
 sampleTableSingle$rn <- row.names(sampleTableSingle)
 control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn']]
@@ -57,6 +46,17 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
 } else {
   design <- model.matrix(~ Tr1)
 }
+
+# Read the table containing the counts
+Counts_tab <- read.table(opt$counts, fileEncoding = "UTF8", header = TRUE)
+
+# Move the gene IDs as row names
+row.names(Counts_tab) <- Counts_tab$Geneid
+Counts_tab$Geneid <- NULL
+
+# Select the columns specified in the provided design and resort the genes
+Counts_tab <- Counts_tab[, row.names(sampleTableSingle)]
+Counts_tab <- Counts_tab[order(row.names(Counts_tab)), ]
 
 # --------------------------------------------------------------
 
@@ -163,13 +163,13 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
         ifelse(
           (
             (
-              rowSds(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric)))
+              rowSds(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric)))*2 > rowMeans(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric)))
             ) & (
               rowSums(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25
             )
           ) | (
             (
-              rowSds(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > rowMeans(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric)))
+              rowSds(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric)))*2 > rowMeans(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric)))
             ) & (
               rowSums(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > 25
             )
@@ -182,6 +182,10 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
     )
   )
   # resdf_wcounts$FLAG <- ifelse((rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25) | (rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples], as.numeric))) > 25), 'OK', 'WARN: Inconsinstent Counts')
+
+  # Save as R object
+  res_exp_name = paste(paste("", sample, opt$control, sep='_'), "expanded.Rda", sep="_")
+  save(resdf_wcounts, file = gsub(".Rda", res_exp_name, opt$out_obj, fixed = TRUE))
 
   #Save new table
   res_exp_tab_name = paste(paste("", sample, opt$control, sep='_'), "expanded.tsv", sep="_")
