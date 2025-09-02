@@ -1,6 +1,7 @@
 # DESeq2 Analysis
 
 suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(tximport))
 suppressPackageStartupMessages(library(limma))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(data.table))
@@ -9,8 +10,12 @@ suppressPackageStartupMessages(library(gsubfn))
 as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
 
 option_list <- list(
-  make_option("--counts", type = "character",
-              help = "Table that contains the counts"),
+  make_option("--counts", type = "character", default = "",
+              help = "Table that contains the counts. Ignored if the salmon counts are provided."),
+  make_option("--salmon_counts", type = "character",
+              help = "Folder with the results of the salmon mapping."),
+  make_option("--tx2gene", type = "character",
+              help = "Location of the table to amalgame transcript counts to gene. Used only if salmon counts are provided"),
   make_option("--design", type = "character",
               help = "File with the design of the experiment."),
   make_option("--out_obj", type = "character",
@@ -47,26 +52,70 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
   design <- model.matrix(~ Tr1)
 }
 
-# Read the table containing the counts
-Counts_tab <- read.table(opt$counts, fileEncoding = "UTF8", header = TRUE)
-
-# Move the gene IDs as row names
-row.names(Counts_tab) <- Counts_tab$Geneid
-Counts_tab$Geneid <- NULL
-
-# Select the columns specified in the provided design and resort the genes
-Counts_tab <- Counts_tab[, row.names(sampleTableSingle)]
-Counts_tab <- Counts_tab[order(row.names(Counts_tab)), ]
-
 # --------------------------------------------------------------
 
-# Create the experiment from a SummarizedExperiment object
-dss <- DESeqDataSetFromMatrix(countData = round(Counts_tab),
-                              colData = sampleTableSingle,
-                              design = design)
+if (opt$counts == "") {
+  # Get the sf files from the provided folder
+  files <- list.files(opt$salmon_counts, pattern="*.sf", full.names=TRUE)
+  names(files) <- gsub(".sf", "", list.files(opt$salmon_counts, pattern="*.sf"))
+
+  # Select just the files in the design
+  files <- files[row.names(sampleTableSingle)]
+
+  # Read the transcript to gene table (also provided)
+  tx2gene <- read.table(opt$tx2gene, sep="\t", header=TRUE)
+  tx2gene <- tx2gene[,c(2,1)]
+
+  # Perform the tximport thrice One for the regular counts, other for the TPM scaled and another for the length scaled
+  txi.salmon <- tximport(files, type = "salmon", tx2gene = tx2gene)
+  txi.salmon.scaled <- tximport(files, type = "salmon", tx2gene = tx2gene, countsFromAbundance="scaledTPM")
+  txi.salmon.lenScaled <- tximport(files, type = "salmon", tx2gene = tx2gene, countsFromAbundance="lengthScaledTPM")
+
+  # Save the counts tables for registries and possible reanalyses
+  write.table(txi.salmon$counts, file=paste(opt$salmon_counts,"salmon_counts.tsv", sep = "/"), sep="\t")
+  txi.salmon.counts <- as.data.frame(txi.salmon$counts)
+  save(txi.salmon.counts, file = paste(opt$salmon_counts,"salmon_counts.Rda", sep = "/"))
+
+  write.table(txi.salmon.scaled$counts, file=paste(opt$salmon_counts,"salmon_scaledTPM.tsv", sep = "/"), sep="\t")
+  txi.salmon.scaled.counts <- as.data.frame(txi.salmon.scaled$counts)
+  save(txi.salmon.scaled.counts, file = paste(opt$salmon_counts,"salmon_scaledTPM.Rda", sep = "/"))
+
+  write.table(txi.salmon.lenScaled$counts, file=paste(opt$salmon_counts,"salmon_lenScaledTPM.tsv", sep = "/"), sep="\t")
+  txi.salmon.lenScaled.counts <- as.data.frame(txi.salmon.lenScaled$counts)
+  save(txi.salmon.lenScaled.counts, file = paste(opt$salmon_counts,"salmon_lenScaledTPM.Rda", sep = "/"))
+
+  # Re-sort the columns in the counts object
+  txi.salmon$counts <- txi.salmon$counts[, row.names(sampleTableSingle)]
+
+  # Transform the txi object from the regular counts into the dds object
+  dss <- DESeqDataSetFromTximport(
+    txi = txi.salmon,
+    colData = sampleTableSingle,
+    design = design
+  )
+
+} else {
+  # Read the table containing the counts
+  Counts_tab <- read.table(opt$counts, fileEncoding = "UTF8", header = TRUE)
+
+  # Move the gene IDs as row names
+  row.names(Counts_tab) <- Counts_tab$Geneid
+  Counts_tab$Geneid <- NULL
+
+  # Select the columns specified in the provided design and resort the genes
+  Counts_tab <- Counts_tab[, row.names(sampleTableSingle)]
+  Counts_tab <- Counts_tab[order(row.names(Counts_tab)), ]
+
+  # Create the experiment from a SummarizedExperiment object
+  dss <- DESeqDataSetFromMatrix(countData = round(Counts_tab),
+                                colData = sampleTableSingle,
+                                design = design)
+}
 
 # Avoid normalization
 # sizeFactors(dss) <- 1
+
+# --------------------------------------------------------------
 
 # Save the universe (of genes). This is important for downstream analyses
 save(dss, file = gsub(".Rda", "_universe.Rda", opt$out_obj, fixed = TRUE))
@@ -83,6 +132,9 @@ dds <- DESeq(dss, betaPrior = FALSE)
 # Save the normalized counts
 # Get the table from the result
 norm_counts <- counts(estimateSizeFactors(dds), normalized = TRUE)
+
+# remove the version of the ensembl ids
+rownames(norm_counts) <- gsub("[.].*$", "", as.character(rownames(norm_counts)), perl = TRUE)
 
 # Get the names of the columns
 norm_counts_colnames <- colnames(norm_counts)
@@ -130,6 +182,9 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # (I need the column to be numeric)
   resdf$pvalue[is.na(resdf$pvalue)] <- 1
   resdf$padj[is.na(resdf$padj)] <- 1
+
+  # remove the version of the ensembl ids
+  rownames(resdf) <- gsub("[.].*$", "", as.character(rownames(resdf)), perl = TRUE)
 
   # Transform row ensembl IDs into column
   resdf$EnsGenes <- rownames(resdf)
@@ -204,6 +259,8 @@ tr_counts <- assay(vsd)
 
 # Get the names of the columns
 tr_counts_colnames <- colnames(tr_counts)
+# remove the version of the ensembl ids
+rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
 # Add the gene names as a new column
 tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
 # Rename the columns with the new name
@@ -223,6 +280,8 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
 
   # Get the names of the columns
   tr_B_counts_colnames <- colnames(tr_B_counts)
+  # remove the version of the ensembl ids
+  rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
   # Add the gene names as a new column
   tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
   # Rename the columns with the new name
