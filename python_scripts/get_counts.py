@@ -55,7 +55,7 @@ def counts(config, tool_name):
     # rangestable = output.replace(".tsv",".tmpranges.tsv")
 
     # List all the bam files in the directory
-    filelist = pf.list_files_dir(bamdir, ext = '*.bam')
+    filelist = pf.list_files_dir(bamdir, ext = '*.sorted.bam')
 
     # Create the featurecounts command
     tmpoutput = output.replace('.tsv','.tmp.tsv')

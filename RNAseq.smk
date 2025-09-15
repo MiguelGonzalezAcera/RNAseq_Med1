@@ -47,6 +47,8 @@ if not fastq_r1:
 
 # get the annotation files
 annot_path = config_dict['tools_conf']['annot']
+gentr_path = config_dict['tools_conf']['genomefasta']
+tx2gene = config_dict['tools_conf']['tx2gene']
 
 # ------------------Snakemake pipeline------------------
 # Rules
@@ -55,7 +57,7 @@ rule Mapping:
         fastq_r1 = fastq_r1
     output:
         mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
-        bamfof = f"{outfolder}/bamfiles/bam.fof"
+        bamfof_s = f"{outfolder}/bamfiles/bam.sorted.fof"
     run:
         tool_name = 'mapping'
         config_dict['tools_conf'][tool_name] = {
@@ -88,7 +90,7 @@ rule FastQC:
 
 rule BamQC:
     input:
-        bamfof = rules.Mapping.output.bamfof
+        bamfof = rules.Mapping.output.bamfof_s
     output:
         bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
     run:
@@ -102,26 +104,7 @@ rule BamQC:
         }
         python_scripts.bamqc.bamqc(config_dict, tool_name)
 
-rule Splicing:
-    input:
-        bamfof = rules.Mapping.output.bamfof,
-        annot = annot_path,
-        design = design
-    output:
-        splicetouched = f"{outfolder}/splicing/splicetouched.txt"
-    run:
-        tool_name = 'splicing'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {
-                "threads": "15"
-            }
-        }
-        python_scripts.splicing.splicing(config_dict, tool_name)
-
-rule Counts:
+rule Counts_FC:
     input:
         bamdir = rules.Mapping.output.mappingtouched,
         annot = annot_path
@@ -137,9 +120,26 @@ rule Counts:
         }
         python_scripts.get_counts.counts(config_dict, tool_name)
 
+rule Counts_salmon:
+    input:
+        bamdir = rules.Mapping.output.mappingtouched,
+        annot = annot_path
+        gentr = gentr_path
+    output:
+        counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt"
+    run:
+        tool_name = 'get_counts'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.get_counts_salmon.counts_sal(config_dict, tool_name)
+
 rule deseq2:
     input:
-        counts = rules.Counts.output.counts,
+        counts = rules.Counts_FC.output.counts,
         design = design
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
@@ -155,6 +155,26 @@ rule deseq2:
             'tool_conf': {}
         }
         python_scripts.differential_expression.deseq2(config_dict, tool_name)
+
+rule deseq2_salmon:
+    input:
+        counts = rules.Counts_salmon.output.counts_sal_touched,
+        design = design,
+        tx2gene = tx2gene
+    output:
+        DEtouched = f"{outfolder}/detables_salmon/DEtouched.txt",
+        norm_counts = f"{outfolder}/detables_salmon/{project}_norm_counts.Rda",
+        tr_counts = f"{outfolder}/detables_salmon/{project}_tr_counts.Rda",
+        tr_B_counts = f"{outfolder}/detables_salmon/{project}_tr_B_counts.Rda"
+    run:
+        tool_name = 'differential_expression_salmon'
+        config_dict['tools_conf'][tool_name] = {
+            'input': {i[0]: i[1] for i in input._allitems()},
+            'output': {i[0]: i[1] for i in output._allitems()},
+            'software': {},
+            'tool_conf': {}
+        }
+        python_scripts.differential_expression_salmon.deseq2(config_dict, tool_name)
 
 rule PCA:
     input:
