@@ -45,10 +45,13 @@ if not fastq_r1:
     logger.error(f'FASTQ files not found in {fastq_path}')
     raise ValueError(f'FASTQ files not found in {fastq_path}')
 
+# Counts tool
+counts_tool = config_dict['options']['counts']
+
 # get the annotation files
-annot_path = config_dict['tools_conf']['annot']
-gentr_path = config_dict['tools_conf']['genomefasta']
-tx2gene = config_dict['tools_conf']['tx2gene']
+annot_path = config_dict['tools_conf'][counts_tool]['annot']
+gentr_path = config_dict['tools_conf'][counts_tool]['genomefasta']
+tx2gene = config_dict['tools_conf'][counts_tool]['tx2gene']
 
 # ------------------Snakemake pipeline------------------
 # Rules
@@ -104,77 +107,79 @@ rule BamQC:
         }
         python_scripts.bamqc.bamqc(config_dict, tool_name)
 
-rule Counts_FC:
-    input:
-        bamdir = rules.Mapping.output.mappingtouched,
-        annot = annot_path
-    output:
-        counts = f"{outfolder}/counts.tsv"
-    run:
-        tool_name = 'get_counts'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.get_counts.counts(config_dict, tool_name)
+if counts_tool == 'featureCounts':
+    rule Counts:
+        input:
+            bamdir = rules.Mapping.output.mappingtouched,
+            annot = annot_path
+        output:
+            counts = f"{outfolder}/counts.tsv"
+        run:
+            tool_name = 'get_counts'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            python_scripts.get_counts.counts(config_dict, tool_name)
 
-rule Counts_salmon:
-    input:
-        bamdir = rules.Mapping.output.mappingtouched,
-        annot = annot_path,
-        gentr = gentr_path
-    output:
-        counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt"
-    run:
-        tool_name = 'get_counts'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.get_counts_salmon.counts_sal(config_dict, tool_name)
+    rule deseq2:
+        input:
+            counts = rules.Counts.output.counts,
+            design = design
+        output:
+            DEtouched = f"{outfolder}/detables/DEtouched.txt",
+            norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
+            tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
+            tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
+        run:
+            tool_name = 'differential_expression'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            python_scripts.differential_expression.deseq2(config_dict, tool_name)
 
-rule deseq2:
-    input:
-        counts = rules.Counts_FC.output.counts,
-        design = design
-    output:
-        DEtouched = f"{outfolder}/detables/DEtouched.txt",
-        norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
-        tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
-        tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
-    run:
-        tool_name = 'differential_expression'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.differential_expression.deseq2(config_dict, tool_name)
+elif counts_tool == 'salmon':
+    rule Counts:
+        input:
+            bamdir = rules.Mapping.output.mappingtouched,
+            annot = annot_path,
+            gentr = gentr_path
+        output:
+            counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt"
+        run:
+            tool_name = 'get_counts'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            python_scripts.get_counts_salmon.counts_sal(config_dict, tool_name)
 
-rule deseq2_salmon:
-    input:
-        counts = rules.Counts_salmon.output.counts_sal_touched,
-        design = design,
-        tx2gene = tx2gene
-    output:
-        DEtouched = f"{outfolder}/detables_salmon/DEtouched.txt",
-        norm_counts = f"{outfolder}/detables_salmon/{project}_norm_counts.Rda",
-        tr_counts = f"{outfolder}/detables_salmon/{project}_tr_counts.Rda",
-        tr_B_counts = f"{outfolder}/detables_salmon/{project}_tr_B_counts.Rda"
-    run:
-        tool_name = 'differential_expression_salmon'
-        config_dict['tools_conf'][tool_name] = {
-            'input': {i[0]: i[1] for i in input._allitems()},
-            'output': {i[0]: i[1] for i in output._allitems()},
-            'software': {},
-            'tool_conf': {}
-        }
-        python_scripts.differential_expression_salmon.deseq2(config_dict, tool_name)
+    rule deseq2:
+        input:
+            counts = rules.Counts.output.counts_sal_touched,
+            design = design,
+            tx2gene = tx2gene
+        output:
+            DEtouched = f"{outfolder}/detables/DEtouched.txt",
+            norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
+            tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
+            tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
+        run:
+            tool_name = 'differential_expression'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            python_scripts.differential_expression_salmon.deseq2(config_dict, tool_name)
 
 rule PCA:
     input:
@@ -403,7 +408,6 @@ rule all:
     input:
         fastqc = rules.FastQC.output.fastqctouched,
         bamqc = rules.BamQC.output.bamqctouched,
-        de_sal = rules.deseq2_salmon.output.DEtouched,
         pca = rules.PCA.output.pcatouched,
         pca_b = rules.PCA_B.output.pcatouched,
         keggtouched = rules.KEGG.output.keggtouched,
@@ -431,10 +435,6 @@ rule all:
             {
                 "name": "Differential expression",
                 "value": "/".join(rules.deseq2.output.DEtouched.split('/')[0:-1])
-            },
-            {
-                "name": "Differential expression salmon",
-                "value": "/".join(rules.deseq2_salmon.output.DEtouched.split('/')[0:-1])
             },
             {
                 "name": "Plots",

@@ -34,7 +34,8 @@ def mapping(config, tool_name):
     bamfof_s = config['tools_conf'][tool_name]['output']['bamfof_s']
 
     # Other information
-    genomePath = config['tools_conf']['genome']
+    counts_tool = config['options']['counts']
+    genomePath = config['tools_conf'][counts_tool]['genome']
     threads = config['tools_conf'][tool_name]['tool_conf']['threads']
 
     # Init the command
@@ -64,7 +65,11 @@ def mapping(config, tool_name):
             filer2 = filer1.replace('_1.fastq.gz','_2.fastq.gz')
 
             # Make the star mapper command, with the samtools indexing of the bam file
-            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM Unsorted --outStd BAM_Unsorted > {bamfile_unsort}; samtools sort {bamfile_unsort} -o {bamfile_sort}; samtools index {bamfile_sort}; '
+            if counts_tool == 'featureCounts':
+                command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile_sort}; samtools index {bamfile_sort}; '
+            elif counts_tool == 'salmon':
+                command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} {filer2} --outSAMtype BAM Unsorted --outStd BAM_Unsorted > {bamfile_unsort}; samtools sort {bamfile_unsort} -o {bamfile_sort}; samtools index {bamfile_sort}; '
+        
         else:
             # Make the name of the sorted and unsorted bam files from the fastq file
             bamfile_sort = bamdir + "/" + filer1.split("/")[-1].replace('.fastq.gz','.sorted.bam')
@@ -73,7 +78,10 @@ def mapping(config, tool_name):
             bamfoflist_sort.append(bamfile_sort)
 
             # Make the star mapper command, with the samtools indexing of the bam file
-            command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM Unsorted --outStd BAM_Unsorted > {bamfile_unsort}; samtools sort {bamfile_unsort} -o {bamfile_sort}; samtools index {bamfile_sort}; '
+            if counts_tool == 'featureCounts':
+                command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM SortedByCoordinate --outStd BAM_SortedByCoordinate > {bamfile_sort}; samtools index {bamfile_sort}; '
+            elif counts_tool == 'salmon':
+                command += f'STAR --runThreadN {threads} --readFilesCommand gzip -cd --genomeDir {genomePath} --readFilesIn {filer1} --outSAMtype BAM Unsorted --outStd BAM_Unsorted > {bamfile_unsort}; samtools sort {bamfile_unsort} -o {bamfile_sort}; samtools index {bamfile_sort}; '
     
     # Remove the loaded genome from memory
     command += f"STAR --genomeLoad Remove --genomeDir {genomePath}; "

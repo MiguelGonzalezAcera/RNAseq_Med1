@@ -23,31 +23,28 @@ def get_references_names():
     data = {
         'human': {
             "tools_conf": {
-                "genome": "/DATA/references/star_genomes/hs38/star_indices_overhang150/",
-                #"genomedict": "/DATA/references/star_genomes/hs38/star_indices_overhang150/GRCh38.primary_assembly.genome.dict",
-                #"bedfile":"/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.96.corr.bed",
-                "annot": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.111.gtf",
-                #"genometxt": "/DATA/references/star_genomes/hs38/star_indices_overhang150/GRCh38.primary_assembly.genome.txt",
-                "genomefasta": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.dna.toplevel.fa"
-                }
-            },
-        'mouse_mm38': {
-            "tools_conf": {
-                "genome": "/DATA/references/star_genomes/mmu38/star_indices_overhang150/",
-                "genomedict": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.dict",
-                "bedfile":"/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.merged.sorted.bed",
-                "annot": "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.gtf",
-                "annot_gff3": "/DATA/references/star_genomes/mmu38/annotation/Mus_musculus.GRCm38.96.gff3",
-                "genometxt": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.txt",
-                "genomefasta": "/DATA/references/star_genomes/mmu38/sequence/Mus_musculus.GRCm38.dna.toplevel.fa"
+                "featureCounts": {
+                    "genome": "/DATA/references/star_genomes/hs38/star_indices_overhang150/",
+                    "annot": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.111.gtf",
+                    "genomefasta": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.dna.toplevel.fa",
+                    "tx2gene": ""
+                    }
                 }
             },
         'mouse': {
             "tools_conf": {
-                "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index/",
-                "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
-                "genomefasta": "/DATA/references/star_genomes/mmu39/transcriptome/Mus_musculus.GRCm39.gentr.fa",
-                "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv"
+                "salmon":{
+                    "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index/",
+                    "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
+                    "genomefasta": "/DATA/references/star_genomes/mmu39/transcriptome/Mus_musculus.GRCm39.gentr.fa",
+                    "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv"
+                    },
+                "featureCounts": {
+                    "genome": "/DATA/references/star_genomes/mmu39/star_indices_overhang150/",
+                    "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
+                    "genomefasta": "/DATA/references/star_genomes/mmu39/genome/Mus_musculus.GRCm39.dna.toplevel.fa",
+                    "tx2gene": ""
+                    }
                 }
             }
     }
