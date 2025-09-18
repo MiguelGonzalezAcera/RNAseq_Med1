@@ -12,6 +12,9 @@ def counts_sal(config, tool_name):
     # Input
     bamdir = "/".join(config['tools_conf'][tool_name]['input']['bamdir'].split('/')[0:-1])
 
+    # List all the bam files in the directory
+    filelist = pf.list_files_dir(bamdir, ext = '*.unsorted.bam')
+
     # Output
     # Control file
     counts_sal_touched = config['tools_conf'][tool_name]['output']['counts_sal_touched']
@@ -22,12 +25,25 @@ def counts_sal(config, tool_name):
     annot = config['tools_conf'][tool_name]['input']['annot']
     gentr = config['tools_conf'][tool_name]['input']['gentr']
 
+    # Init the command
+    command = ""
+
     # Make the bam directory if it does not exist
     if not os.path.exists(salmondir):
         command += f"mkdir {salmondir}; "
 
+    g_uns_path = f"{salmondir}/genes_unsorted"
+
+    if not os.path.exists(g_uns_path):
+        command += f"mkdir {g_uns_path}; "
+
     # Create the salmon command
-    command = f"for file in {bamdir}/*unsorted.bam; do echo $file; salmon quant --geneMap {annot} --libType A -t {gentr} -a $file -o {salmondir} -q; mv -v {salmondir}/quant.sf ${{file%.unsorted.bam}}.sf; mv -v {salmondir}/quant.genes.sf ${{file%.unsorted.bam}}.genes.sf; done; mv -v {bamdir}/*.sf {salmondir}; mkdir {salmondir}/genes_unsorted; mv -v {salmondir}/*.genes.sf {salmondir}/genes_unsorted;"
+    for file in filelist:
+        # Some names
+        file_sf = file.replace('.unsorted.bam','.sf')
+        file_genes_sf = file.replace('.unsorted.bam','.genes.sf')
+
+        command += f"salmon quant --geneMap {annot} -p 10 --libType A -t {gentr} -a {file} -o {salmondir} -q; mv -v {salmondir}/quant.sf {file_sf}; mv -v {salmondir}/quant.genes.sf {file_genes_sf}; mv -v {bamdir}/*.sf {salmondir}; mv -v {salmondir}/*.genes.sf {salmondir}/genes_unsorted; "
 
     # Touch the marker file
     command += f"touch {counts_sal_touched}"

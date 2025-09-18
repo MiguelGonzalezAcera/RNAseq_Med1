@@ -6,6 +6,7 @@ suppressPackageStartupMessages(library(limma))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(gsubfn))
+suppressPackageStartupMessages(library(IHW))
 
 as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
 
@@ -156,11 +157,17 @@ df_norm$EnsGenes <- rownames(df_norm)
 # Split the comparisons and run the loop to get each table
 for (sample in strsplit(opt$comparisons, ",")[[1]]){
   # Using the names provided in the input as the samples, run this as a loop
-  res <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = TRUE, independentFiltering = TRUE)
+  # The filterFunction is ihw, which instead of adjusting the p-value using all genes, uses bins sorted by rank
+  # This increases the resolution of the adjustment, potentially getting genes to significance in experiments with a low number
+  # of affected genes, and genes thrown out in experiments with too many results.
+  res <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = TRUE, independentFiltering = TRUE, filterFun=ihw)
+
+  # Correct for lfc shrinkage. This removes genes with low-ish counts that have a relatively high FC, removing potential false pos.
+  res <- lfcShrink(dds, coef = paste("Tr1", sample, sep = ""), res = res)
 
   # get also the genes that are filtered out
-  res_cCut <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE, independentFiltering = TRUE)
-  res_cCut_IF <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE, independentFiltering = FALSE)
+  res_cCut <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE, independentFiltering = TRUE, filterFun=ihw)
+  res_cCut_IF <- results(dds, name = paste("Tr1", sample, sep = ""), cooksCutoff = FALSE, independentFiltering = FALSE, filterFun=ihw)
   res_cCut_lst <- setdiff(rownames(res_cCut[complete.cases(data.frame(res_cCut)), ]), rownames(data.frame(res[complete.cases(data.frame(res)), ])))
   res_cCut_IF_lst <- setdiff(setdiff(rownames(res_cCut_IF[complete.cases(data.frame(res_cCut_IF)), ]), rownames(data.frame(res[complete.cases(data.frame(res)), ]))), res_cCut_lst)
 

@@ -123,7 +123,7 @@ rule Counts_FC:
 rule Counts_salmon:
     input:
         bamdir = rules.Mapping.output.mappingtouched,
-        annot = annot_path
+        annot = annot_path,
         gentr = gentr_path
     output:
         counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt"
@@ -403,6 +403,7 @@ rule all:
     input:
         fastqc = rules.FastQC.output.fastqctouched,
         bamqc = rules.BamQC.output.bamqctouched,
+        de_sal = rules.deseq2_salmon.output.DEtouched,
         pca = rules.PCA.output.pcatouched,
         pca_b = rules.PCA_B.output.pcatouched,
         keggtouched = rules.KEGG.output.keggtouched,
@@ -411,7 +412,6 @@ rule all:
         heatmap = rules.clustering_heatmap.output.heatmap,
         heatmap_B = rules.clustering_B_heatmap.output.heatmap,
         prloadtouched = rules.load_project.output.prloadtouched,
-        splicetouched = rules.Splicing.output.splicetouched,
         report = rules.report.output.report
     run:
         tool_name = 'all'
@@ -425,16 +425,16 @@ rule all:
         # Construct a dictionary with the main results
         config_dict['results'] = {"results": [
             {
-                "name": "Splicing",
-                "value": "/".join(rules.Splicing.output.splicetouched.split('/')[0:-1])
-            },
-            {
                 "name": "PCA",
                 "value": "/".join(rules.PCA.output.pcatouched.split('/')[0:-1])
             },
             {
                 "name": "Differential expression",
                 "value": "/".join(rules.deseq2.output.DEtouched.split('/')[0:-1])
+            },
+            {
+                "name": "Differential expression salmon",
+                "value": "/".join(rules.deseq2_salmon.output.DEtouched.split('/')[0:-1])
             },
             {
                 "name": "Plots",
