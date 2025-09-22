@@ -14,6 +14,8 @@ def deseq2(config, tool_name):
     # Inputs
     # counts file
     counts_dir = "/".join(config['tools_conf'][tool_name]['input']['counts'].split('/')[0:-1])
+    # transcript counts file
+    transcript_counts = config['tools_conf'][tool_name]['input']['transcript_counts']
     # design file
     design = config['tools_conf'][tool_name]['input']['design']
 
@@ -24,6 +26,7 @@ def deseq2(config, tool_name):
     out_dir = "/".join(DEtouched.split('/')[0:-1])
     # out object name
     out_obj = out_dir + "/" + config['project'] +".Rda"
+    out_obj_tr = out_dir + "/" + config['project'] +"_transcripts.Rda"
 
     # Other information
     # comparison set
@@ -43,8 +46,13 @@ def deseq2(config, tool_name):
     # Create the deseq2 command for each control
     for control in samples:
         command += f'Rscript Rscripts/deseq2.r --salmon_counts {counts_dir} --tx2gene {tx2gene} --design {design} --out_obj {out_obj} --organism {organism} --control {control} --comparisons {samples[control]}; '
+
+    # Run also the script to do the same but with the transcripts
+    for control in samples:
+        command += f'Rscript Rscripts/deseq2.r --counts {transcript_counts} --design {design} --out_obj {out_obj_tr} --organism {organism} --control {control} --comparisons {samples[control]} --is_transcript Y; '
+
     # Touch the markerfile
-    command += f'touch {DEtouched}'
+    command += f'touch {DEtouched}; '
 
     # Run the commans
     pf.run_command(command)

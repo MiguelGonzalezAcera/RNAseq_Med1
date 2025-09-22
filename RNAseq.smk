@@ -150,7 +150,8 @@ elif counts_tool == 'salmon':
             annot = annot_path,
             gentr = gentr_path
         output:
-            counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt"
+            counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt",
+            transcript_counts = f"{outfolder}/counts_salmon/transcript_countsTPM.tsv",
         run:
             tool_name = 'get_counts'
             config_dict['tools_conf'][tool_name] = {
@@ -164,6 +165,7 @@ elif counts_tool == 'salmon':
     rule deseq2:
         input:
             counts = rules.Counts.output.counts_sal_touched,
+            transcript_counts = rules.Counts.output.transcript_counts,
             design = design,
             tx2gene = tx2gene
         output:

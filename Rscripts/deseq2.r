@@ -26,7 +26,9 @@ option_list <- list(
   make_option("--control", type = "character",
               help = "Value from the designs to use as control"),
   make_option("--comparisons", type = "character",
-              help = "Values from the designs, comma separated, to compare against control.")
+              help = "Values from the designs, comma separated, to compare against control."),
+  make_option("--is_transcript", type = "character", default = "N",
+              help = "Check if the counts provided are from genes or transcripts. Options= Y, N. Default = N")
 )
 
 opt_parser <- OptionParser(option_list = option_list)
@@ -44,6 +46,14 @@ sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 # Add row names as column and subset control samples
 sampleTableSingle$rn <- row.names(sampleTableSingle)
 control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn']]
+
+# Identify if these are transcripts or genes for naming conversion
+#<TODO>: Make a function that takes a table with transcript names, since the R package is a little outdated
+if (opt$is_transcript == 'N') {
+  ensembl_id <- "ENSEMBL"
+} else {
+  ensembl_id <- "ENSEMBLTRANS"
+}
 
 # Design model matrix, including batch effect correction
 Tr1 <- relevel(factor(sampleTableSingle$Tr1), opt$control)
@@ -100,8 +110,13 @@ if (opt$counts == "") {
   Counts_tab <- read.table(opt$counts, fileEncoding = "UTF8", header = TRUE)
 
   # Move the gene IDs as row names
-  row.names(Counts_tab) <- Counts_tab$Geneid
-  Counts_tab$Geneid <- NULL
+  if (opt$is_transcript == 'N') {
+    row.names(Counts_tab) <- Counts_tab$Geneid
+    Counts_tab$Geneid <- NULL
+  } else {
+    row.names(Counts_tab) <- Counts_tab$TransID
+    Counts_tab$TransID <- NULL
+  }
 
   # Select the columns specified in the provided design and resort the genes
   Counts_tab <- Counts_tab[, row.names(sampleTableSingle)]
@@ -137,10 +152,13 @@ norm_counts <- counts(estimateSizeFactors(dds), normalized = TRUE)
 # remove the version of the ensembl ids
 rownames(norm_counts) <- gsub("[.].*$", "", as.character(rownames(norm_counts)), perl = TRUE)
 
+# Remove unwanted rows (works only in case of transcripts)
+norm_counts <- norm_counts[!(rownames(norm_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+
 # Get the names of the columns
 norm_counts_colnames <- colnames(norm_counts)
 # Add the gene names as a new column
-norm_counts <- cbind(norm_counts, as.character(mapIds(database, as.character(rownames(norm_counts)), 'SYMBOL', 'ENSEMBL')))
+norm_counts <- cbind(norm_counts, as.character(mapIds(database, as.character(rownames(norm_counts)), 'SYMBOL', ensembl_id)))
 # Rename the columns with the new name
 colnames(norm_counts) <- c(norm_counts_colnames, "Genename")
 
@@ -198,7 +216,7 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
 
   # Add also gene symbols
   resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
-                                     "SYMBOL", "ENSEMBL"))
+                                     "SYMBOL", ensembl_id))
 
   # Save table with all the new names. Replace contrast
   res_tab_name <- paste(paste("", sample, opt$control, sep = "_"), "tsv", sep=".")
@@ -269,7 +287,7 @@ tr_counts_colnames <- colnames(tr_counts)
 # remove the version of the ensembl ids
 rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
 # Add the gene names as a new column
-tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
+tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', ensembl_id)))
 # Rename the columns with the new name
 colnames(tr_counts) <- c(tr_counts_colnames, "Genename")
 
@@ -290,7 +308,7 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
   # remove the version of the ensembl ids
   rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
   # Add the gene names as a new column
-  tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', 'ENSEMBL')))
+  tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', ensembl_id)))
   # Rename the columns with the new name
   colnames(tr_B_counts) <- c(tr_B_counts_colnames, "Genename")
 

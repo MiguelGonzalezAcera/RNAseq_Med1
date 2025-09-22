@@ -84,9 +84,12 @@ if (opt$genelist == "") {
     }
   )
 }
+# Fix the gene names without the version
+univ_counts <- counts(dss)
+rownames(univ_counts) <- gsub("[.].*$", "", as.character(rownames(univ_counts)), perl = TRUE)
 
 # Obtain universe ids
-universeids <- unique(as.character(mapIds(database, as.character(rownames(counts(dss))), "ENTREZID", "ENSEMBL")))
+universeids <- unique(as.character(mapIds(database, as.character(rownames(univ_counts)), "ENTREZID", "ENSEMBL")))
 
 # Define ontologies
 ontologies <- c("BP", "MF", "CC")

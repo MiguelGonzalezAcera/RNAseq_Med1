@@ -1,6 +1,7 @@
 import logging
 import os
 import pandas as pd
+import glob
 import python_scripts.python_functions as pf
 
 def counts_sal(config, tool_name):
@@ -50,3 +51,35 @@ def counts_sal(config, tool_name):
 
     # Run the command(s)
     pf.run_command(command)
+
+    #------------------------------------------------------------------
+
+    # Get the counts by transcript for future analysis using isoforms
+    salmon_files = glob.glob(f'{salmondir}/*.sf')
+
+    resdf_counts = pd.DataFrame()
+    resdf_tpm = pd.DataFrame()
+
+    for file in salmon_files:
+        filename = file.split("/")[-1].replace(".sf","")
+        
+        df = pd.read_csv(file, sep='\t')
+
+        df_reads = df[['Name','NumReads']]
+        df_reads.columns = ['TransID',filename]
+
+        if resdf_counts.empty:
+            resdf_counts = df_reads
+        else:
+            resdf_counts = pd.merge(resdf_counts, df_reads, how='outer', on='TransID')
+
+        df_tpm = df[['Name','TPM']]
+        df_tpm.columns = ['TransID',filename]
+
+        if resdf_tpm.empty:
+            resdf_tpm = df_tpm
+        else:
+            resdf_tpm = pd.merge(resdf_tpm, df_tpm, how='outer', on='TransID')
+
+    resdf_counts.to_csv(f'{salmondir}/transcript_counts.tsv', sep='\t', index=False)
+    resdf_tpm.to_csv(f'{salmondir}/transcript_countsTPM.tsv', sep='\t', index=False)
