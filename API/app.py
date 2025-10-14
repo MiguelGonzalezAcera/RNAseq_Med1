@@ -23,6 +23,12 @@ def get_references_names():
     data = {
         'human': {
             "tools_conf": {
+                "salmon":{
+                    "genome": "/DATA/references/star_genomes/hs38/salmon_human_index/",
+                    "annot": "/DATA/references/star_genomes/hs38/annotation/Homo_sapiens.GRCh38.115.gtf",
+                    "genomefasta": "/DATA/references/star_genomes/hs38/transcriptome/Homo_sapiens.GRCh38.gentr.fa",
+                    "tx2gene": "/DATA/references/star_genomes/hs38/annotation/tx2gen.tsv"
+                    },
                 "featureCounts": {
                     "genome": "/DATA/references/star_genomes/hs38/star_indices_overhang150/",
                     "annot": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.111.gtf",
@@ -34,8 +40,8 @@ def get_references_names():
         'mouse': {
             "tools_conf": {
                 "salmon":{
-                    "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index/",
-                    "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
+                    "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index_v115/",
+                    "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.115.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/transcriptome/Mus_musculus.GRCm39.gentr.fa",
                     "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv"
                     },
