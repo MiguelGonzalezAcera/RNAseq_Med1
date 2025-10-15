@@ -155,12 +155,6 @@ dxr_filt = DEXSeqResults(dxd, independentFiltering = TRUE)
 
 dxr_filt_lst = setdiff(dxr_filt$featureID, dxr$featureID)
 
-# # Replace the pvalues and padj values that are NA with a solid 1
-# # I don't need to do this with the DESeq2 script because usually this point is final,
-# # but here I still have corrections to do
-# dxr$pvalue[is.na(dxr$pvalue)] <- 1
-# dxr$padj[is.na(dxr$pvadj)] <- 1
-
 # Get a per-gene adjusted p-val, aggregating evidence for multiple tests per gene
 # the important table is dxr.g, which can be merged in the result table.
 qval = perGeneQValue(dxr)
@@ -208,6 +202,8 @@ colnames(dex.padj) <- c("groupID", "featureID", "featureID.1", "groupID.1", "gen
 # Export the data
 
 # Get the normalized counts per transcript
+# The /2 in the rows is because DEXSeq produces double rows, one set with the counts in the exons (per its design)
+# and another with the /rest/ of the counts. Since I'm only interested in the counts per transcript, i have to chop it.
 dex.norm = cbind(as.data.frame(stringr::str_split_fixed(rownames(counts(dxd)), ":", 2)), as.data.frame(counts(dxd, normalized = TRUE))[,1:(ncol(counts(dxd))/2)])
 colnames(dex.norm) = c("groupID", "featureID", as.character(colData(dxd)$sample_id)[1:(ncol(counts(dxd))/2)])
 row.names(dex.norm) = NULL
@@ -266,3 +262,9 @@ save(dexData, file = gsub(".Rda", res_exp_name, opt$out_obj, fixed = TRUE))
 res_exp_tab_name = paste(paste("", opt$comparison, opt$control, sep='_'), ".tsv", sep="_")
 write.table(dexData, file=gsub(".Rda", res_exp_tab_name, opt$out_obj, fixed = TRUE),
             sep = "\t", row.names = FALSE)
+
+# Save environment
+save.image(file = gsub(".Rda", ".RData", opt$out_obj, fixed = TRUE))
+
+# Save versions
+get_versions(gsub(".Rda", "_versions.tsv", opt$out_obj, fixed = TRUE))

@@ -52,6 +52,7 @@ counts_tool = config_dict['options']['counts']
 annot_path = config_dict['tools_conf'][counts_tool]['annot']
 gentr_path = config_dict['tools_conf'][counts_tool]['genomefasta']
 tx2gene = config_dict['tools_conf'][counts_tool]['tx2gene']
+annotation_tab = config_dict['tools_conf'][counts_tool]['annotation_tab']
 
 # ------------------Snakemake pipeline------------------
 # Rules
@@ -143,6 +144,24 @@ if counts_tool == 'featureCounts':
             }
             python_scripts.differential_expression.deseq2(config_dict, tool_name)
 
+    rule dexseq:
+        input:
+            counts = rules.Counts.output.counts,
+            design = design,
+            annotation = annotation_tab
+        output:
+            DEXtouched = f"{outfolder}/DEXtouched.txt",
+        run:
+            tool_name = 'differential_usage'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            open(f"{outfolder}/DEXtouched.txt", 'a').close()
+
+
 elif counts_tool == 'salmon':
     rule Counts:
         input:
@@ -182,6 +201,23 @@ elif counts_tool == 'salmon':
                 'tool_conf': {}
             }
             python_scripts.differential_expression_salmon.deseq2(config_dict, tool_name)
+
+    rule dexseq:
+        input:
+            counts = rules.Counts.output.counts_sal_touched,
+            design = design,
+            annotation = annotation_tab
+        output:
+            DEXtouched = f"{outfolder}/dutables/DEXtouched.txt",
+        run:
+            tool_name = 'differential_usage'
+            config_dict['tools_conf'][tool_name] = {
+                'input': {i[0]: i[1] for i in input._allitems()},
+                'output': {i[0]: i[1] for i in output._allitems()},
+                'software': {},
+                'tool_conf': {}
+            }
+            python_scripts.differential_usage_salmon.dexseq(config_dict, tool_name)
 
 rule PCA:
     input:
@@ -412,6 +448,7 @@ rule all:
         bamqc = rules.BamQC.output.bamqctouched,
         pca = rules.PCA.output.pcatouched,
         pca_b = rules.PCA_B.output.pcatouched,
+        dtu = rules.dexseq.output.DEXtouched,
         keggtouched = rules.KEGG.output.keggtouched,
         gotouched = rules.GO.output.gotouched,
         volcanotouched = rules.volcano_plot.output.volcanotouched,
@@ -437,6 +474,10 @@ rule all:
             {
                 "name": "Differential expression",
                 "value": "/".join(rules.deseq2.output.DEtouched.split('/')[0:-1])
+            },
+            {
+                "name": "Differential usage",
+                "value": "/".join(rules.dexseq.output.DEXtouched.split('/')[0:-1])
             },
             {
                 "name": "Plots",

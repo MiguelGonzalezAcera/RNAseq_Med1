@@ -4,6 +4,7 @@ from python_scripts import get_counts_salmon
 from python_scripts import pca
 from python_scripts import differential_expression
 from python_scripts import differential_expression_salmon
+from python_scripts import differential_usage_salmon
 from python_scripts import KEGG
 from python_scripts import GO
 from python_scripts import GSVA

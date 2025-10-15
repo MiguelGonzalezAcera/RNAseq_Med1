@@ -40,10 +40,13 @@ def get_references_names():
         'mouse': {
             "tools_conf": {
                 "salmon":{
-                    "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index_v115/",
-                    "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.115.gtf",
+                    "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index/",
+                    # "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index_v115/",
+                    "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
+                    # "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/transcriptome/Mus_musculus.GRCm39.gentr.fa",
-                    "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv"
+                    "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv",
+                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv"
                     },
                 "featureCounts": {
                     "genome": "/DATA/references/star_genomes/mmu39/star_indices_overhang150/",
