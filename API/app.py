@@ -52,7 +52,8 @@ def get_references_names():
                     "genome": "/DATA/references/star_genomes/mmu39/star_indices_overhang150/",
                     "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/genome/Mus_musculus.GRCm39.dna.toplevel.fa",
-                    "tx2gene": ""
+                    "tx2gene": "",
+                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv"
                     }
                 }
             }

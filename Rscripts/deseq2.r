@@ -15,8 +15,8 @@ option_list <- list(
               help = "Table that contains the counts. Ignored if the salmon counts are provided."),
   make_option("--salmon_counts", type = "character",
               help = "Folder with the results of the salmon mapping."),
-  make_option("--tx2gene", type = "character",
-              help = "Location of the table to amalgame transcript counts to gene. Used only if salmon counts are provided"),
+  make_option("--annotation", type = "character",
+              help = "Location of the table with the annotation of the genes and transcripts."),
   make_option("--design", type = "character",
               help = "File with the design of the experiment."),
   make_option("--out_obj", type = "character",
@@ -47,14 +47,6 @@ sampleTableSingle <- read.table(opt$design, fileEncoding = "UTF8")
 sampleTableSingle$rn <- row.names(sampleTableSingle)
 control_samples <- sampleTableSingle[sampleTableSingle$Tr1 == opt$control,][['rn']]
 
-# Identify if these are transcripts or genes for naming conversion
-#<TODO>: Make a function that takes a table with transcript names, since the R package is a little outdated
-if (opt$is_transcript == 'N') {
-  ensembl_id <- "ENSEMBL"
-} else {
-  ensembl_id <- "ENSEMBLTRANS"
-}
-
 # Design model matrix, including batch effect correction
 Tr1 <- relevel(factor(sampleTableSingle$Tr1), opt$control)
 if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
@@ -62,6 +54,29 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
 } else {
   design <- model.matrix(~ Tr1)
 }
+
+# Identify if these are transcripts or genes for naming conversion
+
+# Load the annotation table
+# <TODO>: Do this from sql
+annotTab <- read.table(opt$annotation, sep = '\t', header = TRUE,fileEncoding = "UTF8")
+
+# Generate columns of the ensembl id with the version
+annotTab$GeneID <- paste(annotTab$gene_id, annotTab$gene_version, sep=".")
+annotTab$TranscriptID <- paste(annotTab$transcript_id, annotTab$transcript_version, sep=".")
+
+# Get a table that relates transcript ID and gene ID, with versions
+tx2gene <- annotTab[annotTab$item == 'transcript',][c('TranscriptID','GeneID')]
+
+colnames(tx2gene) <- c('TXNAME','GENEID')
+
+# add the chromosome information
+tx2gene_chr <- annotTab[annotTab$item == 'chromosome',][c('chr','chr')]
+
+colnames(tx2gene_chr) <- c('TXNAME', 'GENEID')
+
+# concatenate
+tx2gene <- rbind(tx2gene, tx2gene_chr)
 
 # --------------------------------------------------------------
 
@@ -72,10 +87,6 @@ if (opt$counts == "") {
 
   # Select just the files in the design
   files <- files[row.names(sampleTableSingle)]
-
-  # Read the transcript to gene table (also provided)
-  tx2gene <- read.table(opt$tx2gene, sep="\t", header=TRUE)
-  tx2gene <- tx2gene[,c(2,1)]
 
   # Perform the tximport thrice One for the regular counts, other for the TPM scaled and another for the length scaled
   txi.salmon <- tximport(files, type = "salmon", tx2gene = tx2gene)
@@ -153,14 +164,29 @@ norm_counts <- counts(estimateSizeFactors(dds), normalized = TRUE)
 rownames(norm_counts) <- gsub("[.].*$", "", as.character(rownames(norm_counts)), perl = TRUE)
 
 # Remove unwanted rows (works only in case of transcripts)
+
 norm_counts <- norm_counts[!(rownames(norm_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
 
 # Get the names of the columns
 norm_counts_colnames <- colnames(norm_counts)
-# Add the gene names as a new column
-norm_counts <- cbind(norm_counts, as.character(mapIds(database, as.character(rownames(norm_counts)), 'SYMBOL', ensembl_id)))
-# Rename the columns with the new name
-colnames(norm_counts) <- c(norm_counts_colnames, "Genename")
+if (opt$is_transcript == 'N') {
+  # Add the gene names as a new column
+  norm_counts <- cbind(norm_counts, as.character(mapIds(database, as.character(rownames(norm_counts)), 'SYMBOL', "ENSEMBL")))
+  # Rename the columns with the new name
+  colnames(norm_counts) <- c(norm_counts_colnames, "Genename")
+} else {
+  # Merge with the gene names in the annotation database
+  norm_counts <- merge(norm_counts, annotTab[annotTab$item == 'transcript',][c('gene_id', 'transcript_id')], by.x = "row.names", by.y = "transcript_id")
+  
+  # put the column with the enst ids in the rows and delete it
+  row.names(norm_counts) <- norm_counts$Row.names
+  norm_counts$Row.names <- NULL
+
+  # Add the gene names as a new column
+  norm_counts <- cbind(norm_counts, as.character(mapIds(database, as.character(norm_counts$gene_id), 'SYMBOL', "ENSEMBL")))
+  # Rename the columns with the new name
+  colnames(norm_counts) <- c(norm_counts_colnames, "EnsGenes", "Genename")
+}
 
 # Save the object both as table and as R object
 write.table(norm_counts, file=gsub(".Rda","_norm_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
@@ -168,9 +194,6 @@ df_norm <- as.data.frame(norm_counts)
 save(df_norm, file = gsub(".Rda", "_norm_counts.Rda", opt$out_obj, fixed = TRUE))
 
 # --------------------------------------------------------------
-
-# Get the EnsemblIDs from the counts table
-df_norm$EnsGenes <- rownames(df_norm)
 
 # Split the comparisons and run the loop to get each table
 for (sample in strsplit(opt$comparisons, ",")[[1]]){
@@ -200,7 +223,7 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   plotMA(res)
   dev.off()
 
-  # Transform result into data frame
+    # Transform result into data frame
   resdf <- data.frame(res)
 
   # Replace the NA values in the pval and padj columns with 1
@@ -208,15 +231,44 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   resdf$pvalue[is.na(resdf$pvalue)] <- 1
   resdf$padj[is.na(resdf$padj)] <- 1
 
+  # Remove unwanted rows (works only in case of transcripts)
+  resdf <- resdf[!(rownames(resdf) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+
   # remove the version of the ensembl ids
   rownames(resdf) <- gsub("[.].*$", "", as.character(rownames(resdf)), perl = TRUE)
 
-  # Transform row ensembl IDs into column
-  resdf$EnsGenes <- rownames(resdf)
+  if (opt$is_transcript == 'N') {
+    # Transform row ensembl IDs into column
+    resdf$EnsGenes <- rownames(resdf)
+    
+    # Add also gene symbols
+    resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
+                                       "SYMBOL", "ENSEMBL"))
+    
+    # Get the main identifyer as a variable (useful later)
+    baseID <- "EnsGenes"
 
-  # Add also gene symbols
-  resdf$Genes <- as.character(mapIds(database, as.character(rownames(resdf)),
-                                     "SYMBOL", ensembl_id))
+    # Get the EnsemblIDs from the table with the normalized counts as column
+    df_norm$EnsGenes <- rownames(df_norm)
+  } else {
+    # Transform row ensembl IDs into column
+    resdf$EnsTrans <- rownames(resdf)
+    
+    # Merge with the gene names in the annotation database
+    resdf <- merge(resdf, annotTab[annotTab$item == 'transcript',][c('gene_id', 'transcript_id')], by.x = "EnsTrans", by.y = "transcript_id")
+    
+    # rename the columns
+    colnames(resdf) <- c("EnsTrans","baseMean","log2FoldChange","lfcSE","pvalue","padj","EnsGenes")
+    
+    # Add the gene names as a new column
+    resdf$Genes <- as.character(mapIds(database, as.character(resdf$EnsGenes), 'SYMBOL', "ENSEMBL"))
+    
+    # Get the main identifyer as a variable (useful later)
+    baseID <- "EnsTrans"
+
+    # Get the EnsemblIDs from the table with the normalized counts as column
+    df_norm$EnsTrans <- rownames(df_norm)
+  }
 
   # Save table with all the new names. Replace contrast
   res_tab_name <- paste(paste("", sample, opt$control, sep = "_"), "tsv", sep=".")
@@ -227,16 +279,16 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   sample_samples <- sampleTableSingle[sampleTableSingle$Tr1 == sample, ][["rn"]]
 
   # Merge res table with the counts of its samples and controls
-  resdf_wcounts <- merge(resdf, df_norm[,c("EnsGenes", control_samples, sample_samples)], by="EnsGenes", all.x=TRUE)
+  resdf_wcounts <- merge(resdf, df_norm[,c(baseID, control_samples, sample_samples)], by=baseID, all.x=TRUE)
 
   # filter by normalized counts in order to remove false positives
-  # Oder of stuff: Select samples or control columns, transform to numeric with the function up,
+  # Oder of stuff for the WARN filter: Select samples or control columns, transform to numeric with the function up,
   # transform to a data matrix, get the medians, Boolean on who's under 25, select rows
   resdf_wcounts$FLAG <- ifelse(
-    resdf_wcounts$EnsGenes %in% res_cCut_IF_lst,
+    resdf_wcounts[[baseID]] %in% res_cCut_IF_lst,
     'FAIL: Filtered by indFilt',
     ifelse(
-      resdf_wcounts$EnsGenes %in% res_cCut_lst,
+      resdf_wcounts[[baseID]] %in% res_cCut_lst,
       'FAIL: Filtered by cooksCutoff',
       ifelse(
         (rowMedians(data.matrix(sapply(resdf_wcounts[control_samples], as.numeric))) > 25) | (rowMedians(data.matrix(sapply(resdf_wcounts[sample_samples],as.numeric))) > 25),
@@ -284,12 +336,31 @@ tr_counts <- assay(vsd)
 
 # Get the names of the columns
 tr_counts_colnames <- colnames(tr_counts)
+
+# Remove unwanted rows (works only in case of transcripts)
+tr_counts <- tr_counts[!(rownames(tr_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+
 # remove the version of the ensembl ids
 rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
-# Add the gene names as a new column
-tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', ensembl_id)))
-# Rename the columns with the new name
-colnames(tr_counts) <- c(tr_counts_colnames, "Genename")
+
+if (opt$is_transcript == 'N') {
+  # Add the gene names as a new column
+  tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', "ENSEMBL")))
+  # Rename the columns with the new name
+  colnames(tr_counts) <- c(tr_counts_colnames, "Genename")
+} else {
+  # Merge with the gene names in the annotation database
+  tr_counts <- merge(tr_counts, annotTab[annotTab$item == 'transcript',][c('gene_id', 'transcript_id')], by.x = "row.names", by.y = "transcript_id")
+  
+  # put the column with the enst ids in the rows and delete it
+  row.names(tr_counts) <- tr_counts$Row.names
+  tr_counts$Row.names <- NULL
+  
+  # Add the gene names as a new column
+  tr_counts <- cbind(tr_counts, as.character(mapIds(database, as.character(tr_counts$gene_id), 'SYMBOL', "ENSEMBL")))
+  # Rename the columns with the new name
+  colnames(tr_counts) <- c(tr_counts_colnames, "EnsGene", "Genename")
+}
 
 # Save the object both as table and as R object
 write.table(tr_counts, file=gsub(".Rda","_tr_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")
@@ -305,12 +376,31 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
 
   # Get the names of the columns
   tr_B_counts_colnames <- colnames(tr_B_counts)
+
+  # Remove unwanted rows (works only in case of transcripts)
+  tr_B_counts <- tr_B_counts[!(rownames(tr_B_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+
   # remove the version of the ensembl ids
-  rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
-  # Add the gene names as a new column
-  tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_counts)), 'SYMBOL', ensembl_id)))
-  # Rename the columns with the new name
-  colnames(tr_B_counts) <- c(tr_B_counts_colnames, "Genename")
+  rownames(tr_B_counts) <- gsub("[.].*$", "", as.character(rownames(tr_B_counts)), perl = TRUE)
+
+  if (opt$is_transcript == 'N') {
+    # Add the gene names as a new column
+    tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(rownames(tr_B_counts)), 'SYMBOL', "ENSEMBL")))
+    # Rename the columns with the new name
+    colnames(tr_B_counts) <- c(tr_B_counts_colnames, "Genename")
+  } else {
+    # Merge with the gene names in the annotation database
+    tr_B_counts <- merge(tr_B_counts, annotTab[annotTab$item == 'transcript',][c('gene_id', 'transcript_id')], by.x = "row.names", by.y = "transcript_id")
+    
+    # put the column with the enst ids in the rows and delete it
+    row.names(tr_B_counts) <- tr_B_counts$Row.names
+    tr_B_counts$Row.names <- NULL
+    
+    # Add the gene names as a new column
+    tr_B_counts <- cbind(tr_B_counts, as.character(mapIds(database, as.character(tr_B_counts$gene_id), 'SYMBOL', "ENSEMBL")))
+    # Rename the columns with the new name
+    colnames(tr_B_counts) <- c(tr_counts_colnames, "EnsGene", "Genename")
+  }
 
   # Save the object both as table and as R object
   write.table(tr_B_counts, file=gsub(".Rda","_tr_B_counts.tsv", opt$out_obj, fixed = TRUE), sep="\t")

@@ -51,7 +51,6 @@ counts_tool = config_dict['options']['counts']
 # get the annotation files
 annot_path = config_dict['tools_conf'][counts_tool]['annot']
 gentr_path = config_dict['tools_conf'][counts_tool]['genomefasta']
-tx2gene = config_dict['tools_conf'][counts_tool]['tx2gene']
 annotation_tab = config_dict['tools_conf'][counts_tool]['annotation_tab']
 
 # ------------------Snakemake pipeline------------------
@@ -186,7 +185,7 @@ elif counts_tool == 'salmon':
             counts = rules.Counts.output.counts_sal_touched,
             transcript_counts = rules.Counts.output.transcript_counts,
             design = design,
-            tx2gene = tx2gene
+            annotation = annotation_tab
         output:
             DEtouched = f"{outfolder}/detables/DEtouched.txt",
             norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
