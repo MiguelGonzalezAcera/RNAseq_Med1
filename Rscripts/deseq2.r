@@ -88,10 +88,17 @@ if (opt$counts == "") {
   # Select just the files in the design
   files <- files[row.names(sampleTableSingle)]
 
+  # decide if the output of these functions is for genes or transcripts
+  if (opt$is_transcript == 'N') {
+    tx_output = FALSE
+  } else {
+    tx_output = TRUE
+  }
+
   # Perform the tximport thrice One for the regular counts, other for the TPM scaled and another for the length scaled
-  txi.salmon <- tximport(files, type = "salmon", tx2gene = tx2gene)
-  txi.salmon.scaled <- tximport(files, type = "salmon", tx2gene = tx2gene, countsFromAbundance="scaledTPM")
-  txi.salmon.lenScaled <- tximport(files, type = "salmon", tx2gene = tx2gene, countsFromAbundance="lengthScaledTPM")
+  txi.salmon <- tximport(files, type = "salmon", tx2gene = tx2gene, txOut = tx_output)
+  txi.salmon.scaled <- tximport(files, type = "salmon", tx2gene = tx2gene, countsFromAbundance="scaledTPM", txOut = tx_output)
+  txi.salmon.lenScaled <- tximport(files, type = "salmon", tx2gene = tx2gene, countsFromAbundance="lengthScaledTPM", txOut = tx_output)
 
   # Save the counts tables for registries and possible reanalyses
   write.table(txi.salmon$counts, file=paste(opt$salmon_counts,"salmon_counts.tsv", sep = "/"), sep="\t")
@@ -111,7 +118,7 @@ if (opt$counts == "") {
 
   # Transform the txi object from the regular counts into the dds object
   dss <- DESeqDataSetFromTximport(
-    txi = txi.salmon,
+    txi = txi.salmon.lenScaled,
     colData = sampleTableSingle,
     design = design
   )

@@ -183,7 +183,6 @@ elif counts_tool == 'salmon':
     rule deseq2:
         input:
             counts = rules.Counts.output.counts_sal_touched,
-            transcript_counts = rules.Counts.output.transcript_counts,
             design = design,
             annotation = annotation_tab
         output:

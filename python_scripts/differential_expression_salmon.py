@@ -14,8 +14,6 @@ def deseq2(config, tool_name):
     # Inputs
     # counts file
     counts_dir = "/".join(config['tools_conf'][tool_name]['input']['counts'].split('/')[0:-1])
-    # transcript counts file
-    transcript_counts = config['tools_conf'][tool_name]['input']['transcript_counts']
     # design file
     design = config['tools_conf'][tool_name]['input']['design']
 
@@ -49,7 +47,7 @@ def deseq2(config, tool_name):
 
     # Run also the script to do the same but with the transcripts
     for control in samples:
-        command += f'Rscript Rscripts/deseq2.r --counts {transcript_counts} --annotation {annotation} --design {design} --out_obj {out_obj_tr} --organism {organism} --control {control} --comparisons {samples[control]} --is_transcript Y; '
+        command += f'Rscript Rscripts/deseq2.r --salmon_counts {counts_dir} --annotation {annotation} --design {design} --out_obj {out_obj_tr} --organism {organism} --control {control} --comparisons {samples[control]} --is_transcript Y; '
 
     # Touch the markerfile
     command += f'touch {DEtouched}; '
