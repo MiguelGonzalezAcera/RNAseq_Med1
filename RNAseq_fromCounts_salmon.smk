@@ -18,7 +18,7 @@ design = config_dict['design']
 project = config_dict['project']
 
 # Set and start logger
-logging.basicConfig(filename=f'{outfolder}/RNAseq.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+logging.basicConfig(filename=f'{outfolder}/RNAseq_fromCounts.log', level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
 logging.info(f'Starting RNAseq {project}')
 
 # Get the design into a dataframe
@@ -26,24 +26,7 @@ design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
 design_file.columns = ['sample','tr','batch']
 
 # Read the fastq files
-fastq_path = config_dict['fastq_path']
-
-# Select file extension naming convention between single end and paired end
-if config_dict['options']['reads'] == 'single':
-    fastq_r1 = []
-
-    for name in design_file['sample'].tolist():
-        fastq_r1.append(glob.glob(f'{fastq_path}/{name}.fastq.gz')[0])
-else:
-    fastq_r1 = []
-
-    for name in design_file['sample'].tolist():
-        fastq_r1.append(glob.glob(f'{fastq_path}/{name}_1.fastq.gz')[0])
-
-# raise error when no files are found in the selected path
-if not fastq_r1:
-    logger.error(f'FASTQ files not found in {fastq_path}')
-    raise ValueError(f'FASTQ files not found in {fastq_path}')
+counts_dir = config_dict['counts_dir']
 
 # Counts tool
 counts_tool = config_dict['options']['counts']
@@ -54,207 +37,61 @@ gentr_path = config_dict['tools_conf'][counts_tool]['genomefasta']
 annotation_tab = config_dict['tools_conf'][counts_tool]['annotation_tab']
 ens_unip_tab = config_dict['tools_conf'][counts_tool]['ens_unip_tab']
 
-# ------------------Snakemake pipeline------------------
-# Rules
-rule Mapping:
+rule deseq2:
     input:
-        fastq_r1 = fastq_r1
+        counts = f"{counts_dir}/counts_sal_touched.txt",
+        design = design,
+        annotation = annotation_tab
     output:
-        mappingtouched = f"{outfolder}/bamfiles/mappingtouched.txt",
-        bamfof_s = f"{outfolder}/bamfiles/bam.sorted.fof"
+        DEtouched = f"{outfolder}/detables/DEtouched.txt",
+        norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
+        tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
+        tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
     run:
-        tool_name = 'mapping'
+        tool_name = 'differential_expression'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {
-                "threads": "2"
-            }
+            'tool_conf': {}
         }
-        python_scripts.mapping.mapping(config_dict, tool_name)
+        python_scripts.differential_expression_salmon.deseq2(config_dict, tool_name)
 
-rule FastQC:
+rule dexseq:
     input:
-        fastq_r1 = fastq_r1,
-        bamdir = rules.Mapping.output.mappingtouched
+        counts = f"{counts_dir}/counts_sal_touched.txt",
+        design = design,
+        annotation = annotation_tab
     output:
-        fastqctouched = f"{outfolder}/fastqc/fastqctouched.txt"
+        DEXtouched = f"{outfolder}/dutables/DEXtouched.txt",
     run:
-        tool_name = 'fastqc'
+        tool_name = 'differential_usage'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {
-                "threads": "5"
-            }
+            'tool_conf': {}
         }
-        python_scripts.fastqc.fastqc(config_dict, tool_name)
+        python_scripts.differential_usage_salmon.dexseq(config_dict, tool_name)
 
-rule BamQC:
+rule dexeq_plot:
     input:
-        bamfof = rules.Mapping.output.bamfof_s
+        DGE_dir = rules.deseq2.output.DEtouched,
+        DUT_dir = rules.dexseq.output.DEXtouched,
+        annotation = annotation_tab,
+        ensembl_uniprot = ens_unip_tab,
+        design = design
     output:
-        bamqctouched = f"{outfolder}/bamqc/bamqctouched.txt"
+        DEXtouched = f"{outfolder}/dutables/DEXplotstouched.txt",
     run:
-        tool_name = 'bamqc'
+        tool_name = 'differential_usage'
         config_dict['tools_conf'][tool_name] = {
             'input': {i[0]: i[1] for i in input._allitems()},
             'output': {i[0]: i[1] for i in output._allitems()},
             'software': {},
-            'tool_conf': {
-            }
+            'tool_conf': {}
         }
-        python_scripts.bamqc.bamqc(config_dict, tool_name)
-
-if counts_tool == 'featureCounts':
-    rule Counts:
-        input:
-            bamdir = rules.Mapping.output.mappingtouched,
-            annot = annot_path
-        output:
-            counts = f"{outfolder}/counts.tsv"
-        run:
-            tool_name = 'get_counts'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            python_scripts.get_counts.counts(config_dict, tool_name)
-
-    rule deseq2:
-        input:
-            counts = rules.Counts.output.counts,
-            design = design
-        output:
-            DEtouched = f"{outfolder}/detables/DEtouched.txt",
-            norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
-            tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
-            tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
-        run:
-            tool_name = 'differential_expression'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            python_scripts.differential_expression.deseq2(config_dict, tool_name)
-
-    rule dexseq:
-        input:
-            counts = rules.Counts.output.counts,
-            design = design,
-            annotation = annotation_tab
-        output:
-            DEXtouched = f"{outfolder}/DEXtouched.txt",
-        run:
-            tool_name = 'differential_usage'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            open(f"{outfolder}/DEXtouched.txt", 'a').close()
-
-    rule dexeq_plot:
-        input:
-            DGE_dir = rules.deseq2.output.DEtouched,
-            DUT_dir = rules.dexseq.output.DEXtouched,
-            annotation = annotation_tab,
-            ensembl_uniprot = ens_unip_tab,
-            design = design
-        output:
-            DEXtouched = f"{outfolder}/DEXplotstouched.txt",
-        run:
-            tool_name = 'differential_usage'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            open(f"{outfolder}/DEXtouched.txt", 'a').close()
-
-
-elif counts_tool == 'salmon':
-    rule Counts:
-        input:
-            bamdir = rules.Mapping.output.mappingtouched,
-            annot = annot_path,
-            gentr = gentr_path
-        output:
-            counts_sal_touched = f"{outfolder}/counts_salmon/counts_sal_touched.txt",
-            transcript_counts = f"{outfolder}/counts_salmon/transcript_countsTPM.tsv",
-        run:
-            tool_name = 'get_counts'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            python_scripts.get_counts_salmon.counts_sal(config_dict, tool_name)
-
-    rule deseq2:
-        input:
-            counts = rules.Counts.output.counts_sal_touched,
-            design = design,
-            annotation = annotation_tab
-        output:
-            DEtouched = f"{outfolder}/detables/DEtouched.txt",
-            norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
-            tr_counts = f"{outfolder}/detables/{project}_tr_counts.Rda",
-            tr_B_counts = f"{outfolder}/detables/{project}_tr_B_counts.Rda"
-        run:
-            tool_name = 'differential_expression'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            python_scripts.differential_expression_salmon.deseq2(config_dict, tool_name)
-
-    rule dexseq:
-        input:
-            counts = rules.Counts.output.counts_sal_touched,
-            design = design,
-            annotation = annotation_tab
-        output:
-            DEXtouched = f"{outfolder}/dutables/DEXtouched.txt",
-        run:
-            tool_name = 'differential_usage'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            python_scripts.differential_usage_salmon.dexseq(config_dict, tool_name)
-
-    rule dexeq_plot:
-        input:
-            DGE_dir = rules.deseq2.output.DEtouched,
-            DUT_dir = rules.dexseq.output.DEXtouched,
-            annotation = annotation_tab,
-            ensembl_uniprot = ens_unip_tab,
-            design = design
-        output:
-            DEXtouched = f"{outfolder}/dutables/DEXplotstouched.txt",
-        run:
-            tool_name = 'differential_usage'
-            config_dict['tools_conf'][tool_name] = {
-                'input': {i[0]: i[1] for i in input._allitems()},
-                'output': {i[0]: i[1] for i in output._allitems()},
-                'software': {},
-                'tool_conf': {}
-            }
-            python_scripts.differential_usage_plots.isoform_plots(config_dict, tool_name)
+        python_scripts.differential_usage_plots.isoform_plots(config_dict, tool_name)
 
 rule PCA:
     input:
@@ -481,8 +318,6 @@ rule report:
 
 rule all:
     input:
-        fastqc = rules.FastQC.output.fastqctouched,
-        bamqc = rules.BamQC.output.bamqctouched,
         pca = rules.PCA.output.pcatouched,
         pca_b = rules.PCA_B.output.pcatouched,
         dtu = rules.dexeq_plot.output.DEXtouched,

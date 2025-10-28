@@ -255,11 +255,11 @@ dexData$FLAG <- ifelse(
 
 # Save it
 # Save as R object
-res_exp_name = paste(paste("", opt$comparison, opt$control, sep='_'), ".Rda", sep="_")
+res_exp_name = paste(paste("", opt$comparison, opt$control, sep='_'), ".Rda", sep="")
 save(dexData, file = gsub(".Rda", res_exp_name, opt$out_obj, fixed = TRUE))
 
 #Save new table
-res_exp_tab_name = paste(paste("", opt$comparison, opt$control, sep='_'), ".tsv", sep="_")
+res_exp_tab_name = paste(paste("", opt$comparison, opt$control, sep='_'), ".tsv", sep="")
 write.table(dexData, file=gsub(".Rda", res_exp_tab_name, opt$out_obj, fixed = TRUE),
             sep = "\t", row.names = FALSE)
 

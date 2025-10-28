@@ -99,9 +99,26 @@ if (length(rownames(KEGGtable)) > 0) {
   dev.off()
 
   # Enrichment map
-  png(file = gsub(".tsv", "_emap.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
   x2 <- pairwise_termsim(x)
-  print(emapplot(x2))
+  x3 <- ""
+  png(file = gsub(".tsv", "_emap.png", opt$out_tab, fixed = TRUE), width = 8000, height = 6000, res = 600)
+  x3 <- tryCatch(
+    {
+      emmaplot(x2)
+    },
+    error = function(cond) {
+      message(paste("Error generating emmaplot."))
+      message("Error message:")
+      message(cond)
+    },
+    warning = function(cond) {
+      message("Emmaplot had a warning:")
+      message(cond)
+    },
+    finally = {
+    }
+  )
+  print(x3)
   dev.off()
 
   # Get final path

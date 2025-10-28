@@ -14,7 +14,8 @@ def get_script_names():
     # Dictionary with the snakemake scripts included in the pipeline api
     data = {
         'RNAseq': {'path': 'RNAseq.smk'},
-        'RNAseq_fromCounts': {'path': 'RNAseq_fromCounts.smk'}
+        'RNAseq_fromCounts': {'path': 'RNAseq_fromCounts.smk'},
+        'RNAseq_fromCounts_salmon': {'path': 'RNAseq_fromCounts_salmon.smk'}
     }
 
     return data
@@ -41,19 +42,21 @@ def get_references_names():
             "tools_conf": {
                 "salmon":{
                     "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index/",
-                    # "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index_v115/",
+                    # "genome": "/DATA/references/star_genomes/mmu39/salmon_mouse_index_v114/",
                     "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
                     # "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/transcriptome/Mus_musculus.GRCm39.gentr.fa",
                     "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv",
-                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv"
+                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv",
+                    "ens_unip_tab": "/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt"
                     },
                 "featureCounts": {
                     "genome": "/DATA/references/star_genomes/mmu39/star_indices_overhang150/",
                     "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/genome/Mus_musculus.GRCm39.dna.toplevel.fa",
                     "tx2gene": "",
-                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv"
+                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv",
+                    "ens_unip_tab": "/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt"
                     }
                 }
             }
@@ -187,6 +190,20 @@ def launch_RNAseq():
 def launch_RNAseq_fromCounts():
     postdata = request.get_json()
     pipeline = 'RNAseq_fromCounts'
+
+    # Create and save configuration
+    config_json_path = generate_configuration(postdata, pipeline)
+
+    # Initialize job
+    dag = launch_job(postdata, config_json_path, pipeline)
+
+    return generate_response(postdata, dag)
+
+@app.route('/RNAseq_fromCounts_salmon/', methods=['POST'])
+@cross_origin(origin="*")
+def launch_RNAseq_fromCounts_salmon():
+    postdata = request.get_json()
+    pipeline = 'RNAseq_fromCounts_salmon'
 
     # Create and save configuration
     config_json_path = generate_configuration(postdata, pipeline)
