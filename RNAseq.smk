@@ -53,6 +53,7 @@ annot_path = config_dict['tools_conf'][counts_tool]['annot']
 gentr_path = config_dict['tools_conf'][counts_tool]['genomefasta']
 annotation_tab = config_dict['tools_conf'][counts_tool]['annotation_tab']
 ens_unip_tab = config_dict['tools_conf'][counts_tool]['ens_unip_tab']
+miRNA_tab = config_dict['tools_conf'][counts_tool]['miRNA_tab']
 
 # ------------------Snakemake pipeline------------------
 # Rules
@@ -128,7 +129,8 @@ if counts_tool == 'featureCounts':
     rule deseq2:
         input:
             counts = rules.Counts.output.counts,
-            design = design
+            design = design,
+            annotation = annotation_tab
         output:
             DEtouched = f"{outfolder}/detables/DEtouched.txt",
             norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",
@@ -164,21 +166,22 @@ if counts_tool == 'featureCounts':
     rule dexeq_plot:
         input:
             DGE_dir = rules.deseq2.output.DEtouched,
-            DUT_dir = rules.dexseq.output.DEXtouched,
+            DTU_dir = rules.dexseq.output.DEXtouched,
             annotation = annotation_tab,
             ensembl_uniprot = ens_unip_tab,
+            miRNA_Tarbase = miRNA_tab,
             design = design
         output:
             DEXtouched = f"{outfolder}/DEXplotstouched.txt",
         run:
-            tool_name = 'differential_usage'
+            tool_name = 'differential_usage_plots'
             config_dict['tools_conf'][tool_name] = {
                 'input': {i[0]: i[1] for i in input._allitems()},
                 'output': {i[0]: i[1] for i in output._allitems()},
                 'software': {},
                 'tool_conf': {}
             }
-            open(f"{outfolder}/DEXtouched.txt", 'a').close()
+            open(f"{outfolder}/DEXplotstouched.txt", 'a').close()
 
 
 elif counts_tool == 'salmon':
@@ -240,14 +243,15 @@ elif counts_tool == 'salmon':
     rule dexeq_plot:
         input:
             DGE_dir = rules.deseq2.output.DEtouched,
-            DUT_dir = rules.dexseq.output.DEXtouched,
+            DTU_dir = rules.dexseq.output.DEXtouched,
             annotation = annotation_tab,
             ensembl_uniprot = ens_unip_tab,
+            miRNA_Tarbase = miRNA_tab,
             design = design
         output:
             DEXtouched = f"{outfolder}/dutables/DEXplotstouched.txt",
         run:
-            tool_name = 'differential_usage'
+            tool_name = 'differential_usage_plots'
             config_dict['tools_conf'][tool_name] = {
                 'input': {i[0]: i[1] for i in input._allitems()},
                 'output': {i[0]: i[1] for i in output._allitems()},

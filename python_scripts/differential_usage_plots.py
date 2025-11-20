@@ -1,5 +1,6 @@
 # plot some of the genes from the DEXseq result
 import logging
+import argparse
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +10,8 @@ import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import seaborn as sns
 import os
-import python_scripts.python_functions as pf
+import subprocess
+# import python_scripts.python_functions as pf
 import warnings
 
 # Ignore warnings (annoying)
@@ -237,7 +239,7 @@ def draw_annot(ax, start, end, bot, h, color, alpha):
 
     return ax
 
-def uniprot_annotation(ax, unip_dict, transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span, plot=True, organism = 'mouse'):
+def uniprot_annotation(ax, unip_dict, transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span, plot=True, organism = 'mouse', hred = 1):
     # read the table with the annotation in question
     track_tab = pd.read_csv(unip_dict[f'file_{organism}'], sep='\t', header = None)
     track_tab.columns = ['chr','start','end','protID','score','strand','th-start','th_end','ann_color','nBlocs','bSizes','bStart',
@@ -271,35 +273,40 @@ def uniprot_annotation(ax, unip_dict, transcript, uniprot_ensembl, h, corrVal, f
             index_list = []
             # iter through the tracks and add either an arrow (end-st=3) or a box
             for index, row in feat_info.iterrows():
-                feat_start = correct_coordinates(row['start_fix'], factorDf)
-                feat_end = correct_coordinates(row['end_fix'], factorDf)
-
-                if plot:
-                    # Correct to display only the elements in the coding region
-                    if (feat_end < cds_span[0]) or (feat_start > cds_span[1]):
-                        # If the feat is not in the coding region, add to the table and leave
-                        index_list.append(index)
-                        continue
-                    else:
-                        feat_start = max(feat_start, cds_span[0])
-                        feat_end = min(feat_end, cds_span[1])
-                    
-                    # Show the feat arrows unless they're in an intron
-                    if not (any((feat_start > i[0]) and (feat_start < i[1]) for i in intron_list)):
-                        if feat_end - feat_start == 3:
-                            ax.annotate("", xytext=(feat_end - 1, h + 0.5), xy=(feat_end - 1, h + 0.3), arrowprops=dict(color=unip_dict['color'], arrowstyle="-|>", alpha = 0.4))
-                            index_list.append(index)
-                        elif feat_end - feat_start < 0:
-                            print("There is an error with this feature:")
-                            print(unip_dict)
-                            print(row)
-                        else:
-                            ax = draw_annot(ax, feat_start, feat_end - feat_start, h - 0.3, 0.25, unip_dict['color'], 1)
-                            index_list.append(index)
-
-                # If the plotting is not necessary, add the info to the dataframe
-                else:
+                # check if the values are negative (it happens sometimes)
+                if row['start_fix'] < 0 or row['end_fix'] < 0:
                     index_list.append(index)
+                    continue
+                else:
+                    feat_start = correct_coordinates(row['start_fix'], factorDf)
+                    feat_end = correct_coordinates(row['end_fix'], factorDf)
+
+                    if plot:
+                        # Correct to display only the elements in the coding region
+                        if (feat_end < cds_span[0]) or (feat_start > cds_span[1]):
+                            # If the feat is not in the coding region, add to the table and leave
+                            index_list.append(index)
+                            continue
+                        else:
+                            feat_start = max(feat_start, cds_span[0])
+                            feat_end = min(feat_end, cds_span[1])
+                        
+                        # Show the feat arrows unless they're in an intron
+                        if not (any((feat_start > i[0]) and (feat_start < i[1]) for i in intron_list)):
+                            if feat_end - feat_start == 3:
+                                ax.annotate("", xytext=(feat_end - 1, h + 0.5), xy=(feat_end - 1, h + 0.3), arrowprops=dict(color=unip_dict['color'], arrowstyle="-|>", alpha = 0.4))
+                                index_list.append(index)
+                            elif feat_end - feat_start < 0:
+                                logging.info("There is an error with this feature:")
+                                logging.info(unip_dict)
+                                logging.info(row)
+                            else:
+                                ax = draw_annot(ax, feat_start, feat_end - feat_start, h - 0.3, (0.25*hred), unip_dict['color'], 1)
+                                index_list.append(index)
+
+                    # If the plotting is not necessary, add the info to the dataframe
+                    else:
+                        index_list.append(index)
 
             # Select the rows coumns of interest of the dataframe
             feat_info = feat_info.loc[feat_info.index.isin(index_list)]
@@ -313,6 +320,33 @@ def uniprot_annotation(ax, unip_dict, transcript, uniprot_ensembl, h, corrVal, f
             feat_table = feat_info
 
     return(ax, feat_table)
+
+def draw_miRNA(ax, miRNA_df, h, corrVal, factorDf):
+    # Correct the values of start and end in the annotation table
+    miRNA_df['start_fix'] = miRNA_df['start_mm39'] - corrVal
+    miRNA_df['end_fix'] = miRNA_df['end_mm39'] - corrVal
+
+    # Let's iter through the df and representing each feature
+    for index, row in miRNA_df.iterrows():
+        # Get the length of the binding site (useful for filtering later)
+        miRNA_len = row['end_fix'] - row['start_fix']
+        # Correct the coordinates again
+        try:
+            locus_start = correct_coordinates(row['start_fix'], factorDf)
+            locus_end = correct_coordinates(row['end_fix'], factorDf)
+
+            miRNA_len_cor = locus_end - locus_start
+
+            if miRNA_len == miRNA_len_cor:
+                # Draw the dingies (I don't care if its in an intron or not, it's a miRNA)
+                ax = draw_annot(ax, locus_start, locus_end - locus_start, h + 0.2, 0.1, 'black', 0.4)
+
+            else:
+                logging.info(f"{row['mirna_name']} in gene {row['transcript_name']} could not be plotted")
+        except:
+            logging.info(f"{row['mirna_name']} in gene {row['transcript_name']} could not be plotted")
+
+    return(ax, miRNA_df)
 
 def get_correction_factor(annotDf):
     # Filter the table by the major regions and sort it ascendingly
@@ -415,6 +449,7 @@ def draw_barplot(ax, df, design, ID, name, pval, control, exp_sample):
         x='name',
         y='value',
         hue='Tr1',
+        hue_order=[control, exp_sample],
         ax=ax,
         legend=False,
         palette = {control:'#FF8000', exp_sample:'purple'},
@@ -468,6 +503,10 @@ def isoform_plots(config, tool_name):
     uniprot_ensembl.columns = ["TranscriptID", "SwissProtID", "TrEMBLID", "UniProt_isoformID"]
     uniprot_ensembl = uniprot_ensembl.fillna("")
 
+    # Read the micro RNA table from TarBase with the coordinates lifted off to mm39
+    miRNA_Tarbase_path = config['tools_conf'][tool_name]['input']['miRNA_Tarbase']
+    miRNA_df = pd.read_csv(miRNA_Tarbase_path, sep='\t')
+
     # Load the design and select only the comparison in question
     design_file = config['tools_conf'][tool_name]['input']['design']
     design = pd.read_csv(design_file, sep='\t')
@@ -488,7 +527,7 @@ def isoform_plots(config, tool_name):
 
             # read the result table from the DEXseq analysis. quick filtering for the significant genes.
             # Quick fix to remove the version
-            DEX_path = config['tools_conf'][tool_name]['input']['DUT_dir']
+            DEX_path = config['tools_conf'][tool_name]['input']['DTU_dir']
             DEX_path = "/".join(DEX_path.split('/')[0:-1])
 
             resdf = pd.read_csv(f"{DEX_path}/DTU_{exp_sample}_{control_sample}/{project}_{exp_sample}_{control_sample}.tsv", sep='\t')
@@ -518,9 +557,25 @@ def isoform_plots(config, tool_name):
 
             # ------------------------------------------------------------
 
-            # Loop through the first 50 genes (or the ones that are significant if < 50)
-            nplots = min(len(list(dict.fromkeys(resdf['GeneID_fix'].tolist()))), 50)
-            for gene in list(dict.fromkeys(resdf['GeneID_fix'].tolist()))[0:nplots]:
+            # Loop through the genelist or the first 50 genes (or the ones that are significant if < 50)
+            if 'genelist' in config['tools_conf'][tool_name]['input']:
+                # Read the txt file with the genes
+                with open(config['tools_conf'][tool_name]['input']['genelist'], 'r') as filehandle:
+                    genelist = [i.rstrip() for i in filehandle.readlines()]
+
+                # filter only for the genes that are in the table, if any
+                genelist = [i for i in genelist if i in resdf['GeneID_fix'].tolist()]
+
+                # If the list is empty, log and continue
+                if len(genelist) == 0:
+                    logging.info(f'The provided list has no genes in the DTU result')
+                    continue
+
+            else:
+                nplots = min(len(list(dict.fromkeys(resdf['GeneID_fix'].tolist()))), 50)
+                genelist = list(dict.fromkeys(resdf['GeneID_fix'].tolist()))[0:nplots-1]
+
+            for gene in genelist:
                 # Filter the result object
                 resdf_tmp = resdf[resdf['GeneID_fix'] == gene]
 
@@ -577,13 +632,24 @@ def isoform_plots(config, tool_name):
                 # Prescreen uniprto for useful tracks
                 tracks = prescreen_uniprot(uniprot, uniprot_ensembl, transcript_list)
 
-                # Generate empty dataframe for the final feature table
+                # Generate empty dataframes for the final feature tables
                 feat_table = pd.DataFrame()
+                miRNA_table = pd.DataFrame()
+
+                # Get a value for the relative start and end of the transcript, for plot improvement
+                max_end = 0
+                min_start = gene_end
                 
                 for transcript in transcript_list:
                     # Draw guiding line that spans the whole transcript (will probably not be seen)
                     tr_start = correct_coordinates(annotDf_tmp[(annotDf_tmp['item'] == 'transcript') & (annotDf_tmp['transcript_id'] == transcript)]['start_fix'].tolist()[0], factorDf)
                     tr_end = correct_coordinates(annotDf_tmp[(annotDf_tmp['item'] == 'transcript') & (annotDf_tmp['transcript_id'] == transcript)]['end_fix'].tolist()[0], factorDf)
+
+                    if tr_end > max_end:
+                        max_end = tr_end
+
+                    if tr_start < min_start:
+                        min_start = tr_start
                     
                     ax1 = draw_annot(ax1, tr_start, tr_end - tr_start, h - 0.05, 0.1, 'grey', 0.2)
 
@@ -631,14 +697,18 @@ def isoform_plots(config, tool_name):
 
                     # draw the 5' and 3' UTR regions (if they're there)
                     if 'three_prime_utr' in annotDf_tmp[annotDf_tmp['transcript_id'] == transcript]['item'].tolist():
-                        utr3_start = correct_coordinates(annotDf_tmp[(annotDf_tmp['item'] == 'three_prime_utr') & (annotDf_tmp['transcript_id'] == transcript)]['start_fix'].tolist()[0], factorDf)
-                        utr3_end = correct_coordinates(annotDf_tmp[(annotDf_tmp['item'] == 'three_prime_utr') & (annotDf_tmp['transcript_id'] == transcript)]['end_fix'].tolist()[0], factorDf)
+                        threePutr_df = annotDf_tmp[(annotDf_tmp['item'] == 'three_prime_utr') & (annotDf_tmp['transcript_id'] == transcript)]
+                        for index, row in threePutr_df.iterrows():
+                            utr3_start = correct_coordinates(row['start_fix'], factorDf)
+                            utr3_end = correct_coordinates(row['end_fix'], factorDf)
 
-                        ax1 = draw_annot(ax1, utr3_start, utr3_end - utr3_start, h - 0.1, 0.2, 'grey', 0.4)
+                            ax1 = draw_annot(ax1, utr3_start, utr3_end - utr3_start, h - 0.1, 0.2, 'grey', 0.4)
 
                     if 'five_prime_utr' in annotDf_tmp[annotDf_tmp['transcript_id'] == transcript]['item'].tolist():
-                        utr5_start = correct_coordinates(annotDf_tmp[(annotDf_tmp['item'] == 'five_prime_utr') & (annotDf_tmp['transcript_id'] == transcript)]['start_fix'].tolist()[0], factorDf)
-                        utr5_end = correct_coordinates(annotDf_tmp[(annotDf_tmp['item'] == 'five_prime_utr') & (annotDf_tmp['transcript_id'] == transcript)]['end_fix'].tolist()[0], factorDf)
+                        fivePutr_df = annotDf_tmp[(annotDf_tmp['item'] == 'five_prime_utr') & (annotDf_tmp['transcript_id'] == transcript)]
+                        for index, row in fivePutr_df.iterrows():
+                            utr5_start = correct_coordinates(row['start_fix'], factorDf)
+                            utr5_end = correct_coordinates(row['end_fix'], factorDf)
 
                         ax1 = draw_annot(ax1, utr5_start, utr5_end - utr5_start, h - 0.1, 0.2, 'grey', 0.4)
 
@@ -688,25 +758,61 @@ def isoform_plots(config, tool_name):
 
                         ax1 = draw_annot(ax1, stocod_start, stocod_end - stocod_start, h - 0.25, 0.5, 'red', 1)          
 
-                    # Annotation of transcripts using Uniprot information        
+                    # Annotation of transcripts using Uniprot information
+                    feat_table_tmp = pd.DataFrame()
                     for track in uniprot:
-                        # If the feature track is in the unplottable one, or has no difference between transcripts, just add to the table
-                        if track in ['region','chain','site', 'mod_res', 'peptide'] or track not in tracks:
-                            ax1, feat_info = uniprot_annotation(ax1, uniprot[track], transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span, plot=False, organism = organism)
-                        else:
-                            ax1, feat_info = uniprot_annotation(ax1, uniprot[track], transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span,  organism = organism)
+                        try:
+                            # If the feature track is in the unplottable one, or has no difference between transcripts, just add to the table
+                            # Scale the height of the boxes according to the relevance of the annotation
+                            if track in ['region','chain','site', 'mod_res', 'peptide'] or track not in tracks:
+                                ax1, feat_info = uniprot_annotation(ax1, uniprot[track], transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span, plot=False, organism = organism)
+                            elif track in ['repeat','coiled','signal','transit','propep','dna_bind','zn_finger','motif']:
+                                ax1, feat_info = uniprot_annotation(ax1, uniprot[track], transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span,  organism = organism, hred = 0.6)
+                            elif track in ['domain']:
+                                ax1, feat_info = uniprot_annotation(ax1, uniprot[track], transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span,  organism = organism, hred = 0.25)
+                            else:
+                                ax1, feat_info = uniprot_annotation(ax1, uniprot[track], transcript, uniprot_ensembl, h, corrVal, factorDf, intron_list, cds_span,  organism = organism)
+                        except:
+                                logging.info(f"An error occurred in transcript {transcript} with the {track} track.")
 
                         # Add the table to the result one
-                        if feat_table.empty:
-                            feat_table = feat_info
+                        if feat_table_tmp.empty:
+                            feat_table_tmp = feat_info
                         else:
-                            feat_table = pd.concat([feat_table, feat_info])
-                        
+                            feat_table_tmp = pd.concat([feat_table_tmp, feat_info])
+
+                    # Fill the table with the info from the transcript if nothing has come up,
+                    # because I still would want to see what the transcript is annotated as
+                    if feat_table_tmp.empty:
+                        feat_table_tmp = pd.DataFrame({
+                            'protID': ["-"],
+                            'annotation': ['-'],
+                            'transcript_id': [transcript],
+                            'feat_type': ['-']
+                        })
+
+                    # add to the general table
+                    if feat_table.empty:
+                        feat_table = feat_table_tmp
+                    else:
+                        feat_table = pd.concat([feat_table, feat_table_tmp])
+
+                    # # Filter if there are miRNA sites in the transcript
+                    miRNA_df_slice = miRNA_df[miRNA_df['transcript_id'] == transcript]
+                    # Draw the site if there are some
+                    if not miRNA_df_slice.empty:
+                        ax1, miRNA_tab = draw_miRNA(ax1, miRNA_df_slice, h, corrVal, factorDf)
+
+                        # add to the general table
+                        if miRNA_table.empty:
+                            miRNA_table = miRNA_tab
+                        else:
+                            miRNA_table = pd.concat([miRNA_table, miRNA_tab])
 
                     # Cover the annotated intron regions with white (disgusting, I know)
                     for intron in intron_list:
                         # Cover in white
-                        ax1 = draw_annot(ax1, intron[0], intron[1] - intron[0], h - 0.3, 250, 'white', 1)
+                        ax1 = draw_annot(ax1, intron[0], intron[1] - intron[0], h - 0.3, 0.5, 'white', 1)
 
                         # redraw the transcript line. Exclude the first segment
                         if intron[0] > 0:
@@ -728,12 +834,16 @@ def isoform_plots(config, tool_name):
                 feat_table_path = f"{DEX_path}/DTU_{exp_sample}_{control_sample}/{project}_{exp_sample}_{control_sample}_{genename}_features_uniprot.tsv"
                 feat_table.to_csv(feat_table_path, sep='\t', index=False)
 
+                # save the table with the miRNAs for each gene in the DTU table
+                miRNA_table_path = f"{DEX_path}/DTU_{exp_sample}_{control_sample}/{project}_{exp_sample}_{control_sample}_{genename}_features_miRNA.tsv"
+                miRNA_table.to_csv(miRNA_table_path, sep='\t', index=False)
+
                 # create a legend object to add
                 legend_patches = [uniprot[i]['legend'] for i in tracks if 'legend' in uniprot[i]]
                 
                 # Set the limits for the axis (?)
                 ax1.set_ylim(bottom = 0, top = len(transcript_list)+1)
-                ax1.set_xlim(0, gene_end + 100)
+                ax1.set_xlim(min_start - 100, max_end + 100)
                 
                 # Set the names of the transcripts
                 transcript_names_list = [''] + transcript_names_list
@@ -785,11 +895,101 @@ def isoform_plots(config, tool_name):
 
                 plt.savefig(f"{DEX_path}/DTU_{exp_sample}_{control_sample}/{project}_{exp_sample}_{control_sample}_{genename}_features_uniprot.png", dpi=600, bbox_inches='tight')
 
-                plt.show()
+                plt.close()
 
     # Make that little control file useful for snakemake
         # Touch the markerfile
     command = f'touch {DEXtouched}; '
 
-    # Run the commans
-    pf.run_command(command)
+    # Run the command (im running this without the function because it has to run on its own)
+    output = subprocess.run(command, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # pf.run_command(command)
+
+def get_arguments():
+    """
+    Function that parse arguments given by the user, returning a dictionary
+    that contains all the values.
+    """
+
+    # Create the top-level parser
+    parser = argparse.ArgumentParser()
+
+    # Mandatory variables
+    parser.add_argument('--project', required=True, help='Project name')
+
+    parser.add_argument('--DGE_dir', required=True, help='Location of the differential gene expression files')
+    parser.add_argument('--DTU_dir', required=True, help='location of the differential transcript usage files')
+    parser.add_argument('--genelist', required=True, help='file with a list of genes to analyze')
+    parser.add_argument('--design', required=True, help='location of the design file')
+    
+    parser.add_argument('--control', required=True, help='samples used as control')
+    parser.add_argument('--expsample', required=True, help='experimental samples')
+
+    parser.add_argument('--annotation', default='/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv', help='transcriptome annotation')
+    parser.add_argument('--uniprot', default='/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt', help='uniprot annotation')
+    parser.add_argument('--miRNA', default='/DATA/references/annotation/miRNA/mouse/Mus_musculus_mm39.tsv', help='micro RNa annotation')
+    parser.add_argument('--organism', default='mouse', help='organism')
+
+    # Test and debug variables
+    parser.add_argument('--dry_run', action='store_true', default=False, help='debug')
+    parser.add_argument('--debug', '-d', action='store_true', default=False, help='dry_run')
+    parser.add_argument('--test', '-t', action='store_true', default=False, help='test')
+
+    # parse some argument lists
+    args = parser.parse_args()
+
+    return args
+
+
+def main():
+    """
+    Main function of the script. Launches the rest of the process
+    """
+
+    # Get arguments from user input
+    args = get_arguments()
+
+    # Create the config dict
+    config_dict = {}
+
+    # Project name
+    config_dict['project'] = args.project
+
+    # options
+    config_dict['options'] = {
+        'organism': args.organism
+    }
+
+    # Tool configuration
+    config_dict['tools_conf'] = {
+        'isoform_plots': {
+            'input': {
+                'DGE_dir': args.DGE_dir,
+                'DTU_dir': args.DTU_dir,
+                'genelist': args.genelist,
+                'annotation': args.annotation,
+                'ensembl_uniprot': args.uniprot,
+                'miRNA_Tarbase': args.miRNA,
+                'design': args.design,
+            },
+            'output': {
+                "DEXtouched": f"{args.DTU_dir}/DEXtouched.txt"
+            }
+        }
+    }
+
+    # Create the comparison
+    config_dict['comparisons'] = {
+        args.control: args.expsample
+    }
+
+    logfile = config_dict['tools_conf']['isoform_plots']["output"]["DEXtouched"].replace('DEXtouched.txt','') + 'DTU_isoform.log'
+    logging.basicConfig(filename=logfile, level=logging.DEBUG, format='#[%(levelname)s]: - %(asctime)s - %(message)s')
+    logging.info(f'Starting plotting isoforms')
+
+    isoform_plots(config_dict, 'isoform_plots')
+
+    logging.info(f'Finished plotting isoforms')
+
+if __name__ == "__main__":
+    main()

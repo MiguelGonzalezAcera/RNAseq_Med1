@@ -25,13 +25,22 @@ logging.info(f'Starting RNAseq {project}')
 design_file = pd.read_csv(design, sep='\t', index_col=0).reset_index()
 design_file.columns = ['sample','tr','batch']
 
+# Counts tool
+counts_tool = config_dict['options']['counts']
+
 # Read the fastq files
 counts_file = config_dict['counts_file']
+
+# get the annotation files
+annot_path = config_dict['tools_conf'][counts_tool]['annot']
+gentr_path = config_dict['tools_conf'][counts_tool]['genomefasta']
+annotation_tab = config_dict['tools_conf'][counts_tool]['annotation_tab']
 
 rule deseq2:
     input:
         counts = counts_file,
-        design = design
+        design = design,
+        annotation = annotation_tab
     output:
         DEtouched = f"{outfolder}/detables/DEtouched.txt",
         norm_counts = f"{outfolder}/detables/{project}_norm_counts.Rda",

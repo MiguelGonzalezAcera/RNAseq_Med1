@@ -32,6 +32,8 @@ def deseq2(config, tool_name):
     project = config['project']
     # organism used
     organism = config['options']['organism']
+    # tx2gene
+    annotation = config['tools_conf'][tool_name]['input']['annotation']
 
     # Create the command to run the deseq2 R script
     command = ""
@@ -40,7 +42,7 @@ def deseq2(config, tool_name):
 
     # Create the deseq2 command for each control
     for control in samples:
-        command += f'Rscript Rscripts/deseq2.r --counts {counts} --design {design} --out_obj {out_obj} --organism {organism} --control {control} --comparisons {samples[control]}; '
+        command += f'Rscript Rscripts/deseq2.r --counts {counts} --annotation {annotation} --design {design} --out_obj {out_obj} --organism {organism} --control {control} --comparisons {samples[control]}; '
     # Touch the markerfile
     command += f'touch {DEtouched}'
 
