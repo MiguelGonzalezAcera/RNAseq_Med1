@@ -172,7 +172,7 @@ rownames(norm_counts) <- gsub("[.].*$", "", as.character(rownames(norm_counts)),
 
 # Remove unwanted rows (works only in case of transcripts)
 
-norm_counts <- norm_counts[!(rownames(norm_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+norm_counts <- norm_counts[startsWith(rownames(norm_counts), 'ENS'),]
 
 # Get the names of the columns
 norm_counts_colnames <- colnames(norm_counts)
@@ -239,7 +239,7 @@ for (sample in strsplit(opt$comparisons, ",")[[1]]){
   resdf$padj[is.na(resdf$padj)] <- 1
 
   # Remove unwanted rows (works only in case of transcripts)
-  resdf <- resdf[!(rownames(resdf) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+  resdf <- resdf[startsWith(rownames(resdf), 'ENS'),]
 
   # remove the version of the ensembl ids
   rownames(resdf) <- gsub("[.].*$", "", as.character(rownames(resdf)), perl = TRUE)
@@ -345,7 +345,7 @@ tr_counts <- assay(vsd)
 tr_counts_colnames <- colnames(tr_counts)
 
 # Remove unwanted rows (works only in case of transcripts)
-tr_counts <- tr_counts[!(rownames(tr_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+tr_counts <- tr_counts[startsWith(rownames(tr_counts), 'ENS'),]
 
 # remove the version of the ensembl ids
 rownames(tr_counts) <- gsub("[.].*$", "", as.character(rownames(tr_counts)), perl = TRUE)
@@ -385,7 +385,7 @@ if (length(levels(factor(sampleTableSingle$Batch))) > 1) {
   tr_B_counts_colnames <- colnames(tr_B_counts)
 
   # Remove unwanted rows (works only in case of transcripts)
-  tr_B_counts <- tr_B_counts[!(rownames(tr_B_counts) %in% c('1','10','11','12','13','14','15','16','17','18','19','2','3','4','5','6','7','8','9','GL456210','GL456211','GL456212','GL456221','GL456233','GL456239','GL456354','GL456367','GL456368','GL456370','GL456378','GL456382','GL456383','GL456385','GL456389','GL456390','GL456392','JH584295','JH584296','JH584297','JH584299','JH584304','MT','MU069434','MU069435','X','Y')),]
+  tr_B_counts <- tr_B_counts[startsWith(rownames(tr_B_counts), 'ENS'),]
 
   # remove the version of the ensembl ids
   rownames(tr_B_counts) <- gsub("[.].*$", "", as.character(rownames(tr_B_counts)), perl = TRUE)

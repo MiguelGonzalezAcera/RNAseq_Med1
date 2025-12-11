@@ -26,6 +26,7 @@ def uniprot_dict():
             "name" : "Active site",
             'class': "Sites",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_act_site.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_act_site.bed",
             "color": "red",
             "definition": "Amino acid(s) directly involved in the activity of an enzyme",
             "legend": mlines.Line2D([], [], color='red', lw=0, marker='v',markersize=10, label='Active site')
@@ -34,6 +35,7 @@ def uniprot_dict():
             "name" : "Binding site",
             'class': "Sites",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_binding.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_binding.bed",
             "color": "green",
             "definition": "Binding site for any chemical group (co-enzyme, prosthetic group, etc.)",
             "legend": mlines.Line2D([], [], color='green', lw=0, marker='v',markersize=10, label='Binding site')
@@ -42,6 +44,7 @@ def uniprot_dict():
             "name" : "Glycosylated residue",
             'class': "Aa_mod",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_carbohyd.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_carbohyd.bed",
             "color": "#CCCC00",
             "definition": "Covalently attached glycan group(s)",
             "legend": mlines.Line2D([], [], color='#CCCC00', lw=0, marker='v',markersize=10, label='Glycosylated residue')
@@ -50,6 +53,7 @@ def uniprot_dict():
             "name" : "Covalent link",
             'class': "Aa_mod",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_crosslnk.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_crosslnk.bed",
             "color": "orange",
             "definition": "Residues participating in covalent linkage(s) between proteins",
             "legend": mlines.Line2D([], [], color='orange', lw=0, marker='v',markersize=10, label='Covalent link')
@@ -58,6 +62,7 @@ def uniprot_dict():
             "name" : "Lipid residue",
             'class': "Aa_mod",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_lipid.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_lipid.bed",
             "color": "blue",
             "definition": "Covalently attached lipid group(s)",
             "legend": mlines.Line2D([], [], color='blue', lw=0, marker='v',markersize=10, label='Lipid residue')
@@ -66,6 +71,7 @@ def uniprot_dict():
             "name" : "Transmembrane region",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_transmem.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_transmem.bed",
             "color": "#CC0000",
             "definition": "Extent of a membrane-spanning region",
             "legend": mpatches.Patch(color='#CC0000', alpha=1, label='Transmembrane region')
@@ -74,6 +80,7 @@ def uniprot_dict():
             "name" : "Non-membrane region",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_topo_dom.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_topo_dom.bed",
             "color": "#6600CC",
             "definition": "Location of non-membrane regions of membrane-spanning proteins",
             "legend": mpatches.Patch(color='#6600CC', alpha=1, label='Non-membrane region')
@@ -82,6 +89,7 @@ def uniprot_dict():
             "name" : "Intramembrane region",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_intramem.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_intramem.bed",
             "color": "#CCCC00",
             "definition": "Extent of a region located in a membrane without crossing it",
             "legend": mpatches.Patch(color='#CCCC00', alpha=1, label='Intramembrane region')
@@ -90,6 +98,7 @@ def uniprot_dict():
             "name" : "Repeated sequence motifs",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_repeat.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_repeat.bed",
             "color": "#CC6600",
             "definition": "Positions of repeated sequence motifs or repeated domains",
             "legend": mpatches.Patch(color='#CC6600', alpha=1, label='Repeated sequence motifs')
@@ -98,6 +107,7 @@ def uniprot_dict():
             "name" : "Coiled coil region",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_coiled.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_coiled.bed",
             "color": "#CC00CC",
             "definition": "Positions of regions of coiled coil within the protein",
             "legend": mpatches.Patch(color='#CC00CC', alpha=1, label='Coiled coil region')
@@ -106,6 +116,7 @@ def uniprot_dict():
             "name" : "Signal peptide (secretion)",
             'class': "Molecule_processing",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_signal.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_signal.bed",
             "color": "#B2FF66",
             "definition": "Sequence targeting proteins to the secretory pathway or periplasmic space",
             "legend": mpatches.Patch(color='#B2FF66', alpha=1, label='Signal peptide (secretion)')
@@ -114,6 +125,7 @@ def uniprot_dict():
             "name" : "Transit peptide (organelle)",
             'class': "Molecule_processing",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_transit.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_transit.bed",
             "color": "#00FF00",
             "definition": "Extent of a transit peptide for organelle targeting",
             "legend": mpatches.Patch(color='#00FF00', alpha=1, label='Transit peptide (organelle)')
@@ -122,6 +134,7 @@ def uniprot_dict():
             "name" : "Pro-peptide",
             'class': "Molecule_processing",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_propep.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_propep.bed",
             "color": "#009900",
             "definition": "Part of a protein that is cleaved during maturation or activation",
             "legend": mpatches.Patch(color='#009900', alpha=1, label='Pro-peptide')
@@ -130,6 +143,7 @@ def uniprot_dict():
             "name" : "DNA-binding domain",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_dna_bind.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_dna_bind.bed",
             "color": "#00FFFF",
             "definition": "Position and type of a DNA-binding domain",
             "legend": mpatches.Patch(color='#00FFFF', alpha=1, label='DNA-binding domain')
@@ -138,6 +152,7 @@ def uniprot_dict():
             "name" : "Zinc finger domain",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_zn_fing.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_zn_fing.bed",
             "color": "#0000FF",
             "definition": "Position(s) and type(s) of zinc fingers within the protein",
             "legend": mpatches.Patch(color='#0000FF', alpha=1, label='Zinc finger domain')
@@ -146,6 +161,7 @@ def uniprot_dict():
             "name" : "Sequence motif",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_motif.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_motif.bed",
             "color": "#0080FF",
             "definition": "Short (up to 20 amino acids) sequence motif of biological interest",
             "legend": mpatches.Patch(color='#0080FF', alpha=1, label='Sequence motif')
@@ -154,6 +170,7 @@ def uniprot_dict():
             "name" : "Modular protein domain",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_domain.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_domain.bed",
             "color": "#9999FF",
             "definition": "Position and type of each modular protein domain",
             "legend": mpatches.Patch(color='#9999FF', alpha=1, label='Modular protein domain')
@@ -162,30 +179,35 @@ def uniprot_dict():
             "name" : "Polypeptide chain",
             'class': "Molecule_processing",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_chain.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_chain.bed",
             "definition": "Extent of a polypeptide chain in the mature protein"
         },
         "mod_res": {
             "name" : "Modified residue",
             'class': "Aa_mod",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_mod_res.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_mod_res.bed",
             "definition": "Modified residues excluding lipids, glycans and protein cross-links"
         },
         "peptide": {
             "name" : "Active peptide",
             'class': "Molecule_processing",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_peptide.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_peptide.bed",
             "definition": "Extent of an active peptide in the mature protein"
         },
         "region": {
             "name" : "Region of interest",
             'class': "Regions",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_region.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_region.bed",
             "definition": "Region of interest in the sequence"
         },
         "site": {
             "name" : "Interesting amino acid site",
             'class': "Sites",
             "file_mouse": "/DATA/references/annotation/UniProt/mouse/UP000000589_10090_site.bed",
+            "file_human": "/DATA/references/annotation/UniProt/human/UP000005640_9606_site.bed",
             "definition": "Any interesting single amino acid site on the sequence"
         }
     }
@@ -630,7 +652,7 @@ def isoform_plots(config, tool_name):
                 ]
 
                 # Prescreen uniprto for useful tracks
-                tracks = prescreen_uniprot(uniprot, uniprot_ensembl, transcript_list)
+                tracks = prescreen_uniprot(uniprot, uniprot_ensembl, transcript_list, organism = organism)
 
                 # Generate empty dataframes for the final feature tables
                 feat_table = pd.DataFrame()

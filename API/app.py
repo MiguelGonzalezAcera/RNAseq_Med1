@@ -25,20 +25,18 @@ def get_references_names():
         'human': {
             "tools_conf": {
                 "salmon":{
-                    "genome": "/DATA/references/star_genomes/hs38/salmon_human_index/",
-                    "annot": "/DATA/references/star_genomes/hs38/annotation/Homo_sapiens.GRCh38.115.gtf",
-                    "genomefasta": "/DATA/references/star_genomes/hs38/transcriptome/Homo_sapiens.GRCh38.gentr.fa",
-                    "tx2gene": "/DATA/references/star_genomes/hs38/annotation/tx2gen.tsv",
+                    "genome": "/DATA/references/star_genomes/hs38/salmon mouse index/",
+                    "annot": "/DATA/references/star_genomes/hs38/annotation/gencode_for_IBDome/gencode.v33.primary_assembly.annotation.gtf",
+                    "genomefasta": "/DATA/references/star_genomes/hs38/sequence/gencode_for_IBDome/gencode.v33.gentr.fa",
                     # Replace with the human info
-                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv",
-                    "ens_unip_tab": "/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt",
-                    "miRNA_tab": "/DATA/references/annotation/miRNA/mouse/Mus_musculus_mm39.tsv"
+                    "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/gencode_for_IBDome/gencode.v33.primary_assembly.annotation.tsv",
+                    "ens_unip_tab": "/DATA/references/annotation/UniProt/human/Biomart_uniprot_human_rel.txt",
+                    "miRNA_tab": "/DATA/references/annotation/miRNA/human/Homo_sapiens.tsv"
                     },
                 "featureCounts": {
                     "genome": "/DATA/references/star_genomes/hs38/star_indices_overhang150/",
                     "annot": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.111.gtf",
                     "genomefasta": "/DATA/references/star_genomes/hs38/star_indices_overhang150/Homo_sapiens.GRCh38.dna.toplevel.fa",
-                    "tx2gene": "",
                     # Replace with the human info
                     "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv",
                     "ens_unip_tab": "/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt",
@@ -54,7 +52,6 @@ def get_references_names():
                     "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
                     # "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/transcriptome/Mus_musculus.GRCm39.gentr.fa",
-                    "tx2gene": "/DATA/references/star_genomes/mmu39/annotation/tx2gen.tsv",
                     "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv",
                     "ens_unip_tab": "/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt",
                     "miRNA_tab": "/DATA/references/annotation/miRNA/mouse/Mus_musculus_mm39.tsv"
@@ -63,7 +60,6 @@ def get_references_names():
                     "genome": "/DATA/references/star_genomes/mmu39/star_indices_overhang150/",
                     "annot": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.109.gtf",
                     "genomefasta": "/DATA/references/star_genomes/mmu39/genome/Mus_musculus.GRCm39.dna.toplevel.fa",
-                    "tx2gene": "",
                     "annotation_tab": "/DATA/references/star_genomes/mmu39/annotation/Mus_musculus.GRCm39.114.tsv",
                     "ens_unip_tab": "/DATA/references/annotation/UniProt/mouse/Biomart_uniprot_mouse_rel.txt",
                     "miRNA_tab": "/DATA/references/annotation/miRNA/mouse/Mus_musculus_mm39.tsv"
